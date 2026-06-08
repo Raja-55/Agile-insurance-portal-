@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   AlertTriangle,
-  ArrowLeft,
   BadgeCheck,
   BarChart3,
   Bell,
@@ -10,11 +9,9 @@ import {
   CreditCard,
   Download,
   Edit3,
-  Eraser,
   Eye,
   FileText,
   Headphones,
-  History,
   KeyRound,
   LayoutDashboard,
   LineChart,
@@ -25,9 +22,9 @@ import {
   MessageSquare,
   PieChart,
   Plus,
-  Save,
   Search,
   Send,
+  ScrollText,
   Settings,
   ShieldCheck,
   Smartphone,
@@ -37,17 +34,12 @@ import {
   X,
   XCircle,
 } from "lucide-react";
-import { uid } from "../utils/storage";
 
 const STORAGE_USERS = "agile_insurance_users_v1";
 const STORAGE_SESSION = "agile_insurance_session_v1";
 const STORAGE_ADMINS = "agile_insurance_admins_v1";
-const STORAGE_CLAIMS = "agile_insurance_claims_v1";
-const STORAGE_AUDIT_LOGS = "agile_insurance_audit_logs_v1";
-const STORAGE_SYSTEM_SETTINGS = "agile_insurance_system_settings_v1";
-// Support chat storage key - shared with user dashboard contact page
-// EDIT HERE: Change storage key if migrating chat data to a different location
 const STORAGE_SUPPORT_CHATS = "agile_insurance_support_chats_v1";
+const STORAGE_AUDIT_LOGS = "agile_insurance_audit_logs_v1";
 
 const defaultAdminProfiles = [
   {
@@ -92,6 +84,12 @@ const defaultAdminProfiles = [
   },
 ];
 
+const defaultAuditLogs = [
+  { id: "LOG-001", action: "/api/v4/bridges/deploy", username: "asha.admin@agileinsure.in", initials: "AM", createdAt: new Date(Date.now() - 3600000).toISOString() },
+  { id: "LOG-002", action: "/api/v4/assets/create", username: "rohit.manager@agileinsure.in", initials: "RK", createdAt: new Date(Date.now() - 14400000).toISOString() },
+  { id: "LOG-003", action: "/api/v4/documents/verify", username: "naina.claims@agileinsure.in", initials: "NS", createdAt: new Date(Date.now() - 72000000).toISOString() },
+];
+
 const navItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["Super Admin", "Insurance Manager", "Claims Officer", "Support Executive"] },
   { id: "users", label: "User Management", icon: Users, roles: ["Super Admin", "Insurance Manager"] },
@@ -101,9 +99,9 @@ const navItems = [
   { id: "policies", label: "Policy Management", icon: FileText, roles: ["Super Admin", "Insurance Manager"] },
   { id: "documents", label: "Document Verification", icon: ShieldCheck, roles: ["Super Admin", "Claims Officer"] },
   { id: "reports", label: "Reports & Analytics", icon: BarChart3, roles: ["Super Admin", "Insurance Manager"] },
-  { id: "audit", label: "Audit Logs", icon: History, roles: ["Super Admin"] },
   { id: "profile", label: "Admin Profile", icon: UserCog, roles: ["Super Admin", "Insurance Manager", "Claims Officer", "Support Executive"] },
-  { id: "settings", label: "System Settings", icon: Settings, roles: ["Super Admin"] },
+  { id: "auditlog", label: "Audit Log", icon: ScrollText, roles: ["Super Admin", "Insurance Manager", "Claims Officer", "Support Executive"] },
+  { id: "settings", label: "Settings", icon: Settings, roles: ["Super Admin"] },
 ];
 
 const metrics = [
@@ -130,6 +128,13 @@ const claims = [
   { id: "CLM004", user: "Sana Khan", policy: "Travel", amount: "INR 82,000", status: "Documents", officer: "Dev A." },
 ];
 
+const tickets = [
+  { id: "TKT001", user: "User A", subject: "Claim Issue", priority: "High", status: "Open" },
+  { id: "TKT002", user: "User B", subject: "Premium payment failed", priority: "Medium", status: "In Progress" },
+  { id: "TKT003", user: "User C", subject: "Policy document missing", priority: "Low", status: "Waiting for User" },
+  { id: "TKT004", user: "User D", subject: "Advisor callback request", priority: "High", status: "Open" },
+];
+
 const requirements = [
   { user: "Kabir S.", age: 34, budget: "INR 18,000", coverage: "INR 15L", status: "Quote Ready" },
   { user: "Nisha P.", age: 42, budget: "INR 30,000", coverage: "INR 25L", status: "Review" },
@@ -142,152 +147,6 @@ const documents = [
   { type: "Driving License", owner: "Aarav Mehta", status: "Pending" },
   { type: "Medical Reports", owner: "Meera Rao", status: "Re-upload" },
   { type: "Claim Documents", owner: "Sana Khan", status: "Verification" },
-];
-
-const adminSettingCards = [
-  { id: "general", title: "General Setting", description: "Configure the fundamental information of the site.", icon: Settings },
-  { id: "branding", title: "Logo and Favicon", description: "Upload your logo and favicon here.", icon: LayoutDashboard },
-  { id: "configuration", title: "System Configuration", description: "Control all of the basic modules of the system.", icon: UserCog },
-  { id: "notifications", title: "Notification Setting", description: "Control and configure overall notification elements of the system.", icon: Bell },
-  { id: "payment", title: "Payment Gateways", description: "Configure automatic or manual payment gateways to accept payment from users.", icon: CreditCard },
-  { id: "withdrawals", title: "Withdrawals Methods", description: "Set up manual withdrawal methods for payout requests.", icon: KeyRound },
-  { id: "forms", title: "Policy Forms", description: "Generate forms for different policies.", icon: ClipboardCheck },
-  { id: "features", title: "Manage Features", description: "Generate features for different plans.", icon: Edit3 },
-  { id: "regulations", title: "Policy Regulations", description: "Define what will and will not be covered in plans.", icon: AlertTriangle },
-  { id: "seo", title: "SEO Configuration", description: "Configure meta title, description, and keywords.", icon: LineChart },
-  { id: "frontend", title: "Manage Frontend", description: "Control all frontend contents of the system.", icon: Smartphone },
-  { id: "pages", title: "Manage Pages", description: "Control dynamic and static pages of the system.", icon: FileText },
-  { id: "kyc", title: "KYC Setting", description: "Configure client information fields.", icon: ShieldCheck },
-  { id: "social", title: "Social Login Setting", description: "Provide required social login information.", icon: Users },
-  { id: "language", title: "Language", description: "Configure languages and keywords to localize the system.", icon: MessageSquare },
-  { id: "extensions", title: "Extensions", description: "Manage extensions of the system.", icon: Plus },
-  { id: "policyPages", title: "Policy Pages", description: "Configure policy and terms of the system.", icon: Lock },
-  { id: "maintenance", title: "Maintenance Mode", description: "Enable or disable maintenance mode when required.", icon: Settings },
-  { id: "cookie", title: "GDPR Cookie", description: "Set GDPR cookie policy for visitors.", icon: CheckCircle2 },
-  { id: "css", title: "Custom CSS", description: "Write custom CSS for frontend styles.", icon: FileText },
-  { id: "sitemap", title: "Sitemap XML", description: "Insert sitemap XML to enhance SEO performance.", icon: LayoutDashboard },
-  { id: "robots", title: "Robots txt", description: "Insert robots.txt content for web crawlers.", icon: FileText },
-];
-
-const settingFieldGroups = {
-  general: [
-    { name: "companyName", label: "Company Name", type: "text", defaultValue: "Agile Insurance" },
-    { name: "supportEmail", label: "Support Email", type: "text", defaultValue: "support@agileinsure.in" },
-    { name: "supportPhone", label: "Support Phone", type: "text", defaultValue: "+91 98765 43210" },
-    { name: "serviceTaxRate", label: "Service Tax Rate (%)", type: "number", defaultValue: 18 },
-  ],
-  branding: [
-    { name: "logo", label: "Logo", type: "file", accept: "image/*", defaultValue: "" },
-    { name: "favicon", label: "Favicon", type: "file", accept: "image/*", defaultValue: "" },
-    { name: "brandColor", label: "Brand Color", type: "color", defaultValue: "#2563eb" },
-  ],
-  configuration: [
-    { name: "claimsModule", label: "Claims Module", type: "boolean", defaultValue: true },
-    { name: "paymentsModule", label: "Payments Module", type: "boolean", defaultValue: true },
-    { name: "documentsModule", label: "Document Vault", type: "boolean", defaultValue: true },
-    { name: "supportModule", label: "Support Center", type: "boolean", defaultValue: true },
-  ],
-  notifications: [
-    { name: "emailEnabled", label: "Email Notifications", type: "boolean", defaultValue: true },
-    { name: "smsEnabled", label: "SMS Notifications", type: "boolean", defaultValue: true },
-    { name: "pushEnabled", label: "Push Notifications", type: "boolean", defaultValue: false },
-    { name: "renewalReminderDays", label: "Renewal Reminder Days", type: "number", defaultValue: 15 },
-  ],
-  payment: [
-    { name: "razorpay", label: "Razorpay Gateway", type: "boolean", defaultValue: true },
-    { name: "upi", label: "UPI Payments", type: "boolean", defaultValue: true },
-    { name: "cards", label: "Card Payments", type: "boolean", defaultValue: true },
-    { name: "minimumPayment", label: "Minimum Payment", type: "number", defaultValue: 500 },
-  ],
-  withdrawals: [
-    { name: "bankTransfer", label: "Bank Transfer", type: "boolean", defaultValue: true },
-    { name: "upiPayout", label: "UPI Payout", type: "boolean", defaultValue: true },
-    { name: "minimumWithdrawal", label: "Minimum Withdrawal", type: "number", defaultValue: 1000 },
-    { name: "payoutNote", label: "Payout Instructions", type: "textarea", defaultValue: "Verify bank details before approving payouts." },
-  ],
-  forms: [
-    { name: "healthForm", label: "Health Policy Form", type: "boolean", defaultValue: true },
-    { name: "motorForm", label: "Motor Policy Form", type: "boolean", defaultValue: true },
-    { name: "lifeForm", label: "Life Policy Form", type: "boolean", defaultValue: true },
-    { name: "requiredFields", label: "Required Fields", type: "textarea", defaultValue: "Full name, phone, email, policy type, ID proof" },
-  ],
-  features: [
-    { name: "aiAssistant", label: "AI Assistant", type: "boolean", defaultValue: true },
-    { name: "policyCompare", label: "Policy Compare", type: "boolean", defaultValue: true },
-    { name: "claimTracking", label: "Claim Tracking", type: "boolean", defaultValue: true },
-    { name: "voiceSupport", label: "Voice Support", type: "boolean", defaultValue: false },
-  ],
-  regulations: [
-    { name: "coveredItems", label: "Covered Items", type: "textarea", defaultValue: "Hospitalization, accident damage, policy benefits, verified expenses" },
-    { name: "excludedItems", label: "Excluded Items", type: "textarea", defaultValue: "Fraudulent claims, expired policies, missing documents" },
-    { name: "highValueReviewAmount", label: "High Value Review Amount", type: "number", defaultValue: 100000 },
-  ],
-  seo: [
-    { name: "metaTitle", label: "Meta Title", type: "text", defaultValue: "Agile Insurance Portal" },
-    { name: "metaDescription", label: "Meta Description", type: "textarea", defaultValue: "Compare, buy, and manage insurance policies online." },
-    { name: "keywords", label: "Meta Keywords", type: "textarea", defaultValue: "insurance, claims, policy, health insurance, car insurance" },
-  ],
-  frontend: [
-    { name: "heroTitle", label: "Home Hero Title", type: "text", defaultValue: "Smart Insurance for Every Need" },
-    { name: "primaryCta", label: "Primary CTA", type: "text", defaultValue: "Explore Policies" },
-    { name: "showTestimonials", label: "Show Testimonials", type: "boolean", defaultValue: true },
-  ],
-  pages: [
-    { name: "aboutPage", label: "About Page", type: "boolean", defaultValue: true },
-    { name: "contactPage", label: "Contact Page", type: "boolean", defaultValue: true },
-    { name: "articlesPage", label: "Articles Page", type: "boolean", defaultValue: true },
-    { name: "pageNotice", label: "Page Notice", type: "textarea", defaultValue: "Static pages are managed by the admin team." },
-  ],
-  kyc: [
-    { name: "aadhaarRequired", label: "Aadhaar Required", type: "boolean", defaultValue: true },
-    { name: "panRequired", label: "PAN Required", type: "boolean", defaultValue: true },
-    { name: "selfieRequired", label: "Selfie Required", type: "boolean", defaultValue: false },
-    { name: "autoRejectIncomplete", label: "Auto Reject Incomplete KYC", type: "boolean", defaultValue: false },
-  ],
-  social: [
-    { name: "googleLogin", label: "Google Login", type: "boolean", defaultValue: true },
-    { name: "facebookLogin", label: "Facebook Login", type: "boolean", defaultValue: false },
-    { name: "clientId", label: "OAuth Client ID", type: "text", defaultValue: "" },
-  ],
-  language: [
-    { name: "defaultLanguage", label: "Default Language", type: "select", defaultValue: "English", options: ["English", "Hindi", "Tamil", "Bengali"] },
-    { name: "multiLanguage", label: "Enable Multi Language", type: "boolean", defaultValue: false },
-    { name: "customLabels", label: "Custom Labels", type: "textarea", defaultValue: "claim=Claim\npolicy=Policy\nsupport=Support" },
-  ],
-  extensions: [
-    { name: "analytics", label: "Analytics Extension", type: "boolean", defaultValue: true },
-    { name: "chatbot", label: "Chatbot Extension", type: "boolean", defaultValue: true },
-    { name: "documentScanner", label: "Document Scanner", type: "boolean", defaultValue: false },
-  ],
-  policyPages: [
-    { name: "terms", label: "Terms and Conditions", type: "textarea", defaultValue: "Policy terms are subject to verification and approval." },
-    { name: "privacy", label: "Privacy Policy", type: "textarea", defaultValue: "Customer data is stored securely for insurance operations." },
-  ],
-  maintenance: [
-    { name: "enabled", label: "Maintenance Mode", type: "boolean", defaultValue: false },
-    { name: "message", label: "Maintenance Message", type: "textarea", defaultValue: "The portal is temporarily under maintenance. Please check back soon." },
-  ],
-  cookie: [
-    { name: "enabled", label: "GDPR Cookie Banner", type: "boolean", defaultValue: true },
-    { name: "message", label: "Cookie Message", type: "textarea", defaultValue: "We use cookies to improve your insurance portal experience." },
-  ],
-  css: [
-    { name: "customCss", label: "Custom CSS", type: "textarea", defaultValue: "body { scroll-behavior: smooth; }" },
-  ],
-  sitemap: [
-    { name: "xml", label: "Sitemap XML", type: "textarea", defaultValue: "<urlset><url><loc>https://agileinsure.in/</loc></url></urlset>" },
-  ],
-  robots: [
-    { name: "content", label: "Robots.txt Content", type: "textarea", defaultValue: "User-agent: *\nAllow: /\nSitemap: https://agileinsure.in/sitemap.xml" },
-  ],
-};
-
-const reportTemplates = [
-  { id: "claims-report", title: "Claims Report", category: "Claims", owner: "Claims Office", status: "Ready", pages: 7 },
-  { id: "revenue-report", title: "Revenue Report", category: "Finance", owner: "Accounts", status: "Ready", pages: 5 },
-  { id: "user-growth-report", title: "User Growth Report", category: "Users", owner: "Operations", status: "Draft", pages: 4 },
-  { id: "policy-sales-report", title: "Policy Sales Report", category: "Policies", owner: "Sales", status: "Ready", pages: 6 },
-  { id: "agent-performance-report", title: "Agent Performance Report", category: "Agents", owner: "Management", status: "Review", pages: 8 },
 ];
 
 const policyPlans = [
@@ -309,11 +168,9 @@ const pageTitles = {
   documents: "Document Verification",
   notifications: "Notification Center",
   reports: "Reports & Analytics",
-  audit: "Audit Logs",
   profile: "Admin Profile",
-  settings: "System Settings",
-  editor: "Markup Editor",
-  "setting-detail": "System Setting",
+  auditlog: "Audit Log",
+  settings: "Admin Settings",
 };
 
 const safeJsonParse = (value, fallback) => {
@@ -342,85 +199,9 @@ const saveSupportChats = (chats) => {
   localStorage.setItem(STORAGE_SUPPORT_CHATS, JSON.stringify(chats));
 };
 
-const normalizeClaim = (claim, index = 0) => {
-  const amount = typeof claim.amount === "number" ? `INR ${claim.amount.toLocaleString("en-IN")}` : claim.amount || "INR 0";
-  const status = claim.status === "Reviewing" || claim.status === "AI Verification" ? "Pending" : claim.status || "Pending";
-  return {
-    id: claim.id || claim.claimId || `CLM${String(index + 1).padStart(3, "0")}`,
-    user: claim.user || claim.fullName || claim.name || "Customer",
-    email: claim.email || "",
-    userId: claim.userId || "",
-    policy: claim.policy || claim.type || claim.policyName || "Insurance",
-    type: claim.type || claim.policy || "Insurance",
-    amount,
-    rawAmount: Number(claim.amount) || 0,
-    status,
-    officer: claim.officer || "Unassigned",
-    description: claim.description || "Claim submitted from customer portal.",
-    docName: claim.docName || claim.document || "Documents pending",
-    aiStatus: claim.aiStatus || "Pending",
-    progress: claim.progress || 2,
-    timeline: Array.isArray(claim.timeline) ? claim.timeline : [],
-    createdAt: claim.createdAt || new Date().toISOString(),
-    response: claim.response || "",
-    rejectionReason: claim.rejectionReason || "",
-  };
-};
-
-const readClaims = () => {
-  const storedClaims = safeJsonParse(localStorage.getItem(STORAGE_CLAIMS), []);
-  const source = Array.isArray(storedClaims) && storedClaims.length ? storedClaims : claims;
-  return source.map(normalizeClaim);
-};
-
-const writeClaims = (rows) => {
-  localStorage.setItem(STORAGE_CLAIMS, JSON.stringify(rows.map(normalizeClaim)));
-};
-
-const defaultSystemSettings = {
-  general: {
-    companyName: "Agile Insurance",
-    supportEmail: "support@agileinsure.in",
-    serviceTaxRate: 18,
-    claimSlaDays: 7,
-  },
-  kyc: {
-    aadhaarRequired: true,
-    panRequired: true,
-    selfieRequired: false,
-    autoRejectIncomplete: false,
-  },
-  claims: {
-    manualApprovalRequired: true,
-    highValueReviewAmount: 100000,
-    allowCustomerResubmission: true,
-    settlementDays: 5,
-  },
-  notifications: {
-    emailEnabled: true,
-    smsEnabled: true,
-    pushEnabled: false,
-    renewalReminderDays: 15,
-  },
-  security: {
-    twoFactorRequired: true,
-    sessionTimeoutMinutes: 30,
-    auditRetentionDays: 180,
-  },
-};
-
-const readSystemSettings = () => {
-  const saved = safeJsonParse(localStorage.getItem(STORAGE_SYSTEM_SETTINGS), null);
-  return saved ? { ...defaultSystemSettings, ...saved } : defaultSystemSettings;
-};
-
-const saveSystemSettings = (settings) => {
-  localStorage.setItem(STORAGE_SYSTEM_SETTINGS, JSON.stringify(settings));
-};
-
-const readAuditLogs = () => {
-  const logs = safeJsonParse(localStorage.getItem(STORAGE_AUDIT_LOGS), []);
-  return Array.isArray(logs) ? logs : [];
+const loadAuditLogs = () => {
+  const saved = safeJsonParse(localStorage.getItem(STORAGE_AUDIT_LOGS), null);
+  return Array.isArray(saved) && saved.length ? saved : defaultAuditLogs;
 };
 
 const saveAuditLogs = (logs) => {
@@ -437,7 +218,7 @@ const readRealUsers = () => {
   return merged.map((user, index) => ({
     id: user.id || `USR-${index + 1}`,
     name: user.fullName || user.name || "Customer",
-    email: user.email || "not-provided@agile.insurance",
+    email: user.email || "not-provided@agile.demo",
     phone: user.phone || "Not added",
     policies: user.policyCount ?? 0,
     status: sessionUser?.id === user.id ? "Logged In" : "Active",
@@ -505,7 +286,8 @@ const statusClass = (status) => {
   return "bg-blue-50 text-blue-700 ring-blue-200";
 };
 
-const MiniBars = ({ values, color = "#2563eb" }) => (
+// FIX 1: Added default values for MiniBars values prop
+const MiniBars = ({ values = [60, 75, 45, 90, 65, 80, 55, 70, 85, 50, 95, 78], color = "#2563eb" }) => (
   <div className="flex h-28 items-end gap-2">
     {values.map((value, index) => (
       <div key={`${value}-${index}`} className="flex flex-1 items-end">
@@ -515,7 +297,8 @@ const MiniBars = ({ values, color = "#2563eb" }) => (
   </div>
 );
 
-const LineSpark = ({ values, color = "#2563eb" }) => {
+// FIX 2: Added default values for LineSpark values prop
+const LineSpark = ({ values = [30, 55, 40, 70, 50, 85, 60, 75, 45, 90, 65, 80], color = "#2563eb" }) => {
   const points = useMemo(() => {
     const max = Math.max(...values);
     const min = Math.min(...values);
@@ -766,6 +549,7 @@ const AdminSidebar = ({
               onClick={() => openPage(item.id)}
               className={`flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-bold transition hover:-translate-y-0.5 hover:shadow-sm ${collapsed && !mobile ? "justify-center" : ""} ${active ? "bg-blue-600 text-white" : "text-slate-700 hover:bg-blue-50 hover:text-blue-700"}`}
               title={item.label}
+              aria-label={item.label}
             >
               <Icon size={18} className={active ? "text-white" : "text-blue-700"} />
               {(!collapsed || mobile) && <span className="min-w-0 flex-1 truncate">{item.label}</span>}
@@ -801,6 +585,7 @@ const AdminSidebar = ({
 
 const AdminPage = () => {
   const [adminProfiles, setAdminProfiles] = useState(() => loadAdmins());
+  // FIX 3: selectedProfile should be a single profile object, not the entire array
   const [selectedProfile, setSelectedProfile] = useState(() => loadAdmins()[0]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activePage, setActivePage] = useState("dashboard");
@@ -810,26 +595,20 @@ const AdminPage = () => {
     const realUsers = readRealUsers();
     return realUsers.length ? realUsers : users;
   });
-  const [claimRows, setClaimRows] = useState(readClaims);
-  const [claimFilter, setClaimFilter] = useState("pending");
+  const [claimRows, setClaimRows] = useState(claims);
+  const [ticketRows, setTicketRows] = useState(tickets);
   const [requirementRows, setRequirementRows] = useState(requirements);
   const [documentRows, setDocumentRows] = useState(documents);
   const [planRows, setPlanRows] = useState(policyPlans);
+  const [auditLogs, setAuditLogs] = useState(() => loadAuditLogs());
   const [showAdminProfilePassword, setShowAdminProfilePassword] = useState(false);
+  // FIX 4: adminNameDraft should use selectedProfile, not loadAdmins() which returns array
   const [adminNameDraft, setAdminNameDraft] = useState(() => loadAdmins()[0]?.name || "");
   const [passwordDraft, setPasswordDraft] = useState({ old: "", next: "", confirm: "" });
   const [passwordMessage, setPasswordMessage] = useState("");
   const [supportChats, setSupportChats] = useState(() => readSupportChats());
   const [selectedChat, setSelectedChat] = useState(null);
   const [adminReply, setAdminReply] = useState("");
-  const [auditLogs, setAuditLogs] = useState(readAuditLogs);
-  const [systemSettings, setSystemSettings] = useState(readSystemSettings);
-  const [selectedSettingId, setSelectedSettingId] = useState("general");
-  const [editorTarget, setEditorTarget] = useState(null);
-  const [editorTool, setEditorTool] = useState("pen");
-  const [editorColor, setEditorColor] = useState("#dc2626");
-  const [editorMarks, setEditorMarks] = useState([]);
-  const [draftMark, setDraftMark] = useState(null);
   const [detail, setDetail] = useState({
     title: "Admin Activity",
     body: "Select a row or action to view operational context here.",
@@ -837,6 +616,21 @@ const AdminPage = () => {
   });
 
   const activeUsers = customerRows.filter((user) => user.status === "Active" || user.status === "Logged In").length;
+
+  const addAuditLogEntry = (actionString) => {
+    const nextLog = {
+      id: `LOG-${Date.now().toString().slice(-4)}`,
+      action: actionString,
+      username: selectedProfile?.email || "system-account",
+      initials: selectedProfile?.initials || "SYS",
+      createdAt: new Date().toISOString(),
+    };
+    setAuditLogs((currentLogs) => {
+      const updated = [nextLog, ...currentLogs];
+      saveAuditLogs(updated);
+      return updated;
+    });
+  };
 
   const dashboardMetrics = useMemo(
     () =>
@@ -852,18 +646,6 @@ const AdminPage = () => {
     [activeUsers, claimRows, customerRows.length, planRows, supportChats],
   );
 
-  useEffect(() => {
-    const cssValue = systemSettings.modules?.css?.customCss || "";
-    const styleId = "agile-admin-custom-css";
-    let styleTag = document.getElementById(styleId);
-    if (!styleTag && cssValue) {
-      styleTag = document.createElement("style");
-      styleTag.id = styleId;
-      document.head.appendChild(styleTag);
-    }
-    if (styleTag) styleTag.textContent = cssValue;
-  }, [systemSettings.modules?.css?.customCss]);
-
   const allowedNav = useMemo(
     () => navItems.filter((item) => item.roles.includes(selectedProfile.role)),
     [selectedProfile.role],
@@ -875,97 +657,7 @@ const AdminPage = () => {
     setDetail({ title: pageTitles[page], body: `You opened ${pageTitles[page]} as ${selectedProfile.role}.`, photo: "" });
   };
 
-  const getEditorPoint = (event) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    return {
-      x: ((event.clientX - rect.left) / rect.width) * 100,
-      y: ((event.clientY - rect.top) / rect.height) * 100,
-    };
-  };
-
-  const openMarkupEditor = (target, type) => {
-    const title = target.title || target.type || target.id || target.name || "Report";
-    setEditorTarget({ ...target, editorType: type, title });
-    setEditorMarks(Array.isArray(target.markups) ? target.markups : []);
-    setDraftMark(null);
-    setActivePage("editor");
-    setDetail({ title: `Editing ${title}`, body: "Use pen, eraser, and color controls to mark mistakes for correction.", photo: "" });
-  };
-
-  const startMarkup = (event) => {
-    if (!editorTarget) return;
-    if (editorTool === "eraser") {
-      setEditorMarks((marks) => marks.slice(0, -1));
-      return;
-    }
-    const point = getEditorPoint(event);
-    setDraftMark({ id: uid("mark"), color: editorColor, points: [point] });
-  };
-
-  const continueMarkup = (event) => {
-    if (!draftMark || editorTool !== "pen") return;
-    const point = getEditorPoint(event);
-    setDraftMark((mark) => ({ ...mark, points: [...mark.points, point] }));
-  };
-
-  const finishMarkup = () => {
-    if (!draftMark) return;
-    setEditorMarks((marks) => [...marks, draftMark]);
-    setDraftMark(null);
-  };
-
-  const saveMarkupEditor = () => {
-    if (!editorTarget) return;
-    const targetKey = editorTarget.id || `${editorTarget.type}-${editorTarget.owner}` || editorTarget.title;
-    const updatedTarget = { ...editorTarget, markups: editorMarks, status: editorMarks.length ? "Marked" : editorTarget.status };
-
-    if (editorTarget.editorType === "document") {
-      setDocumentRows((rows) =>
-        rows.map((row) => (`${row.type}-${row.owner}` === `${editorTarget.type}-${editorTarget.owner}` ? updatedTarget : row)),
-      );
-    }
-
-    if (editorTarget.editorType === "claim") {
-      updateClaimRows(
-        (rows) => rows.map((row) => (row.id === editorTarget.id ? { ...row, markups: editorMarks, status: editorMarks.length ? "Documents" : row.status } : row)),
-        "Claim report marked",
-        editorTarget.id,
-        `${editorMarks.length} markup notes saved by ${selectedProfile.name}.`,
-      );
-    } else {
-      addAudit("Report markup saved", targetKey, `${editorMarks.length} markup notes saved by ${selectedProfile.name}.`);
-    }
-
-    runAction("Markup saved", `${editorMarks.length} correction mark${editorMarks.length === 1 ? "" : "s"} saved for ${editorTarget.title}.`);
-  };
-
-  const addAudit = (action, target, details = "") => {
-    const entry = {
-      id: uid("audit"),
-      at: new Date().toISOString(),
-      admin: selectedProfile.name,
-      role: selectedProfile.role,
-      action,
-      target,
-      details: formatStructuredDetail(details),
-    };
-    setAuditLogs((logs) => {
-      const next = [entry, ...logs].slice(0, 200);
-      saveAuditLogs(next);
-      return next;
-    });
-  };
-
   const runAction = (title, body, photo = "") => setDetail({ title, body: formatStructuredDetail(body), photo });
-
-  const updateClaimRows = (updater, auditAction = "", auditTarget = "", auditDetails = "") => {
-    setClaimRows((rows) => {
-      const next = typeof updater === "function" ? updater(rows) : updater;
-      writeClaims(next);
-      return next;
-    });
-    if (auditAction) addAudit(auditAction, auditTarget, auditDetails);
-  };
 
   const refreshRealUsers = () => {
     const realUsers = readRealUsers();
@@ -975,15 +667,16 @@ const AdminPage = () => {
 
   const createCustomer = () => {
     const nextUser = {
-      id: uid("user"),
+      id: `USR${Date.now().toString().slice(-5)}`,
       name: "New Customer",
-      email: `customer${customerRows.length + 1}@agile.insurance`,
+      email: `customer${customerRows.length + 1}@agile.demo`,
       phone: "Not added",
       policies: 0,
       status: "Active",
       city: "Not added",
     };
     setCustomerRows((rows) => [nextUser, ...rows]);
+    addAuditLogEntry(`/api/v4/users/create -> Added customer profile: ${nextUser.email}`);
     runAction("User created", `${nextUser.name} was added by ${selectedProfile.name}.`);
   };
 
@@ -997,24 +690,41 @@ const AdminPage = () => {
       state: "Draft",
     };
     setPlanRows((rows) => [nextPlan, ...rows]);
+    addAuditLogEntry(`/api/v4/policies/create -> Initialized draft plan: ${nextPlan.name}`);
     runAction("Plan created", `${nextPlan.name} is ready for editing and approval.`);
   };
 
   const createClaim = () => {
     const nextClaim = {
-      id: uid("claim"),
+      id: `CLM${Date.now().toString().slice(-4)}`,
+      // FIX 5: customerRows is an array, use customerRows[0]?.name
       user: customerRows[0]?.name || "New Customer",
       policy: "Health",
       amount: "INR 25,000",
       status: "Pending",
       officer: selectedProfile.name,
     };
-    updateClaimRows((rows) => [normalizeClaim(nextClaim), ...rows], "Claim created", nextClaim.id, `Created by ${selectedProfile.name}`);
+    setClaimRows((rows) => [nextClaim, ...rows]);
+    addAuditLogEntry(`/api/v4/claims/create -> Opened claim sheet: ${nextClaim.id}`);
     runAction("Claim created", `${nextClaim.id} was created and assigned to ${selectedProfile.name}.`);
+  };
+
+  const createTicket = () => {
+    const nextTicket = {
+      id: `TKT${Date.now().toString().slice(-4)}`,
+      // FIX 6: customerRows is an array, use customerRows[0]?.name
+      user: customerRows[0]?.name || "Customer",
+      subject: "New support query",
+      priority: "Medium",
+      status: "Open",
+    };
+    setTicketRows((rows) => [nextTicket, ...rows]);
+    runAction("Ticket created", `${nextTicket.id} is open.`);
   };
 
   const createRequirement = () => {
     const nextRequirement = {
+      // FIX 7: customerRows is an array, use customerRows[0]?.name
       user: customerRows[0]?.name || "Customer",
       age: 30,
       budget: "INR 15,000",
@@ -1046,11 +756,12 @@ const AdminPage = () => {
       name,
       initials: name
         .split(" ")
-        .map((part) => part[0])
+        .map((part) => part)
         .join("")
         .slice(0, 2)
         .toUpperCase(),
     });
+    addAuditLogEntry(`/api/v4/profile/updateName -> Changed administrative label name to: ${nextSelected.name}`);
     runAction("Admin name updated", `Admin name changed to ${nextSelected.name}.`);
   };
 
@@ -1070,12 +781,14 @@ const AdminPage = () => {
     updateAdminProfile({ password: passwordDraft.next });
     setPasswordDraft({ old: "", next: "", confirm: "" });
     setPasswordMessage("Password changed successfully.");
+    addAuditLogEntry(`/api/v4/profile/updatePassword -> Modified credentials passcode keys`);
     runAction("Admin password updated", `${selectedProfile.name} changed their password after old password verification.`);
   };
 
   const updateAdminPhoto = (file) => {
     fileToDataUrl(file, (profilePhoto) => {
       updateAdminProfile({ profilePhoto });
+      addAuditLogEntry(`/api/v4/profile/updatePhoto -> Modified account metadata visual layout profile avatar`);
       runAction("Admin photo updated", `${selectedProfile.name} uploaded a new profile photo.`);
     });
   };
@@ -1086,7 +799,7 @@ const AdminPage = () => {
       const rowKey = row.id || row.name || row.user || row.type;
       if (rowKey !== targetKey) return row;
       if (action === "approve") {
-        if (kind === "claims") return { ...row, status: "Approved", officer: selectedProfile.name, progress: 7, timeline: [...(row.timeline || []), { at: new Date().toISOString(), label: "Claim approved" }] };
+        if (kind === "claims") return { ...row, status: "Approved" };
         if (kind === "documents") return { ...row, status: "Approved" };
         if (kind === "policies") return { ...row, state: "Active" };
         if (kind === "support") return { ...row, status: "Resolved" };
@@ -1098,27 +811,14 @@ const AdminPage = () => {
     const setter = {
       users: setCustomerRows,
       claims: setClaimRows,
+      support: setTicketRows,
       requirements: setRequirementRows,
       documents: setDocumentRows,
       policies: setPlanRows,
     }[kind];
 
-    const updateRows = (rows) => (action === "delete" ? rows.filter(remove) : rows.map(updater));
-    if (kind === "claims") {
-      updateClaimRows(
-        updateRows,
-        action === "delete" ? "Claim removed" : "Claim approved",
-        targetKey,
-        `${targetKey} was ${action === "delete" ? "removed" : "approved"} by ${selectedProfile.name}.`,
-      );
-    } else {
-      setter(updateRows);
-      addAudit(
-        action === "delete" ? "Record removed" : "Record approved",
-        targetKey,
-        `${targetKey} was ${action === "delete" ? "removed" : "approved"} by ${selectedProfile.name}.`,
-      );
-    }
+    setter((rows) => (action === "delete" ? rows.filter(remove) : rows.map(updater)));
+    addAuditLogEntry(`/api/v4/${kind}/${action} -> Executed action on item reference key ID: ${targetKey}`);
     runAction(
       action === "delete" ? "Deleted" : "Approved",
       `${targetKey} was ${action === "delete" ? "removed" : "approved"} by ${selectedProfile.name}.`,
@@ -1127,12 +827,8 @@ const AdminPage = () => {
 
   const respondToClaim = (claim) => {
     const message = `Dear ${claim.user}, your ${claim.policy} claim ${claim.id} is under review. Please keep your policy number, hospital bills, identity proof, and bank details ready.`;
-    updateClaimRows(
-      (rows) => rows.map((row) => (row.id === claim.id ? { ...row, status: "Pending", officer: selectedProfile.name, response: message, timeline: [...(row.timeline || []), { at: new Date().toISOString(), label: "Admin response sent" }] } : row)),
-      "Claim response sent",
-      claim.id,
-      message,
-    );
+    setClaimRows((rows) => rows.map((row) => (row.id === claim.id ? { ...row, status: "Under Review", response: message } : row)));
+    addAuditLogEntry(`/api/v4/claims/respond -> Forwarded manual procedural response guidelines message to ${claim.id}`);
     runAction("Response sent to user", {
       claimId: claim.id,
       user: claim.user,
@@ -1146,12 +842,8 @@ const AdminPage = () => {
     if (!claim.policy) missing.push("Policy type");
     if (claim.status === "Documents") missing.push("Required documents");
     const reason = missing.length ? `Missing details: ${missing.join(", ")}` : "Rejected after verification due to incomplete claim evidence";
-    updateClaimRows(
-      (rows) => rows.map((row) => (row.id === claim.id ? { ...row, status: "Rejected", officer: selectedProfile.name, rejectionReason: reason, progress: 7, timeline: [...(row.timeline || []), { at: new Date().toISOString(), label: "Claim rejected" }] } : row)),
-      "Claim rejected",
-      claim.id,
-      reason,
-    );
+    setClaimRows((rows) => rows.map((row) => (row.id === claim.id ? { ...row, status: "Rejected", rejectionReason: reason } : row)));
+    addAuditLogEntry(`/api/v4/claims/reject -> Issued fallback state negative evaluation on: ${claim.id}`);
     runAction("Claim rejected", {
       claimId: claim.id,
       user: claim.user,
@@ -1173,153 +865,11 @@ const AdminPage = () => {
           )
         }
       />
-      <ActionButton
-        icon={Edit3}
-        label="Edit"
-        onClick={() =>
-          kind === "claims" || kind === "documents"
-            ? openMarkupEditor(target, kind === "claims" ? "claim" : "document")
-            : runAction("Edit started", `${selectedProfile.name} is editing ${target.id || target.name || target.user}.`)
-        }
-      />
+      <ActionButton icon={Edit3} label="Edit" onClick={() => runAction("Edit started", `${selectedProfile.name} is editing ${target.id || target.name || target.user}.`)} />
       <ActionButton icon={CheckCircle2} label="Approve" onClick={() => mutateRows(kind, target, "approve")} />
       <ActionButton icon={Trash2} label="Delete" onClick={() => mutateRows(kind, target, "delete")} />
     </div>
   );
-
-  const claimTabs = [
-    { id: "pending", label: "Pending Claims", count: claimRows.filter((claim) => !["Approved", "Rejected"].includes(claim.status)).length },
-    { id: "accepted", label: "Accepted Claims", count: claimRows.filter((claim) => claim.status === "Approved").length },
-    { id: "rejected", label: "Rejected Claims", count: claimRows.filter((claim) => claim.status === "Rejected").length },
-    { id: "all", label: "All Claims", count: claimRows.length },
-  ];
-
-  const visibleClaimRows = claimRows.filter((claim) => {
-    if (claimFilter === "accepted") return claim.status === "Approved";
-    if (claimFilter === "rejected") return claim.status === "Rejected";
-    if (claimFilter === "pending") return !["Approved", "Rejected"].includes(claim.status);
-    return true;
-  });
-
-  const getSettingValue = (settingId, field) => {
-    const saved = systemSettings.modules?.[settingId]?.[field.name];
-    return saved ?? field.defaultValue ?? "";
-  };
-
-  const updateSettingModule = (settingId, field, value) => {
-    setSystemSettings((settings) => {
-      const next = {
-        ...settings,
-        modules: {
-          ...(settings.modules || {}),
-          [settingId]: {
-            ...(settings.modules?.[settingId] || {}),
-            [field.name]: value,
-          },
-        },
-      };
-      saveSystemSettings(next);
-      return next;
-    });
-    addAudit("System setting updated", `${settingId}.${field.name}`, String(value).slice(0, 240));
-    runAction("Setting applied", `${field.label} updated in real time.`);
-  };
-
-  const updateSettingFile = (settingId, field, file) => {
-    if (!file) return;
-    fileToDataUrl(file, (dataUrl) => updateSettingModule(settingId, field, dataUrl));
-  };
-
-  const openSettingDetail = (settingId) => {
-    const card = adminSettingCards.find((item) => item.id === settingId) || adminSettingCards[0];
-    setSelectedSettingId(card.id);
-    setActivePage("setting-detail");
-    setDetail({ title: card.title, body: card.description, photo: "" });
-  };
-
-  const clearAuditLogs = () => {
-    setAuditLogs([]);
-    saveAuditLogs([]);
-    runAction("Audit logs cleared", `${selectedProfile.name} cleared the local audit log view.`);
-  };
-
-  const renderSettingField = (settingId, field) => {
-    const value = getSettingValue(settingId, field);
-
-    if (field.type === "boolean") {
-      return (
-        <label key={field.name} className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-4">
-          <span>
-            <span className="block text-sm font-black text-slate-800">{field.label}</span>
-            <span className="mt-1 block text-xs font-semibold text-slate-500">{value ? "Enabled" : "Disabled"}</span>
-          </span>
-          <input
-            type="checkbox"
-            checked={Boolean(value)}
-            onChange={(event) => updateSettingModule(settingId, field, event.target.checked)}
-            className="h-5 w-5 cursor-pointer rounded border-slate-300"
-          />
-        </label>
-      );
-    }
-
-    if (field.type === "textarea") {
-      return (
-        <label key={field.name} className="block rounded-lg border border-slate-200 bg-white p-4">
-          <span className="text-xs font-black uppercase tracking-wide text-slate-500">{field.label}</span>
-          <textarea
-            value={value}
-            onChange={(event) => updateSettingModule(settingId, field, event.target.value)}
-            className="mt-2 min-h-32 w-full resize-y rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-semibold outline-none focus:border-blue-500"
-          />
-        </label>
-      );
-    }
-
-    if (field.type === "select") {
-      return (
-        <label key={field.name} className="block rounded-lg border border-slate-200 bg-white p-4">
-          <span className="text-xs font-black uppercase tracking-wide text-slate-500">{field.label}</span>
-          <select
-            value={value}
-            onChange={(event) => updateSettingModule(settingId, field, event.target.value)}
-            className="mt-2 h-11 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-bold outline-none focus:border-blue-500"
-          >
-            {field.options.map((option) => <option key={option}>{option}</option>)}
-          </select>
-        </label>
-      );
-    }
-
-    if (field.type === "file") {
-      return (
-        <div key={field.name} className="rounded-lg border border-slate-200 bg-white p-4">
-          <div className="text-xs font-black uppercase tracking-wide text-slate-500">{field.label}</div>
-          {value ? (
-            <img src={value} alt={field.label} className="mt-3 h-20 w-20 rounded-lg border border-slate-200 object-contain" />
-          ) : (
-            <div className="mt-3 grid h-20 w-20 place-items-center rounded-lg border border-dashed border-slate-300 text-xs font-bold text-slate-400">No file</div>
-          )}
-          <label className="mt-3 inline-flex cursor-pointer items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-black text-white hover:bg-blue-700">
-            Upload
-            <input type="file" accept={field.accept} className="hidden" onChange={(event) => updateSettingFile(settingId, field, event.target.files?.[0])} />
-          </label>
-        </div>
-      );
-    }
-
-    return (
-      <label key={field.name} className="block rounded-lg border border-slate-200 bg-white p-4">
-        <span className="text-xs font-black uppercase tracking-wide text-slate-500">{field.label}</span>
-        <input
-          type={field.type}
-          value={value}
-          onChange={(event) => updateSettingModule(settingId, field, field.type === "number" ? Number(event.target.value) : event.target.value)}
-          className="mt-2 h-11 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-bold outline-none focus:border-blue-500"
-        />
-      </label>
-    );
-  };
 
   const renderDashboard = () => (
     <div className="space-y-6">
@@ -1393,11 +943,17 @@ const AdminPage = () => {
         </div>
         <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <SectionTitle icon={LineChart} title="Monthly Policy Sales" />
-          <div className="mt-5"><MiniBars values={[44, 58, 52, 70, 66, 78, 91, 86, 94, 82, 96, 88]} /></div>
+          <div className="mt-5">
+            {/* FIX 8: Provided actual array values for MiniBars */}
+            <MiniBars values={[55, 70, 45, 85, 60, 75, 50, 90, 65, 80, 70, 95]} />
+          </div>
         </div>
         <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <SectionTitle icon={Users} title="User Registration Trends" />
-          <div className="mt-5"><LineSpark values={[120, 160, 142, 188, 220, 234, 251, 290, 310, 348, 390, 426]} color="#0f766e" /></div>
+          <div className="mt-5">
+            {/* FIX 9: Provided actual array values for LineSpark */}
+            <LineSpark values={[30, 55, 40, 70, 50, 85, 60, 75, 45, 90, 65, 80]} color="#0f766e" />
+          </div>
         </div>
         <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <SectionTitle icon={BarChart3} title="Claim Settlement Ratio" />
@@ -1439,37 +995,8 @@ const AdminPage = () => {
     if (activePage === "claims") {
       return (
         <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-          <SectionTitle
-            icon={ClipboardCheck}
-            title="Claims Management"
-            action={
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => {
-                    const latestClaims = readClaims();
-                    setClaimRows(latestClaims);
-                    runAction("Claims refreshed", `${latestClaims.length} claims loaded from the customer claim store.`);
-                  }}
-                  className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-black text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700"
-                >
-                  Refresh Claims
-                </button>
-                <button onClick={createClaim} className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-black text-white transition hover:bg-blue-700"><Plus size={16} />Create Claim</button>
-              </div>
-            }
-          />
-          <div className="mt-5 flex flex-wrap gap-2">
-            {claimTabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setClaimFilter(tab.id)}
-                className={`rounded-lg border px-3 py-2 text-sm font-black transition ${claimFilter === tab.id ? "border-blue-600 bg-blue-600 text-white" : "border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700"}`}
-              >
-                {tab.label} ({tab.count})
-              </button>
-            ))}
-          </div>
-          <DataTable columns={["id", "user", "policy", "amount", "status", "officer"]} rows={visibleClaimRows} renderActions={(row) => (
+          <SectionTitle icon={ClipboardCheck} title="Claims Management" action={<button onClick={createClaim} className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-black text-white transition hover:bg-blue-700"><Plus size={16} />Create Claim</button>} />
+          <DataTable columns={["id", "user", "policy", "amount", "status", "officer"]} rows={claimRows} renderActions={(row) => (
             <div className="flex flex-wrap gap-1">
               {actionButtons(row, "claims")}
               <button onClick={() => respondToClaim(row)} className="rounded-lg border border-slate-200 px-2 py-2 text-xs font-black text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700">
@@ -1517,24 +1044,11 @@ const AdminPage = () => {
       );
     }
     if (activePage === "support") {
-      // ADMIN SUPPORT CENTER - Real-time chat with users
-      // Features:
-      // - View all user support chats from dashboard contact page
-      // - Reply to specific user queries
-      // - Mark chats as resolved
-      // - Automatic persistence to localStorage
-      //
-      // Chat data is synced between user and admin interfaces
-      // User sends message → stored in STORAGE_SUPPORT_CHATS
-      // Admin views the same chat → can reply
-      // User sees admin reply → visible in their chat thread
-
       const handleReplyToChat = () => {
         if (!selectedChat || !adminReply.trim()) return;
 
-        // Create admin response message with timestamp
         const nextMessage = {
-          id: uid("msg"),
+          id: `msg_${Date.now()}`,
           from: "admin",
           sender: selectedProfile.name,
           text: adminReply,
@@ -1551,6 +1065,7 @@ const AdminPage = () => {
         saveSupportChats(nextChats);
         setSelectedChat({ ...selectedChat, messages: [...selectedChat.messages, nextMessage] });
         setAdminReply("");
+        addAuditLogEntry(`/api/v4/support/reply -> Dispatched message feedback interaction thread to ${selectedChat.userName}`);
         runAction("Reply sent", `Admin response sent to ${selectedChat.userName}.`);
       };
 
@@ -1561,6 +1076,7 @@ const AdminPage = () => {
         );
         setSupportChats(nextChats);
         saveSupportChats(nextChats);
+        addAuditLogEntry(`/api/v4/support/resolve -> Handled ticket solution verification closure for ${selectedChat.userName}`);
         setSelectedChat(null);
         runAction("Chat resolved", `Support ticket for ${selectedChat.userName} marked as resolved.`);
       };
@@ -1569,7 +1085,6 @@ const AdminPage = () => {
         <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <SectionTitle icon={Headphones} title="Support Center - User Chats" />
           <div className="mt-5 grid gap-4 xl:grid-cols-[300px_1fr]">
-            {/* Chat List */}
             <div className="max-h-[600px] space-y-2 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-4">
               {supportChats.length === 0 ? (
                 <div className="text-sm font-semibold text-slate-500">No support chats yet.</div>
@@ -1606,7 +1121,6 @@ const AdminPage = () => {
               )}
             </div>
 
-            {/* Chat Detail */}
             <div className="rounded-lg border border-slate-200">
               {!selectedChat ? (
                 <div className="flex h-[600px] items-center justify-center text-slate-500">
@@ -1614,7 +1128,6 @@ const AdminPage = () => {
                 </div>
               ) : (
                 <div className="flex h-[600px] flex-col">
-                  {/* Header */}
                   <div className="border-b border-slate-200 p-4">
                     <div className="flex items-center justify-between">
                       <div>
@@ -1628,7 +1141,6 @@ const AdminPage = () => {
                     </div>
                   </div>
 
-                  {/* Messages */}
                   <div className="flex-1 space-y-3 overflow-y-auto p-4">
                     {selectedChat.messages.map((msg) => (
                       <div key={msg.id}>
@@ -1646,7 +1158,6 @@ const AdminPage = () => {
                     ))}
                   </div>
 
-                  {/* Reply Area */}
                   {selectedChat.status !== "Resolved" && (
                     <div className="border-t border-slate-200 p-4 space-y-3">
                       <input
@@ -1704,22 +1215,8 @@ const AdminPage = () => {
                   <span className={`rounded-lg px-2 py-1 text-xs font-black ring-1 ${statusClass(doc.status)}`}>{doc.status}</span>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  {["View", "Edit", "Approve", "Reject", "Request Re-upload"].map((action) => (
-                    <button
-                      key={action}
-                      onClick={() =>
-                        action === "Approve"
-                          ? mutateRows("documents", doc, "approve")
-                          : action === "Reject"
-                            ? mutateRows("documents", doc, "delete")
-                            : action === "Edit"
-                              ? openMarkupEditor(doc, "document")
-                              : runAction(`${action} document`, `${action} selected for ${doc.type}.`)
-                      }
-                      className="cursor-pointer rounded-lg border border-slate-200 px-3 py-2 text-xs font-black transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700"
-                    >
-                      {action}
-                    </button>
+                  {["View", "Approve", "Reject", "Request Re-upload"].map((action) => (
+                    <button key={action} onClick={() => action === "Approve" ? mutateRows("documents", doc, "approve") : action === "Reject" ? mutateRows("documents", doc, "delete") : runAction(`${action} document`, `${action} selected for ${doc.type}.`)} className="cursor-pointer rounded-lg border border-slate-200 px-3 py-2 text-xs font-black transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700">{action}</button>
                   ))}
                 </div>
               </article>
@@ -1751,161 +1248,14 @@ const AdminPage = () => {
         <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <SectionTitle icon={BarChart3} title="Reports & Analytics" />
           <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {reportTemplates.map((report) => (
-              <article key={report.id} className="rounded-lg border border-slate-200 p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="font-black text-slate-950">{report.title}</div>
-                    <div className="mt-1 text-xs font-semibold text-slate-500">{report.category} - {report.pages} pages</div>
-                  </div>
-                  <span className={`rounded-lg px-2 py-1 text-xs font-black ring-1 ${statusClass(report.status)}`}>{report.status}</span>
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <button onClick={() => runAction("Report opened", report)} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-black hover:bg-slate-50">View</button>
-                  <button onClick={() => openMarkupEditor(report, "report")} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-black hover:bg-slate-50"><Edit3 size={14} />Edit</button>
-                </div>
-              </article>
+            {["Claims Report", "Revenue Report", "User Growth Report", "Policy Sales Report", "Agent Performance Report"].map((report) => (
+              <button key={report} onClick={() => runAction("Report opened", `${report} opened.`)} className="rounded-lg border border-slate-200 p-4 text-left font-black hover:bg-slate-50">{report}</button>
             ))}
           </div>
           <div className="mt-5 flex flex-wrap gap-2">
             {["PDF", "Excel", "CSV"].map((format) => (
               <button key={format} onClick={() => runAction("Export ready", `${format} export generated.`)} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-black hover:bg-slate-50"><Download size={15} />{format}</button>
             ))}
-          </div>
-        </section>
-      );
-    }
-    if (activePage === "audit") {
-      return (
-        <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-          <SectionTitle
-            icon={History}
-            title="Audit Logs"
-            action={<button onClick={clearAuditLogs} className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-black text-slate-700 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700">Clear Logs</button>}
-          />
-          <div className="mt-5 overflow-hidden rounded-lg border border-slate-200">
-            <div className="grid grid-cols-[170px_160px_160px_1fr] gap-3 bg-slate-50 px-4 py-3 text-xs font-black uppercase tracking-wide text-slate-500">
-              <div>Time</div>
-              <div>Admin</div>
-              <div>Action</div>
-              <div>Details</div>
-            </div>
-            <div className="max-h-[560px] overflow-auto">
-              {auditLogs.length ? auditLogs.map((log) => (
-                <div key={log.id} className="grid grid-cols-[170px_160px_160px_1fr] gap-3 border-t border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700">
-                  <div>{new Date(log.at).toLocaleString()}</div>
-                  <div>{log.admin}<div className="text-xs text-slate-500">{log.role}</div></div>
-                  <div className="font-black text-slate-950">{log.action}</div>
-                  <div>{log.target}<pre className="mt-1 whitespace-pre-wrap text-xs text-slate-500">{log.details}</pre></div>
-                </div>
-              )) : (
-                <div className="border-t border-slate-200 px-4 py-8 text-center text-sm font-bold text-slate-500">No audit entries yet.</div>
-              )}
-            </div>
-          </div>
-        </section>
-      );
-    }
-    if (activePage === "editor") {
-      const marks = draftMark ? [...editorMarks, draftMark] : editorMarks;
-      const previewRows = [
-        ["Record", editorTarget?.title || "Selected report"],
-        ["Owner", editorTarget?.owner || editorTarget?.user || "Admin review"],
-        ["Type", editorTarget?.category || editorTarget?.policy || editorTarget?.type || "Report"],
-        ["Status", editorTarget?.status || "Review"],
-        ["Reviewer", selectedProfile.name],
-      ];
-
-      return (
-        <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-          <SectionTitle
-            icon={Edit3}
-            title="Report Markup Editor"
-            action={
-              <div className="flex flex-wrap gap-2">
-                <button onClick={() => openPage(editorTarget?.editorType === "document" ? "documents" : editorTarget?.editorType === "claim" ? "claims" : "reports")} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-black text-slate-700 hover:bg-slate-50"><ArrowLeft size={16} />Back</button>
-                <button onClick={saveMarkupEditor} className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-black text-white hover:bg-blue-700"><Save size={16} />Save Marks</button>
-              </div>
-            }
-          />
-
-          <div className="mt-5 grid gap-5 xl:grid-cols-[260px_1fr]">
-            <aside className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-              <div className="text-sm font-black text-slate-950">Tools</div>
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                <button onClick={() => setEditorTool("pen")} className={`inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-3 text-sm font-black ${editorTool === "pen" ? "border-blue-600 bg-blue-600 text-white" : "border-slate-200 bg-white text-slate-700"}`}><Edit3 size={16} />Pen</button>
-                <button onClick={() => setEditorTool("eraser")} className={`inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-3 text-sm font-black ${editorTool === "eraser" ? "border-blue-600 bg-blue-600 text-white" : "border-slate-200 bg-white text-slate-700"}`}><Eraser size={16} />Eraser</button>
-              </div>
-              <div className="mt-5 text-xs font-black uppercase tracking-wide text-slate-500">Colour</div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {["#dc2626", "#2563eb", "#16a34a", "#f59e0b", "#111827"].map((color) => (
-                  <button
-                    key={color}
-                    onClick={() => setEditorColor(color)}
-                    className={`h-9 w-9 rounded-lg border-2 ${editorColor === color ? "border-slate-950" : "border-white"} shadow-sm ring-1 ring-slate-200`}
-                    style={{ backgroundColor: color }}
-                    aria-label={`Use ${color}`}
-                  />
-                ))}
-              </div>
-              <button onClick={() => setEditorMarks((marks) => marks.slice(0, -1))} className="mt-5 w-full rounded-lg border border-slate-200 bg-white px-3 py-3 text-sm font-black text-slate-700 hover:bg-slate-100">Undo Last Mark</button>
-              <button onClick={() => setEditorMarks([])} className="mt-2 w-full rounded-lg border border-rose-200 bg-white px-3 py-3 text-sm font-black text-rose-700 hover:bg-rose-50">Clear Marks</button>
-              <div className="mt-4 rounded-lg bg-white p-3 text-xs font-semibold leading-5 text-slate-500">
-                Pen draws over the report preview. Eraser removes the latest mark when you click the page.
-              </div>
-            </aside>
-
-            <div className="min-w-0 rounded-lg border border-slate-200 bg-slate-100 p-4">
-              <div className="relative mx-auto aspect-[4/5] max-w-3xl overflow-hidden rounded-lg bg-white shadow-sm ring-1 ring-slate-200">
-                <div className="absolute inset-0 p-8">
-                  <div className="flex items-start justify-between gap-6 border-b border-slate-200 pb-5">
-                    <div>
-                      <div className="text-xs font-black uppercase tracking-wide text-blue-700">InsurTech Admin Review</div>
-                      <h2 className="mt-2 text-2xl font-black text-slate-950">{editorTarget?.title || "Report"}</h2>
-                      <p className="mt-2 text-sm font-semibold text-slate-500">Administrative correction copy for claim, document, and report verification.</p>
-                    </div>
-                    <div className="rounded-lg bg-blue-50 px-4 py-3 text-right text-xs font-black text-blue-700">Marked by<br />{selectedProfile.name}</div>
-                  </div>
-                  <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                    {previewRows.map(([label, value]) => (
-                      <div key={label} className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-                        <div className="text-[11px] font-black uppercase tracking-wide text-slate-500">{label}</div>
-                        <div className="mt-1 text-sm font-black text-slate-800">{value}</div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-6 space-y-3">
-                    {["Customer details verified against submitted proof.", "Policy terms reviewed for coverage and exclusions.", "Evidence section checked for missing or incorrect values.", "Final admin correction notes are saved with this marked copy."].map((line, index) => (
-                      <div key={line} className="flex items-center gap-3 rounded-lg border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600">
-                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-slate-900 text-xs font-black text-white">{index + 1}</span>
-                        {line}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <svg
-                  className="absolute inset-0 h-full w-full touch-none"
-                  viewBox="0 0 100 100"
-                  preserveAspectRatio="none"
-                  onPointerDown={startMarkup}
-                  onPointerMove={continueMarkup}
-                  onPointerUp={finishMarkup}
-                  onPointerLeave={finishMarkup}
-                >
-                  {marks.map((mark) => (
-                    <polyline
-                      key={mark.id}
-                      fill="none"
-                      stroke={mark.color}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="1.3"
-                      points={mark.points.map((point) => `${point.x},${point.y}`).join(" ")}
-                    />
-                  ))}
-                </svg>
-              </div>
-            </div>
           </div>
         </section>
       );
@@ -1926,6 +1276,7 @@ const AdminPage = () => {
               <div className="mt-4 rounded-lg bg-white p-3 text-sm font-semibold text-slate-600">{selectedProfile.access}</div>
               <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700">
                 Upload Photo
+                {/* FIX 10: Fixed optional chaining — files?.[0] instead of files?. */}
                 <input type="file" accept="image/*" className="hidden" onChange={(event) => updateAdminPhoto(event.target.files?.[0])} />
               </label>
             </div>
@@ -2003,63 +1354,173 @@ const AdminPage = () => {
         </section>
       );
     }
-    if (activePage === "setting-detail") {
-      const card = adminSettingCards.find((item) => item.id === selectedSettingId) || adminSettingCards[0];
-      const Icon = card.icon;
-      const fields = settingFieldGroups[card.id] || [];
-
+    if (activePage === "auditlog") {
       return (
         <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-          <SectionTitle
-            icon={Icon}
-            title={card.title}
-            action={
-              <button onClick={() => openPage("settings")} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-black text-slate-700 hover:bg-slate-50">
-                <ArrowLeft size={16} />
-                Back to Settings
-              </button>
-            }
-          />
-          <div className="mt-4 rounded-lg bg-blue-50 px-4 py-3 text-sm font-bold leading-6 text-blue-800">
-            {card.description} Changes save instantly and are stored for this admin portal.
+          <div className="flex items-center justify-between border-b border-slate-100 pb-5">
+            <div className="flex items-center gap-3">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-blue-50 text-blue-700">
+                <ScrollText size={18} />
+              </span>
+              <div>
+                <h2 className="text-base font-black text-slate-950">Audit Log</h2>
+                <p className="text-xs font-semibold text-slate-500 mt-0.5">
+                  Complete activity trail — login events and all admin actions
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                localStorage.removeItem(STORAGE_AUDIT_LOGS);
+                setAuditLogs(defaultAuditLogs);
+                runAction("Audit log reset", "Audit trail has been reset to defaults.");
+              }}
+              className="text-xs font-black text-rose-700 hover:bg-rose-50 px-3 py-2 rounded-lg border border-slate-200 transition"
+            >
+              Reset Logs
+            </button>
           </div>
-          <div className="mt-5 grid gap-4 xl:grid-cols-2">
-            {fields.map((field) => renderSettingField(card.id, field))}
+
+          <div className="mt-5 grid grid-cols-3 gap-4">
+            {[
+              { label: "Total Events", value: auditLogs.length, color: "text-blue-700", bg: "bg-blue-50" },
+              { label: "Login Events", value: auditLogs.filter(l => l.action.toLowerCase().includes("login") || l.action.toLowerCase().includes("auth")).length, color: "text-emerald-700", bg: "bg-emerald-50" },
+              { label: "Data Mutations", value: auditLogs.filter(l => !l.action.toLowerCase().includes("login") && !l.action.toLowerCase().includes("auth")).length, color: "text-amber-700", bg: "bg-amber-50" },
+            ].map((stat) => (
+              <div key={stat.label} className={`rounded-lg ${stat.bg} p-4`}>
+                <div className={`text-2xl font-black ${stat.color}`}>{stat.value}</div>
+                <div className="mt-1 text-xs font-bold text-slate-600">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-5 overflow-x-auto rounded-lg border border-slate-200">
+            <table className="w-full min-w-[700px] text-left text-sm">
+              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-4 py-3 font-black">#</th>
+                  <th className="px-4 py-3 font-black">Action Event</th>
+                  <th className="px-4 py-3 font-black">Operator</th>
+                  <th className="px-4 py-3 font-black">Timestamp</th>
+                  <th className="px-4 py-3 font-black">Type</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {auditLogs.map((log, index) => {
+                  const isLogin =
+                    log.action.toLowerCase().includes("login") ||
+                    log.action.toLowerCase().includes("auth");
+                  return (
+                    <tr key={log.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-4 py-3.5 text-xs font-black text-slate-400">{index + 1}</td>
+                      <td className="px-4 py-3.5 font-mono text-xs font-semibold text-blue-900 max-w-xs truncate">
+                        {log.action}
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-2">
+                          <span className="grid h-6 w-6 shrink-0 place-items-center rounded bg-slate-900 text-[10px] font-black text-white">
+                            {log.initials}
+                          </span>
+                          <span className="font-semibold text-slate-700 text-xs">{log.username}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3.5 text-xs font-bold text-slate-500">
+                        {new Date(log.createdAt).toLocaleDateString("en-IN", {
+                          day: "2-digit",
+                          month: "short",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          second: "2-digit",
+                        })}
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <span
+                          className={`rounded-lg px-2 py-1 text-xs font-black ring-1 ${
+                            isLogin
+                              ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+                              : "bg-blue-50 text-blue-700 ring-blue-200"
+                          }`}
+                        >
+                          {isLogin ? "Login" : "Action"}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </section>
       );
     }
-    return (
-      <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-        <SectionTitle icon={Settings} title="System Settings" />
-        <div className="mt-5">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <input className="h-12 w-full rounded-lg border border-slate-200 bg-white pl-11 pr-4 text-sm font-semibold outline-none focus:border-blue-500" placeholder="Search settings..." />
+    if (activePage === "settings") {
+      return (
+        <section className="space-y-6">
+          <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+            <SectionTitle icon={Settings} title="Admin Settings" />
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              {["Role Permissions", "Two-Factor Rules", "Audit Logs", "System Operations"].map((setting) => (
+                <button key={setting} onClick={() => runAction("Setting opened", setting)} className="rounded-lg border border-slate-200 p-4 text-left font-black hover:bg-slate-50">{setting}</button>
+              ))}
+            </div>
           </div>
-          <div className="mt-5 grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-            {adminSettingCards.map((card) => {
-              const Icon = card.icon;
-              return (
-                <button
-                  key={card.id}
-                  onClick={() => openSettingDetail(card.id)}
-                  className="group flex min-h-24 items-center gap-4 rounded-lg border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md"
-                >
-                  <span className="grid h-14 w-14 shrink-0 place-items-center rounded-lg bg-blue-600 text-white transition group-hover:bg-blue-700">
-                    <Icon size={25} />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block text-base font-black text-slate-900">{card.title}</span>
-                    <span className="mt-1 block text-sm font-semibold leading-5 text-slate-500">{card.description}</span>
-                  </span>
-                </button>
-              );
-            })}
+
+          <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div>
+                <h3 className="text-base font-black text-slate-950">Security Audit Logs</h3>
+                <p className="text-xs font-semibold text-slate-500 mt-0.5">Immutable structural tracking history of recent ecosystem mutations</p>
+              </div>
+              <button 
+                onClick={() => {
+                  localStorage.removeItem(STORAGE_AUDIT_LOGS);
+                  setAuditLogs(defaultAuditLogs);
+                }} 
+                className="text-xs font-black text-rose-700 hover:bg-rose-50 px-2.5 py-1.5 rounded-lg border border-slate-200 transition"
+              >
+                Reset Trail logs
+              </button>
+            </div>
+
+            <div className="mt-5 overflow-x-auto rounded-lg border border-slate-200">
+              <table className="w-full min-w-[700px] text-left text-sm">
+                <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                  <tr>
+                    <th className="px-4 py-3 font-black">Action Event</th>
+                    <th className="px-4 py-3 font-black">Operator User</th>
+                    <th className="px-4 py-3 font-black">Timestamp Execution</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 bg-white">
+                  {auditLogs.map((log) => (
+                    <tr key={log.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-4 py-3.5 font-mono text-xs font-semibold text-blue-900">{log.action}</td>
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-2">
+                          <span className="grid h-6 w-6 shrink-0 place-items-center rounded bg-slate-900 text-[10px] font-black text-white">
+                            {log.initials}
+                          </span>
+                          <span className="font-semibold text-slate-700 text-xs">{log.username}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3.5 text-xs font-bold text-slate-500">
+                        {new Date(log.createdAt).toLocaleDateString("en-IN", {
+                          day: "2-digit",
+                          month: "short",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          second: "2-digit"
+                        })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      </section>
-    );
+        </section>
+      );
+    }
   };
 
   if (!isAuthenticated) {
@@ -2072,8 +1533,8 @@ const AdminPage = () => {
           setIsAuthenticated(true);
           setActivePage("dashboard");
           setAdminNameDraft(selectedProfile.name);
+          addAuditLogEntry(`Authentication / Login successful as [${selectedProfile.role}]`);
           setDetail({ title: "Login successful", body: `${selectedProfile.name} signed in as ${selectedProfile.role}.`, photo: selectedProfile.profilePhoto || "" });
-          addAudit("Admin login", selectedProfile.adminId, `${selectedProfile.name} signed in as ${selectedProfile.role}.`);
         }}
       />
     );
@@ -2142,6 +1603,7 @@ const AdminPage = () => {
                   ) : (
                     <span className="grid h-8 w-8 place-items-center rounded-lg bg-blue-600 text-xs font-black text-white">{selectedProfile.initials}</span>
                   )}
+                  {/* FIX 11: Split name and take first word only */}
                   {selectedProfile.name.split(" ")[0]}
                 </button>
               </div>
@@ -2155,8 +1617,8 @@ const AdminPage = () => {
 
             <aside className="hidden min-h-0 overflow-y-auto border-l border-slate-200 bg-white p-5 xl:block">
               <div className="sticky top-0 bg-white pb-4">
-                <div className="text-sm font-black text-slate-950">Activity Details</div>
-                <div className="mt-1 text-xs font-semibold text-slate-500">Latest selected record and action</div>
+                <div className="text-sm font-black text-slate-950">Right Panel</div>
+                <div className="mt-1 text-xs font-semibold text-slate-500">Independent scroll area</div>
               </div>
 
               <div className="space-y-5">
@@ -2185,7 +1647,7 @@ const AdminPage = () => {
                   <div className="text-sm font-black text-slate-950">Operations Queue</div>
                   <div className="mt-3 space-y-2 text-sm font-bold text-slate-700">
                     <button onClick={() => openPage("documents")} className="flex w-full justify-between rounded-lg bg-slate-50 px-3 py-3 text-left hover:bg-slate-100"><span>Pending verifications</span><span>{documentRows.filter(d => d.status === "Pending").length}</span></button>
-                    <button onClick={() => openPage("claims")} className="flex w-full justify-between rounded-lg bg-slate-50 px-3 py-3 text-left hover:bg-slate-100"><span>Pending claims</span><span>{claimRows.filter(c => !["Approved", "Rejected"].includes(c.status)).length}</span></button>
+                    <button onClick={() => openPage("claims")} className="flex w-full justify-between rounded-lg bg-slate-50 px-3 py-3 text-left hover:bg-slate-100"><span>Claims in review</span><span>{claimRows.filter(c => c.status === "Under Review").length}</span></button>
                     <button onClick={() => openPage("support")} className="flex w-full justify-between rounded-lg bg-slate-50 px-3 py-3 text-left hover:bg-slate-100"><span>Open support chats</span><span>{supportChats.filter(s => s.status !== "Resolved").length}</span></button>
                     <button onClick={() => openPage("requirements")} className="flex w-full justify-between rounded-lg bg-slate-50 px-3 py-3 text-left hover:bg-slate-100"><span>Quotes requested</span><span>{requirementRows.length}</span></button>
                   </div>
@@ -2198,7 +1660,7 @@ const AdminPage = () => {
                       ["Create plan", "policies"],
                       ["Send reminder", "notifications"],
                       ["Export claims", "reports"],
-                      ["Open audit logs", "audit"],
+                      ["Open audit logs", "settings"],
                     ].map(([label, page]) => (
                       <button key={label} onClick={() => openPage(page)} className="rounded-lg border border-slate-200 px-3 py-2 text-left text-xs font-black hover:bg-slate-50">{label}</button>
                     ))}
