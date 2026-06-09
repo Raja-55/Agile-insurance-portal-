@@ -156,6 +156,8 @@ const documents = [
   { type: "Claim Documents", owner: "Sana Khan", status: "Verification" },
 ];
 
+// Developer note: user uploads from DashboardDocuments are normalized here for admin review/markup.
+// Add new document metadata here if the user-side vault stores more fields later.
 const readUploadedDocuments = () => {
   const uploadedDocs = safeJsonParse(localStorage.getItem(STORAGE_DOCUMENTS), []);
   if (!Array.isArray(uploadedDocs)) return [];
@@ -170,6 +172,7 @@ const readUploadedDocuments = () => {
   }));
 };
 
+// Developer note: add/remove System Settings tiles here; each id should match a key in settingFieldGroups.
 const adminSettingCards = [
   { id: "general", title: "General Setting", description: "Configure the fundamental information of the site.", icon: Settings },
   { id: "branding", title: "Logo and Favicon", description: "Upload your logo and favicon here.", icon: LayoutDashboard },
@@ -195,6 +198,7 @@ const adminSettingCards = [
   { id: "robots", title: "Robots txt", description: "Insert robots.txt content for web crawlers.", icon: FileText },
 ];
 
+// Developer note: edit field definitions here to change which controls appear inside each settings tile.
 const settingFieldGroups = {
   general: [
     { name: "companyName", label: "Company Name", type: "text", defaultValue: "Agile Insurance" },
@@ -843,6 +847,8 @@ const AdminPage = () => {
 
   const rowKeyFor = (row) => row.id || row.name || row.user || row.type;
 
+  // Developer note: this controls which columns become editable in the shared admin edit panel.
+  // Add fields here when new user, claim, policy, document, or requirement properties are introduced.
   const editFieldsByKind = {
     users: ["name", "email", "phone", "address", "policies", "status", "city"],
     claims: ["id", "user", "policy", "amount", "status", "officer", "description", "docName"],
@@ -852,6 +858,7 @@ const AdminPage = () => {
     support: ["id", "user", "subject", "priority", "status"],
   };
 
+  // Developer note: route shared edit/save actions to the correct local table state here.
   const updateRowsForKind = (kind, updater) => {
     const setter = {
       users: setCustomerRows,
@@ -889,6 +896,7 @@ const AdminPage = () => {
     });
   };
 
+  // Developer note: document markup state is keyed per document so each file keeps its own pen/circle marks.
   const currentDocumentKey = selectedDocument ? `${selectedDocument.type}-${selectedDocument.owner}` : "";
   const currentDocumentMarks = documentMarks[currentDocumentKey] || [];
 
@@ -900,6 +908,7 @@ const AdminPage = () => {
     };
   };
 
+  // Developer note: markup tools are intentionally simple SVG overlays. Add new tools beside pen/circle/eraser here.
   const startMarkup = (event) => {
     if (!selectedDocument) return;
     const point = pointFromEvent(event);
@@ -938,6 +947,7 @@ const AdminPage = () => {
     }));
   };
 
+  // Developer note: this simulates returning corrections to the user. Connect this to backend notifications later.
   const sendDocumentCorrection = () => {
     if (!selectedDocument) return;
     setDocumentRows((rows) =>
@@ -1283,6 +1293,7 @@ const AdminPage = () => {
     </div>
   );
 
+  // Developer note: shared editor for every row-level Edit/Create action in admin tables/cards.
   const renderEditPanel = () => {
     if (!editingRecord) return null;
     const fields = editFieldsByKind[editingRecord.kind] || Object.keys(editingRecord.draft);
@@ -1332,6 +1343,7 @@ const AdminPage = () => {
     );
   };
 
+  // Developer note: audit tabs are split by this classifier. Update keywords if audit action names change.
   const isLoginAudit = (log) => {
     const action = log.action.toLowerCase();
     return action.includes("login") || action.includes("auth");

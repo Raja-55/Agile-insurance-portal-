@@ -33,6 +33,7 @@ const saveSession = (nextUser) => {
   localStorage.setItem(STORAGE_SESSION, JSON.stringify({ user: nextUser }));
 };
 
+// Developer note: replace this with a backend/email OTP provider when real email delivery is added.
 const createOtp = () => String(Math.floor(100000 + Math.random() * 900000));
 
 const bootstrapUser = () => {
@@ -55,6 +56,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => bootstrapUser());
   const [bootstrapped] = useState(true);
 
+  // Developer note: keep registration fields in sync with AuthPage and admin readRealUsers().
   const register = async ({ fullName, email, phone, address, password }) => {
     const users = readUsers();
     if (users.some((u) => u.email === email)) {
@@ -77,9 +79,11 @@ export const AuthProvider = ({ children }) => {
       }),
     );
 
+    // Frontend demo: expose the generated OTP in the UI notice. Real apps should only email/SMS this code.
     return { message: `OTP ${otp} was sent to ${email}. Enter it below to verify your account.` };
   };
 
+  // Developer note: verification currently checks the pending localStorage record.
   const verifyOtp = async ({ email, otp }) => {
     const pending = safeJsonParse(localStorage.getItem(STORAGE_PENDING), null);
     if (!pending || pending.email !== email) throw new Error("No pending registration found for this email.");

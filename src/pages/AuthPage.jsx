@@ -50,6 +50,7 @@ const AuthPage = () => {
   const [notice, setNotice] = useState("");
   const [otpStep, setOtpStep] = useState(false);
 
+  // Developer note: registration fields live here; keep these in sync with AuthContext.register().
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -89,6 +90,7 @@ const AuthPage = () => {
     }
 
     if (mode === "register") {
+      // Developer note: add validation for any future registration fields in this block.
       if (!trimmedName) return setError("Full Name is required.");
       if (!validateEmail(trimmedEmail)) return setError("Enter a valid email address.");
       if (!/^\d{10}$/.test(trimmedPhone)) return setError("Enter a valid 10-digit phone number.");
@@ -229,6 +231,7 @@ const AuthPage = () => {
           </div>
 
           <form onSubmit={onSubmit} className="mt-8 space-y-4">
+            {/* Developer note: add future account-create fields near this section and pass them to register(). */}
             {mode === "register" && !otpStep && (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <label className="space-y-2">

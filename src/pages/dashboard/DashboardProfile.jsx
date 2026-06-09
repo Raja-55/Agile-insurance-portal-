@@ -93,6 +93,7 @@ const DashboardProfile = () => {
             </label>
           </div>
           <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {/* Developer note: profile summary fields mirror the verified user object from AuthContext. */}
             {[
               { label: "Full name", value: user?.fullName ?? "—" },
               { label: "Email", value: user?.email ?? "—" },
