@@ -33,7 +33,6 @@ const Navbar = () => {
     const { isAuthenticated, user } = useAuth();
     const [portalName, setPortalName] = useState("Agile Insurance");
     const [supportPhone, setSupportPhone] = useState("+91 98765 43210");
-    
 
     useEffect(() =>{
         const fetchSettings = async () =>{

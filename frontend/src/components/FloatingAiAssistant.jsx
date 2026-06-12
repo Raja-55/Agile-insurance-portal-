@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Bot, SendHorizonal, Sparkles, X } from "lucide-react";
 import { openAiChat } from "../utils/api";
 import { buildAssistantKnowledge } from "../utils/assistantKnowledge";
-
+import {apiRequest} from "../utils/api";
 // Floating AI widget copy and OpenAI chat handoff live here.
 const makeId = (prefix) => `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`;
 
@@ -19,6 +19,26 @@ const FloatingAiAssistant = ({ contextLabel = "Agile AI", prompt = null }) => {
       text: `Hi! I'm ${contextLabel}. Ask me about insurance plans, claims, payments, documents, login, or how to use this portal.`,
     },
   ]);
+  const [features, setFeatures] = useState(null);
+
+   useEffect(() => {
+  const fetchSettings = async () => {
+    try {
+      const response = await apiRequest("/api/admin/settings");
+      const settings = response?.data;
+
+      setFeatures(settings?.features || {});
+    } catch (error) {
+      console.error("Failed to load features:", error);
+    }
+  };
+
+  fetchSettings();
+}, []);
+
+
+
+
   const lastPrompt = useRef("");
 
   const sendMessage = useCallback(async (value) => {
@@ -80,21 +100,30 @@ const FloatingAiAssistant = ({ contextLabel = "Agile AI", prompt = null }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, busy, open]);
 
-  return (
-    <>
-      <div className="fixed bottom-6 right-4 z-50 sm:right-6">
-        <button
-          onClick={() => setOpen((v) => !v)}
-          className="group inline-flex items-center gap-3 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3 text-sm font-black text-white shadow-[0_22px_90px_rgba(37,99,235,0.35)] hover:opacity-95 sm:px-5 sm:py-4"
-        >
-          <span className="grid h-10 w-10 place-items-center rounded-2xl bg-white/15">
-            <Bot size={18} />
-          </span>
-          <span className="hidden sm:inline">AI Support</span>
-          <span className="hidden text-white/80 sm:inline">-</span>
-          <span className="hidden text-xs font-semibold text-white/85 sm:inline">OpenAI powered</span>
-        </button>
-      </div>
+
+if (!features) return null;
+
+if (!features.aiAssistant) {
+  return null;
+}
+
+return (
+  <>
+    <div className="fixed bottom-6 right-4 z-50 sm:right-6">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="group inline-flex items-center gap-3 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3 text-sm font-black text-white shadow-[0_22px_90px_rgba(37,99,235,0.35)] hover:opacity-95 sm:px-5 sm:py-4"
+      >
+        <span className="grid h-10 w-10 place-items-center rounded-2xl bg-white/15">
+          <Bot size={18} />
+        </span>
+        <span className="hidden sm:inline">AI Support</span>
+        <span className="hidden text-white/80 sm:inline">-</span>
+        <span className="hidden text-xs font-semibold text-white/85 sm:inline">
+          OpenAI powered
+        </span>
+      </button>
+    </div>
 
       <AnimatePresence>
         {open ? (

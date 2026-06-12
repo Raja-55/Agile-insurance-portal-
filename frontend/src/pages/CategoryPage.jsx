@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { getCategoryBySlug, getPoliciesByCategory } from "../data/catalog";
 import { useAuth } from "../contexts/useAuth";
+import { apiRequest } from "../utils/api";
+
 
 // Listing page copy is mixed with catalog data; change product/category text in src/data/catalog.js first.
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
@@ -26,7 +28,12 @@ const PolicyLogo = ({ brand }) => (
   </div>
 );
 
-const PolicyListingFooter = ({ filteredCount, resetFilters, navigate }) => (
+const PolicyListingFooter = ({
+  filteredCount,
+  resetFilters,
+  navigate,
+  features,
+}) => (
   <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950 p-4 text-white shadow-[0_18px_60px_rgba(2,6,23,0.16)] sm:p-5">
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
       <div>
@@ -50,20 +57,40 @@ const PolicyListingFooter = ({ filteredCount, resetFilters, navigate }) => (
           <RefreshCw size={17} />
           Reset
         </button>
-        <button
-          type="button"
-          onClick={() =>
-            window.dispatchEvent(
-              new CustomEvent("agile-ai-prompt", {
-                detail: { text: "Help me choose the best insurance policy from this listing." },
-              }),
-            )
-          }
-          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-4 py-2.5 text-sm font-black text-slate-950 transition hover:bg-blue-50"
-        >
-          <Bot size={17} />
-          Ask AI
-        </button>
+
+
+
+
+
+
+
+
+
+       {features?.aiAssistant && (
+  <button
+    type="button"
+    onClick={() =>
+      window.dispatchEvent(
+        new CustomEvent("agile-ai-prompt", {
+          detail: {
+            text: "Help me choose the best insurance policy from this listing.",
+          },
+        })
+      )
+    }
+    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-4 py-2.5 text-sm font-black text-white transition hover:bg-white/15"
+  >
+    <Bot size={17} />
+    Ask AI
+  </button>
+)}
+
+
+
+
+
+
+
         <button
           type="button"
           onClick={() => navigate("/dashboard")}
@@ -76,6 +103,7 @@ const PolicyListingFooter = ({ filteredCount, resetFilters, navigate }) => (
     </div>
   </div>
 );
+
 
 const FiltersPanel = ({
   search,
@@ -126,7 +154,7 @@ const FiltersPanel = ({
             onChange={(e) => setSearch(e.target.value)}
             placeholder="e.g. HDFC, LIC, ICICI…"
             className="w-full rounded-2xl border border-slate-200 bg-white px-12 py-3 text-sm font-semibold text-slate-800 shadow-sm outline-none focus:border-blue-500"
-          />
+            />
         </div>
       </label>
 
@@ -147,7 +175,7 @@ const FiltersPanel = ({
               setPremiumRange((prev) => [clamp(Number(e.target.value), premiumMin, prev[1]), prev[1]])
             }
             className="w-full"
-          />
+            />
           <input
             type="range"
             min={premiumMin}
@@ -157,7 +185,7 @@ const FiltersPanel = ({
               setPremiumRange((prev) => [prev[0], clamp(Number(e.target.value), prev[0], premiumMax)])
             }
             className="w-full"
-          />
+            />
         </div>
       </div>
 
@@ -179,7 +207,7 @@ const FiltersPanel = ({
               setCoverageRange((prev) => [clamp(Number(e.target.value), coverageMin, prev[1]), prev[1]])
             }
             className="w-full"
-          />
+            />
           <input
             type="range"
             min={coverageMin}
@@ -190,7 +218,7 @@ const FiltersPanel = ({
               setCoverageRange((prev) => [prev[0], clamp(Number(e.target.value), prev[0], coverageMax)])
             }
             className="w-full"
-          />
+            />
         </div>
       </div>
 
@@ -204,7 +232,7 @@ const FiltersPanel = ({
             value={claimMin}
             onChange={(e) => setClaimMin(Number(e.target.value))}
             className="w-full"
-          />
+            />
           <div className="w-16 rounded-xl border border-slate-200 bg-white px-3 py-2 text-center text-xs font-black text-slate-900 shadow-sm">
             {claimMin}%
           </div>
@@ -217,7 +245,7 @@ const FiltersPanel = ({
           value={policyType}
           onChange={(e) => setPolicyType(e.target.value)}
           className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm outline-none focus:border-blue-500"
-        >
+          >
           {policyTypes.map((t) => (
             <option key={t} value={t}>
               {t}
@@ -232,7 +260,7 @@ const FiltersPanel = ({
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value)}
           className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm outline-none focus:border-blue-500"
-        >
+          >
           <option value="low-premium">Low premium</option>
           <option value="high-coverage">High coverage</option>
           <option value="best-rating">Best rating</option>
@@ -247,7 +275,7 @@ const FiltersPanel = ({
             "rounded-2xl border px-4 py-3 text-sm font-bold shadow-sm transition",
             emiOnly ? "border-blue-600 bg-blue-600 text-white" : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50",
           ].join(" ")}
-        >
+          >
           EMI {emiOnly ? "On" : "Off"}
         </button>
         <button
@@ -256,10 +284,10 @@ const FiltersPanel = ({
           className={[
             "rounded-2xl border px-4 py-3 text-sm font-bold shadow-sm transition",
             familyOnly
-              ? "border-blue-600 bg-blue-600 text-white"
-              : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50",
+            ? "border-blue-600 bg-blue-600 text-white"
+            : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50",
           ].join(" ")}
-        >
+          >
           Family {familyOnly ? "On" : "Off"}
         </button>
       </div>
@@ -269,7 +297,7 @@ const FiltersPanel = ({
           type="button"
           onClick={resetFilters}
           className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-800 shadow-sm hover:bg-slate-50"
-        >
+          >
           <RefreshCw size={18} />
           Reset filters
         </button> 
@@ -282,18 +310,18 @@ const CategoryPage = () => {
   const { categorySlug } = useParams();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
-
+  
   const category = getCategoryBySlug(categorySlug);
   const allPolicies = useMemo(() => getPoliciesByCategory(categorySlug), [categorySlug]);
-
+  
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [compareIds, setCompareIds] = useState([]);
-
+  
   const premiumMin = useMemo(() => Math.min(...allPolicies.map((p) => p.premiumMonthly)), [allPolicies]);
   const premiumMax = useMemo(() => Math.max(...allPolicies.map((p) => p.premiumMonthly)), [allPolicies]);
   const coverageMin = useMemo(() => Math.min(...allPolicies.map((p) => p.coverageAmount)), [allPolicies]);
   const coverageMax = useMemo(() => Math.max(...allPolicies.map((p) => p.coverageAmount)), [allPolicies]);
-
+  
   const [search, setSearch] = useState("");
   const [premiumRange, setPremiumRange] = useState([premiumMin, premiumMax]);
   const [coverageRange, setCoverageRange] = useState([coverageMin, coverageMax]);
@@ -302,6 +330,26 @@ const CategoryPage = () => {
   const [sortBy, setSortBy] = useState("best-rating");
   const [emiOnly, setEmiOnly] = useState(false);
   const [familyOnly, setFamilyOnly] = useState(false);
+  const [features, setFeatures] = useState({
+      aiAssistant: true,    
+    policyCompare: true,
+    });
+  
+    useEffect(() => {
+  const fetchSettings = async () => {
+    try {
+      const response = await apiRequest("/api/admin/settings");
+      const settings = response?.data;
+
+      setFeatures(settings?.features || {});
+    } catch (error) {
+      console.error("Failed to load features:", error);
+    }
+  };
+
+  fetchSettings();
+}, []);
+
 
   const policyTypes = useMemo(() => {
     const unique = new Set(allPolicies.map((p) => p.policyType));
@@ -557,18 +605,26 @@ const CategoryPage = () => {
                   </ul>
 
                   <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    <button
-                      onClick={() => toggleCompare(p.id)}
-                      className={[
-                        "inline-flex min-w-0 items-center justify-center gap-2 rounded-2xl border px-3 py-3 text-sm font-black shadow-sm transition",
-                        compareIds.includes(p.id)
-                          ? "border-blue-600 bg-blue-600 text-white"
-                          : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50",
-                      ].join(" ")}
-                    >
-                      <Scale size={16} className="shrink-0" />
-                      <span className="truncate">Compare</span>
-                    </button>
+                   
+                   
+                   
+                    {features?.policyCompare && (
+  <button
+    onClick={() => toggleCompare(p.id)}
+    className={[
+      "inline-flex min-w-0 items-center justify-center gap-2 rounded-2xl border px-3 py-3 text-sm font-black shadow-sm transition",
+      compareIds.includes(p.id)
+        ? "border-blue-600 bg-blue-600 text-white"
+        : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50",
+    ].join(" ")}
+  >
+    <Scale size={16} className="shrink-0" />
+    <span className="truncate">Compare</span>
+  </button>
+)}
+
+
+
                     <Link
                       to={`/policies/${p.id}`}
                       className="inline-flex min-w-0 items-center justify-center rounded-2xl border border-slate-200 bg-white px-3 py-3 text-sm font-black text-slate-800 shadow-sm hover:bg-slate-50"
@@ -587,7 +643,7 @@ const CategoryPage = () => {
               ))}
             </div>
 
-          {compareIds.length ? (
+          {features?.policyCompare && compareIds.length ? (
             <div className="sticky bottom-5 z-20 rounded-3xl border border-slate-200 bg-white/90 p-4 shadow-[0_24px_80px_rgba(2,6,23,0.12)] backdrop-blur-xl sm:rounded-[2.2rem] sm:p-5">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
@@ -613,7 +669,15 @@ const CategoryPage = () => {
             ) : null}
           </div>
 
-          <PolicyListingFooter filteredCount={filtered.length} resetFilters={resetFilters} navigate={navigate} />
+          <PolicyListingFooter
+  filteredCount={filtered.length}
+  resetFilters={resetFilters}
+  navigate={navigate}
+  features={features}
+/>
+        
+        
+        
         </section>
       </div>
 

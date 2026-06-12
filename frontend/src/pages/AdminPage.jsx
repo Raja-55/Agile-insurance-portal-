@@ -189,9 +189,9 @@ const adminSettingCards = [
   { id: "pages", title: "Manage Pages", description: "Control dynamic and static pages of the system.", icon: FileText },
   { id: "kyc", title: "KYC Setting", description: "Configure client information fields.", icon: ShieldCheck },
   { id: "social", title: "Social Login Setting", description: "Provide required social login information.", icon: Users },
-  { id: "language", title: "Language", description: "Configure languages and keywords to localize the system.", icon: MessageSquare },
-  { id: "extensions", title: "Extensions", description: "Manage extensions of the system.", icon: Plus },
-  { id: "policyPages", title: "Policy Pages", description: "Configure policy and terms of the system.", icon: Lock },
+  // { id: "language", title: "Language", description: "Configure languages and keywords to localize the system.", icon: MessageSquare },
+  // { id: "extensions", title: "Extensions", description: "Manage extensions of the system.", icon: Plus },
+  // { id: "policyPages", title: "Policy Pages", description: "Configure policy and terms of the system.", icon: Lock },
   { id: "maintenance", title: "Maintenance Mode", description: "Enable or disable maintenance mode when required.", icon: Settings },
  ];
 
@@ -246,7 +246,6 @@ const settingFieldGroups = {
     { name: "aiAssistant", label: "AI Assistant", type: "boolean", defaultValue: true },
     { name: "policyCompare", label: "Policy Compare", type: "boolean", defaultValue: true },
     { name: "claimTracking", label: "Claim Tracking", type: "boolean", defaultValue: true },
-    // { name: "voiceSupport", label: "Voice Support", type: "boolean", defaultValue: false },
   ],
 
 
@@ -282,19 +281,19 @@ const settingFieldGroups = {
     { name: "facebookLogin", label: "Facebook Login", type: "boolean", defaultValue: false },
     { name: "clientId", label: "OAuth Client ID", type: "text", defaultValue: "" },
   ],
-  language: [
-    { name: "defaultLanguage", label: "Default Language", type: "select", defaultValue: "English", options: ["English", "Hindi", "Tamil", "Bengali"] },
-    { name: "multiLanguage", label: "Enable Multi Language", type: "boolean", defaultValue: false },
-  ],
-  extensions: [
-    { name: "analytics", label: "Analytics Extension", type: "boolean", defaultValue: true },
-    { name: "chatbot", label: "Chatbot Extension", type: "boolean", defaultValue: true },
-    { name: "documentScanner", label: "Document Scanner", type: "boolean", defaultValue: false },
-  ],
-  policyPages: [
-    { name: "terms", label: "Terms and Conditions", type: "textarea", defaultValue: "Policy terms are subject to verification and approval." },
-    { name: "privacy", label: "Privacy Policy", type: "textarea", defaultValue: "Customer data is stored securely for insurance operations." },
-  ],
+  // language: [
+  //   { name: "defaultLanguage", label: "Default Language", type: "select", defaultValue: "English", options: ["English", "Hindi", "Tamil", "Bengali"] },
+  //   { name: "multiLanguage", label: "Enable Multi Language", type: "boolean", defaultValue: false },
+  // ],
+  // extensions: [
+  //   { name: "analytics", label: "Analytics Extension", type: "boolean", defaultValue: true },
+  //   { name: "chatbot", label: "Chatbot Extension", type: "boolean", defaultValue: true },
+  //   { name: "documentScanner", label: "Document Scanner", type: "boolean", defaultValue: false },
+  // ],
+  // policyPages: [
+  //   { name: "terms", label: "Terms and Conditions", type: "textarea", defaultValue: "Policy terms are subject to verification and approval." },
+  //   { name: "privacy", label: "Privacy Policy", type: "textarea", defaultValue: "Customer data is stored securely for insurance operations." },
+  // ],
   maintenance: [
     { name: "enabled", label: "Maintenance Mode", type: "boolean", defaultValue: false },
     { name: "message", label: "Maintenance Message", type: "textarea", defaultValue: "The portal is temporarily under maintenance. Please check back soon." },

@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Bot,
@@ -11,6 +10,9 @@ import {
 import { load, save, uid } from "../../utils/storage";
 import { chance } from "../../utils/ids";
 import { useAuth } from "../../contexts/useAuth";
+import { useState, useEffect } from "react";
+import { apiRequest } from "../../utils/api";
+
 
 // Claim flow step names, status labels, and form labels are controlled here.
 const claimSteps = [
@@ -50,7 +52,22 @@ const DashboardClaims = () => {
     amount: "",
     docName: "",
   });
+  const [features, setFeatures] = useState(null);
 
+  useEffect(() => {
+  const fetchSettings = async () => {
+    try {
+      const response = await apiRequest("/api/admin/settings");
+      const settings = response?.data;
+
+      setFeatures(settings?.features || {});
+    } catch (error) {
+      console.error("Failed to load features:", error);
+    }
+  };
+
+  fetchSettings();
+}, []);
   const createClaim = () => {
     setForm({ type: "Health", description: "", amount: "", docName: "" });
     setStep(0);
@@ -224,7 +241,7 @@ const DashboardClaims = () => {
 
         <div className="space-y-6">
           <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-white/5 sm:rounded-[2.6rem] sm:p-8">
-            <div className="text-sm font-black text-slate-900 dark:text-slate-100">Claim progress tracker</div>
+            <div className="text-sm font-black text-slate-900 dark:text-slate-100"></div>
             <div className="mt-4 space-y-3">
               {claimSteps.map((s, idx) => (
                 <div key={s} className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">

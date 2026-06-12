@@ -71,8 +71,7 @@ const systemSettingsSchema = new mongoose.Schema(
     features: {
       aiAssistant: { type: Boolean, default: true },
       policyCompare: { type: Boolean, default: true },
-      // claimTracking: { type: Boolean, default: true }, 
-      voiceSupport: { type: Boolean, default: true }, 
+      claimTracking: { type: Boolean, default: true }, 
         
     },
 
@@ -158,36 +157,36 @@ socialLogin: {
 },
 
 // Language Settings
-language: {
-  defaultLanguage: {
-    type: String,
-    default: "English",
-  },
+// language: {
+//   defaultLanguage: {
+//     type: String,
+//     default: "English",
+//   },
 
-  enableMultiLanguage: {
-    type: Boolean,
-    default: false,
-  },
+//   enableMultiLanguage: {
+//     type: Boolean,
+//     default: false,
+//   },
 
-},
+// },
 
-// Extensions Settings
-extensions: {
-  analyticsExtension: {
-    type: Boolean,
-    default: true,
-  },
+// // Extensions Settings
+// extensions: {
+//   analyticsExtension: {
+//     type: Boolean,
+//     default: true,
+//   },
 
-  chatbotExtension: {
-    type: Boolean,
-    default: true,
-  },
+//   chatbotExtension: {
+//     type: Boolean,
+//     default: true,
+//   },
 
-  documentScanner: {
-    type: Boolean,
-    default: false,
-  },
-},
+//   documentScanner: {
+//     type: Boolean,
+//     default: false,
+//   },
+// },
 
 // Maintenance Mode
 maintenanceMode: {
