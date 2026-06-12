@@ -20,23 +20,59 @@ import {
 import { motion } from "framer-motion";
 import { useAuth } from "../contexts/useAuth";
 import FloatingAiAssistant from "../components/FloatingAiAssistant";
+import { apiRequest } from "../utils/api";
 
 const STORAGE_THEME = "agile_insurance_theme_v1";
+const STORAGE_SETTINGS = "agile_insurance_system_settings_v1";
 // Dashboard brand logo path. Replace the SVG in public/ to refresh the sidebar and favicon branding.
 const AGILE_LOGO_SRC = "/agile-insurance-logo.svg";
 
-// Dashboard sidebar labels, icons, and routes are defined here.
-const navItems = [
+const readPortalSettings = () => {
+  try {
+    const stored = localStorage.getItem(STORAGE_SETTINGS);
+    return stored ? JSON.parse(stored) : {};
+  } catch {
+    return {};
+  }
+};
+
+const getNavItems = (settings) => [
   { label: "Dashboard Overview", icon: LayoutDashboard, to: "/dashboard" },
+
   { label: "My Policies", icon: BadgeCheck, to: "/dashboard/policies" },
-  { label: "Claim Management", icon: Sparkles, to: "/dashboard/claims" },
-  { label: "Payment History", icon: CreditCard, to: "/dashboard/payments" },
-  { label: "Renew Policies", icon: Settings, to: "/dashboard/renewals" },
-  { label: "Documents Center", icon: FileText, to: "/dashboard/documents" },
-  { label: "Contact Us", icon: PhoneCall, to: "/dashboard/contact" },
+
+  settings?.modules?.claimsModule && {
+    label: "Claim Management",
+    icon: Sparkles,
+    to: "/dashboard/claims",
+  },
+
+  settings?.modules?.paymentsModule && {
+    label: "Payment History",
+    icon: CreditCard,
+    to: "/dashboard/payments",
+  },
+
+  settings?.modules?.documentModule && {
+    label: "Documents Center",
+    icon: FileText,
+    to: "/dashboard/documents",
+  },
+
+  settings?.modules?.supportModule && {
+    label: "Contact Us",
+    icon: PhoneCall,
+    to: "/dashboard/contact",
+  },
+
   { label: "Profile Settings", icon: User, to: "/dashboard/profile" },
+
   { label: "Security Settings", icon: Shield, to: "/dashboard/security" },
-];
+].filter(Boolean);
+
+
+
+
 
 const setHtmlTheme = (mode) => {
   const html = document.documentElement;
@@ -45,8 +81,13 @@ const setHtmlTheme = (mode) => {
   else html.classList.remove("dark");
 };
 
-const DashboardNavList = ({ compact = false, pathname, onNavigate }) => (
-  <nav className={["scrollbar-none mt-4 flex-1 space-y-1 overflow-y-auto", compact ? "pr-0" : "pr-1"].join(" ")}>
+const DashboardNavList = ({
+  compact = false,
+  pathname,
+  onNavigate,
+  navItems,
+}) => (
+    <nav className={["scrollbar-none mt-4 flex-1 space-y-1 overflow-y-auto", compact ? "pr-0" : "pr-1"].join(" ")}>
     {navItems.map((item) => {
       const Icon = item.icon;
       const active = pathname === item.to;
@@ -101,9 +142,33 @@ const DashboardLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem(STORAGE_THEME) || "light");
   const [profilePhoto, setProfilePhoto] = useState(() => user?.profilePhoto || "");
+  const [portalName, setPortalName] = useState(() => readPortalSettings().companyName || "Agile Insurance");
   // The top-right profile control intentionally shows only the user's first initial.
   const profileInitial = (user?.fullName?.trim()?.[0] || user?.email?.trim()?.[0] || "A").toUpperCase();
   const displayUser = { ...user, profilePhoto };
+  const [systemSettings, setSystemSettings] = useState(null);
+  const navItems = useMemo(
+    () => getNavItems(systemSettings),
+    [systemSettings]
+  );
+
+console.log(systemSettings);
+  
+  useEffect(() => {
+  const loadSettings = async () => {
+    try {
+      const response = await apiRequest("/api/admin/settings");
+
+      setSystemSettings(response.data);
+
+      console.log("Loaded Settings:", response.data);
+    } catch (error) {
+      console.error("Error loading system settings:", error);
+    }
+  };
+
+  loadSettings();
+}, []);
 
   useEffect(() => {
     setHtmlTheme(theme);
@@ -112,8 +177,18 @@ const DashboardLayout = () => {
 
   useEffect(() => {
     const syncProfile = (event) => setProfilePhoto(event.detail?.profilePhoto || "");
+    const syncSettings = () => {
+      const settings = readPortalSettings();
+      setPortalName(settings.companyName || "Agile Insurance");
+    };
+
+    syncSettings();
     window.addEventListener("agile-profile-updated", syncProfile);
-    return () => window.removeEventListener("agile-profile-updated", syncProfile);
+    window.addEventListener("agile-settings-updated", syncSettings);
+    return () => {
+      window.removeEventListener("agile-profile-updated", syncProfile);
+      window.removeEventListener("agile-settings-updated", syncSettings);
+    };
   }, []);
 
   const activeLabel = useMemo(() => {
@@ -131,6 +206,7 @@ const DashboardLayout = () => {
     navigate("/");
     setMobileOpen(false);
   };
+
 
   return (
     <div className="h-screen overflow-hidden bg-slate-50 text-slate-900 dark:bg-[#070B14] dark:text-slate-100">
@@ -151,7 +227,7 @@ const DashboardLayout = () => {
                 >
                   <img src={AGILE_LOGO_SRC} alt="Agile Insurance logo" className="h-11 w-11 shrink-0" />
                   <div className="min-w-0">
-                    <div className="truncate text-base font-black leading-tight">Agile Insurance</div>
+                    <div className="truncate text-base font-black leading-tight">{portalName}</div>
                     <div className="truncate text-xs text-slate-500 dark:text-slate-400">
                       AI-powered insurance portal
                     </div>
@@ -169,7 +245,7 @@ const DashboardLayout = () => {
               </button>
             </div>
 
-            <DashboardNavList compact={collapsed} pathname={location.pathname} onNavigate={goTo} />
+            <DashboardNavList compact={collapsed} pathname={location.pathname} onNavigate={goTo} navItems={navItems} />
 
             <div className="mt-4 space-y-2">
               <DashboardUserCard compact={collapsed} user={displayUser} />
@@ -201,7 +277,7 @@ const DashboardLayout = () => {
                   <div className="truncate text-xs font-semibold text-slate-500 dark:text-slate-400 sm:text-sm">
                     {activeLabel}
                   </div>
-                  <div className="truncate text-base font-black tracking-tight sm:text-xl">Agile Insurance</div>
+                  <div className="truncate text-base font-black tracking-tight sm:text-xl">{portalName}</div>
                 </div>
               </div>
 
@@ -288,11 +364,12 @@ const DashboardLayout = () => {
                 >
                   <img src={AGILE_LOGO_SRC} alt="Agile Insurance logo" className="h-11 w-11 shrink-0" />
                   <div className="min-w-0">
-                    <div className="truncate text-base font-black leading-tight">Agile Insurance</div>
+                    <div className="truncate text-base font-black leading-tight">{portalName}</div>
                     <div className="truncate text-xs text-slate-500 dark:text-slate-400">AI-powered portal</div>
                   </div>
                 </button>
-                <DashboardNavList pathname={location.pathname} onNavigate={goTo} />
+                <DashboardNavList   compact={collapsed}
+ pathname={location.pathname} onNavigate={goTo} navItems={navItems} />
                 <div className="mt-4 space-y-2">
                   <DashboardUserCard user={displayUser} />
                   <button

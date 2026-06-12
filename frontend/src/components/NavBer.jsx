@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate , Link } from "react-router-dom";
 import {
     ChevronDown,
@@ -11,16 +11,54 @@ import {
     X,
 } from "lucide-react";
 import { useAuth } from "../contexts/useAuth";
-
+import { apiRequest } from "../utils/api";
 // Header brand text, dropdown labels, CTA labels, and trust-strip labels live in this file.
 // Update this path if the Agile Insurance brand logo file is renamed or replaced.
 const AGILE_LOGO_SRC = "/agile-insurance-logo.svg";
+const STORAGE_SETTINGS = "agile_insurance_system_settings_v1";
+
+// const readPortalSettings = () => {
+//     try {
+//         const stored = localStorage.getItem(STORAGE_SETTINGS);
+//         return stored ? JSON.parse(stored) : {};
+//     } catch {
+//         return {};
+//     }
+// };
 
 const Navbar = () => {
     const [activeDropdown, setActiveDropdown] = useState(null);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const navigate = useNavigate();
     const { isAuthenticated, user } = useAuth();
+    const [portalName, setPortalName] = useState("Agile Insurance");
+    const [supportPhone, setSupportPhone] = useState("+91 98765 43210");
+    
+
+    useEffect(() =>{
+        const fetchSettings = async () =>{
+        try{
+            const response = await apiRequest("/api/admin/settings");
+            const settings = response?.data;
+
+            setPortalName(
+                settings?.companyName || "Agile Insurance"
+            );
+            setSupportPhone(
+                settings?.supportPhone || "+91 98765 43210"
+            );
+
+        }
+        catch(error){
+            console.error(
+                "Failed to load portal settings: ",
+                error
+            );
+        }
+
+    };
+    fetchSettings();
+    },[]);
 
     const handleNav = (route) => {
         if (!route) return;
@@ -115,7 +153,7 @@ const Navbar = () => {
 
                 <div className="min-w-0">
                 <h1 className="truncate text-base sm:text-2xl font-bold text-[#111827] leading-none">
-                    Agile Insurance
+                    {portalName}
                 </h1>
 
                 <p className="hidden sm:block text-[11px] text-gray-500 mt-1 uppercase tracking-widest">
@@ -180,7 +218,10 @@ const Navbar = () => {
 
             {/* Header CTA text appears here and again inside the mobile menu. */}
             {/* Talk To Expert */}
-            <button className="hidden md:flex items-center gap-2 border border-blue-600 text-blue-600 px-5 py-3 rounded-2xl font-medium hover:bg-blue-600 hover:text-white transition-all duration-300">
+            <button
+                className="hidden md:flex items-center gap-2 border border-blue-600 text-blue-600 px-5 py-3 rounded-2xl font-medium hover:bg-blue-600 hover:text-white transition-all duration-300"
+                title={supportPhone}
+            >
                 <Phone size={18} />
                 Talk to Expert
             </button>

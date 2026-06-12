@@ -9,8 +9,8 @@ const systemSettingsSchema = new mongoose.Schema(
         serviceTaxRate: {type: Number, default: 0},
 
         // Logo and Favicon
-        logoUrl: {type: String, default: ""},
-        faviconUrl: {type: String, default: ""},
+        // logoUrl: {type: String, default: ""},
+        // faviconUrl: {type: String, default: ""},
         // brandColors: {
         //     primary: {type: String, default: "#007bff"},
         //     secondary: {type: String, default: "#6c757d"},
@@ -46,12 +46,6 @@ const systemSettingsSchema = new mongoose.Schema(
             cards:{type: Boolean, default: true},
         },
 
-
-        // Maintenance Mode
-        maintenanceMode: {
-      enabled: { type: Boolean, default: false },
-      message: { type: String, default: "Portal is under maintenance." },
-    },
 // Withdrawals Methods
     withdrawalMethods: {
       bankTransfer: { type: Boolean, default: true },
@@ -85,7 +79,7 @@ const systemSettingsSchema = new mongoose.Schema(
     regulations: {
         coveredItems: { type: [String], default: ["Hospitalization", "accident damage", "policy benefits", "verified expenses"] },
         excludedItems: { type: [String], default: ["pre-existing conditions", "cosmetic procedures", "unverified claims", "Fraudulent claims", "expired policies", "missing documents"] },
-        highvaluereviwAmt: { type: Number, default: 100000 },
+        highValueReviewAmount: { type: Number, default: 100000 },
     },  
 
 
@@ -97,12 +91,12 @@ const systemSettingsSchema = new mongoose.Schema(
     },
 
     // Manage Frontend
-    frontend: {
-        homeHeroTitle: {
-      type: String,
-      default: "Smart Insurance for Every Need",
-    },
-    },
+    // frontend: {
+    //     homeHeroTitle: {
+    //   type: String,
+    //   default: "Smart Insurance for Every Need",
+    // },
+    // },
 //Manage pages
     pages:{
         aboutPage: {
@@ -173,22 +167,6 @@ language: {
     default: false,
   },
 
-  customLabels: {
-    claim: {
-      type: String,
-      default: "Claim",
-    },
-
-    policy: {
-      type: String,
-      default: "Policy",
-    },
-
-    support: {
-      type: String,
-      default: "Support",
-    },
-  },
 },
 
 // Extensions Settings
@@ -224,45 +202,35 @@ maintenanceMode: {
 },
 
 // GDPR Cookie Settings
-gdprCookie: {
-  bannerEnabled: {
-    type: Boolean,
-    default: true,
-  },
+// gdprCookie: {
+//   bannerEnabled: {
+//     type: Boolean,
+//     default: true,
+//   },
 
-  cookieMessage: {
-    type: String,
-    default:
-      "We use cookies to improve your insurance portal experience.",
-  },
-},
+//   cookieMessage: {
+//     type: String,
+//     default:
+//       "We use cookies to improve your insurance portal experience.",
+//   },
+// },
+    // primaryCTA: {
+    //   type: String,
+    //   default: "Explore Policies",
+    // },
 
-
-
-
-
-
-
-
-
-
-    primaryCTA: {
-      type: String,
-      default: "Explore Policies",
-    },
-
-    showTestimonials: {
-      type: Boolean,
-      default: true,
-    },
+    // showTestimonials: {
+    //   type: Boolean,
+    //   default: true,
+    // },
 
 
 
-    // Custom CSS
-    customCss: {
-      type: String,
-      default: "",
-    },
+    // // Custom CSS
+    // customCss: {
+    //   type: String,
+    //   default: "",
+    // },
     },
     {
       timestamps: true,

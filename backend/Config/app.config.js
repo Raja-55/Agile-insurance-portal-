@@ -15,7 +15,7 @@ const appConfig = {
     return normalizeEnvValue(process.env.JWT_EXPIRES_IN || process.env.JWT_TOKEN_EXPIREY || "1d") || "1d";
   },
   get clientUrl() {
-    return process.env.CLIENT_URL || "http://localhost:5173";
+    return process.env.CLIENT_URL || ["http://localhost:5173", "http://localhost:5174"];
   },
 };
 

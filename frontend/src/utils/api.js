@@ -28,10 +28,18 @@ export const apiRequest = async (path, options = {}) => {
   });
 
   const rawText = await response.text();
-  const payload = rawText ? JSON.parse(rawText) : {};
+
+  let payload = {};
+  if (rawText) {
+    try {
+      payload = JSON.parse(rawText);
+    } catch {
+      payload = { message: rawText };
+    }
+  }
 
   if (!response.ok) {
-    throw new Error(payload?.message || payload?.error || "Request failed.");
+    throw new Error(payload?.message || payload?.error || rawText || "Request failed.");
   }
 
   return payload;

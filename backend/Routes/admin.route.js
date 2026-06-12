@@ -1,6 +1,7 @@
 const express = require("express");
 const authenticateUser = require("../Middlewares/auth.middleware");
 const authorizeRoles = require("../Middlewares/role.middleware");
+
 const {
   getDashboard,
   getUsers,
@@ -18,17 +19,18 @@ const {
 
 const router = express.Router();
 
+// Public
 router.get("/settings", getSystemSettings);
+
+// Protected Admin Routes
+
 router.patch("/settings", updateSystemSettings);
 
 router.use(authenticateUser, authorizeRoles("admin"));
-
 router.get("/dashboard", getDashboard);
 router.get("/users", getUsers);
 router.get("/claims", getClaims);
-
 router.get("/policies", getPolicies);
-
 router.get("/agents", getAgents);
 router.get("/payments", getPayments);
 router.get("/kyc-requests", getKycRequests);

@@ -1,12 +1,19 @@
-import { useMemo, useState } from "react";
-import { Clock3, Mail, MapPin, MessageCircle, PhoneCall, Send, ShieldCheck } from "lucide-react";
+import { useMemo, useState, useEffect } from "react";
+import {
+  Clock3,
+  Mail,
+  MapPin,
+  MessageCircle,
+  PhoneCall,
+  Send,
+  ShieldCheck,
+} from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { useAuth } from "../../contexts/useAuth";
+import { apiRequest } from "../../utils/api";
 
-// Support chat storage key in localStorage for persistence
 const SUPPORT_CHAT_KEY = "agile_insurance_support_chats_v1";
 
-// Utility to safely parse JSON from localStorage
 const safeJsonParse = (value, fallback) => {
   try {
     return JSON.parse(value);
@@ -15,63 +22,110 @@ const safeJsonParse = (value, fallback) => {
   }
 };
 
-// Load all support chats from localStorage
 const readChats = () => {
-  const chats = safeJsonParse(localStorage.getItem(SUPPORT_CHAT_KEY), []);
+  const chats = safeJsonParse(
+    localStorage.getItem(SUPPORT_CHAT_KEY),
+    []
+  );
+
   return Array.isArray(chats) ? chats : [];
 };
 
-// Save all support chats to localStorage
 const saveChats = (chats) => {
-  localStorage.setItem(SUPPORT_CHAT_KEY, JSON.stringify(chats));
+  localStorage.setItem(
+    SUPPORT_CHAT_KEY,
+    JSON.stringify(chats)
+  );
 };
 
-// Contact information displayed on the contact page
-// Edit these details to update phone, email, and support information across the app
-const contactDetails = [
-  {
-    label: "Mobile number",
-    value: "+91 79726 57424",
-    helper: "Available for policy, claim, renewal, and account support.",
-    icon: PhoneCall,
-    href: "tel:+917972657424",
-  },
-  {
-    label: "Email address",
-    value: "contact@kshetrapati.com",
-    helper: "Send documents, payment issues, or service requests anytime.",
-    icon: Mail,
-    href: "mailto:contact@kshetrapati.com",
-  },
-  {
-    label: "WhatsApp support",
-    value: "+91 79726 57424",
-    helper: "Chat with support for quick claim, payment, and renewal updates.",
-    icon: FaWhatsapp,
-    href: "https://wa.me/917972657424?text=Hi%20Support%2C%20I%20need%20help%20with%20my%20insurance%20account.",
-  },
-];
-
-// Main contact dashboard component - displays contact info and support chat interface
 const DashboardContact = () => {
   const { user } = useAuth();
-  // Load chats from localStorage on component mount
+
   const [chats, setChats] = useState(() => readChats());
   const [subject, setSubject] = useState("Policy support");
   const [message, setMessage] = useState("");
 
-  // Filter chats for current user thread
-  const userThread = useMemo(
-    () => chats.filter((chat) => chat.userEmail === user?.email),
-    [chats, user?.email],
+  const [supportEmail, setSupportEmail] = useState(
+    "contact@kshetrapati.com"
   );
 
-  // Send message handler - creates new chat or adds to existing thread
+  const [supportPhone, setSupportPhone] = useState(
+    "+91 79726 57424"
+  );
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const response = await apiRequest("/api/admin/settings");
+
+        const settings =
+          response?.data?.data ||
+          response?.data ||
+          {};
+
+        setSupportEmail(
+          settings.supportEmail ||
+            "contact@kshetrapati.com"
+        );
+
+        setSupportPhone(
+          settings.supportPhone ||
+            "+91 79726 57424"
+        );
+      } catch (error) {
+        console.error(
+          "Failed to fetch system settings:",
+          error
+        );
+      }
+    };
+
+    fetchSettings();
+  }, []);
+
+  const contactDetails = [
+    {
+      label: "Mobile number",
+      value: supportPhone,
+      helper:
+        "Available for policy, claim, renewal, and account support.",
+      icon: PhoneCall,
+      href: `tel:${supportPhone.replace(/\s/g, "")}`,
+    },
+    {
+      label: "Email address",
+      value: supportEmail,
+      helper:
+        "Send documents, payment issues, or service requests anytime.",
+      icon: Mail,
+      href: `mailto:${supportEmail}`,
+    },
+    {
+      label: "WhatsApp support",
+      value: supportPhone,
+      helper:
+        "Chat with support for quick claim, payment, and renewal updates.",
+      icon: FaWhatsapp,
+      href: `https://wa.me/${supportPhone.replace(
+        /\D/g,
+        ""
+      )}`,
+    },
+  ];
+
+  const userThread = useMemo(
+    () =>
+      chats.filter(
+        (chat) => chat.userEmail === user?.email
+      ),
+    [chats, user?.email]
+  );
+
   const sendMessage = () => {
     const text = message.trim();
+
     if (!text) return;
 
-    // Create new message object with metadata
     const nextMessage = {
       id: `msg_${Date.now()}`,
       from: "user",
@@ -80,35 +134,55 @@ const DashboardContact = () => {
       createdAt: new Date().toISOString(),
     };
 
-    // Check if open chat exists for this user
-    const existing = chats.find((chat) => chat.userEmail === user?.email && chat.status !== "Resolved");
+    const existing = chats.find(
+      (chat) =>
+        chat.userEmail === user?.email &&
+        chat.status !== "Resolved"
+    );
 
-    // Update existing chat or create new one
     const nextChats = existing
       ? chats.map((chat) =>
           chat.id === existing.id
-            ? { ...chat, subject, status: "Open", messages: [...chat.messages, nextMessage], updatedAt: new Date().toISOString() }
-            : chat,
+            ? {
+                ...chat,
+                subject,
+                status: "Open",
+                messages: [
+                  ...chat.messages,
+                  nextMessage,
+                ],
+                updatedAt:
+                  new Date().toISOString(),
+              }
+            : chat
         )
       : [
           {
             id: `chat_${Date.now()}`,
             userId: user?.id,
-            userName: user?.fullName || "Customer",
-            userEmail: user?.email || "guest@agile.insurance",
+            userName:
+              user?.fullName || "Customer",
+            userEmail:
+              user?.email ||
+              "guest@agile.insurance",
             subject,
             priority: "Medium",
             status: "Open",
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
+            createdAt:
+              new Date().toISOString(),
+            updatedAt:
+              new Date().toISOString(),
             messages: [nextMessage],
           },
           ...chats,
         ];
+
     setChats(nextChats);
     saveChats(nextChats);
     setMessage("");
   };
+
+
 
   return (
     <div className="space-y-8">
@@ -128,14 +202,17 @@ const DashboardContact = () => {
           </div>
 
           <a
-            href="https://wa.me/917972657424?text=Hi%20Support%2C%20I%20need%20help%20with%20my%20insurance%20account."
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 text-sm font-black text-white shadow-sm hover:opacity-95"
-          >
-            <FaWhatsapp size={18} />
-            Start chat on WhatsApp
-          </a>
+  href={`https://wa.me/${supportPhone.replace(
+    /\D/g,
+    ""
+  )}?text=Hi%20Support%2C%20I%20need%20help%20with%20my%20insurance%20account.`}
+  target="_blank"
+  rel="noreferrer"
+  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 text-sm font-black text-white shadow-sm hover:opacity-95"
+>
+  <FaWhatsapp size={18} />
+  Start chat on WhatsApp
+</a>
         </div>
       </section>
 
