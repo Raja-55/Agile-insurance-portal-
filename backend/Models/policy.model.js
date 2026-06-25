@@ -44,19 +44,32 @@ const policySchema = new mongoose.Schema(
       max: 100,
       // percentage, e.g. 98.5 means 98.5%
     },
+    sales: {
+  totalSales: {
+    type: Number,
+    default: 0,
+  },
+  revenue: {
+    type: Number,
+    default: 0,
+  },
+  monthly: {
+    type: [Number],
+    default: [0,0,0,0,0,0],
+  },
+},
+
+    // policyType: {
+    //   type: String,
+    //   required: true,
+    //   trim: true,
+    // },
 
 
-    policy_type: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-
-
-    policy_desc:{
-      type: String,
-      require:true,
-    },
+    // description:{
+    //   type: String,
+    //   require:true,
+    // },
     claim:{
       type: mongoose.Schema.Types.ObjectId,
       ref:"Claim",
@@ -96,18 +109,18 @@ const policySchema = new mongoose.Schema(
     type: Boolean,
     default: true
   },
-    policy_number: {
+    policyNumber: {
       type: String,
       required: true,
       unique: true,
       trim: true,
     },
-    premium_amount: {
+    premiumAmount: {
       type: Number,
       required: true,
       min: 0,
     },
-    coverage_amount: {
+    coverageAmount: {
       type: Number,
       required: true,
       min: 0,
@@ -127,15 +140,16 @@ const policySchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    
   },
 );
 
-// Auto-generate policy_number before first save
+// Auto-generate policyNumber before first save
 policySchema.pre('save', function () {
-  if (!this.policy_number) {
+  if (!this.policyNumber) {
     const rand1 = Math.floor(100000 + Math.random() * 900000);
     const rand2 = Math.floor(1000 + Math.random() * 9000);
-    this.policy_number = `AGL-${rand1}-${rand2}`;
+    this.policyNumber = `AGL-${rand1}-${rand2}`;
   }
 });
 

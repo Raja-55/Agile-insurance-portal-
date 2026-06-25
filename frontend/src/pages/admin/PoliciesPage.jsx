@@ -1,11 +1,11 @@
 
 // src/components/pages/PoliciesPage.jsx
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Plus, Search, Eye, Edit2, Copy, Settings2, ListChecks, ShieldAlert,
   BarChart3, Trash2, MoreVertical, X, UploadCloud, CheckCircle2,
 } from "lucide-react";
-
+import {apiRequest,getAdminToken} from "../../utils/api";
 /* ---------------------------------------------------------------------- */
 /*  Mock seed data — replace with real API / props if you wire this up   */
 /* ---------------------------------------------------------------------- */
@@ -19,56 +19,59 @@ const FEATURE_LIBRARY = [
   "Engine Protection", "Zero Depreciation", "Roadside Assistance",
 ];
 
-const makeSeedPolicies = () => {
-  const base = [
-    { policyNo: "POL-HLT-001", name: "Family Health Gold", category: "Health", type: "Individual", coverage: 500000, premium: 12000, status: "Active", createdDate: "2026-06-01" },
-    { policyNo: "POL-MOT-002", name: "Vehicle Premium Policy", category: "Motor", type: "Individual", coverage: 300000, premium: 8500, status: "Active", createdDate: "2026-06-03" },
-    { policyNo: "POL-LFE-003", name: "Life Secure Plus", category: "Life", type: "Individual", coverage: 1000000, premium: 15000, status: "Draft", createdDate: "2026-06-05" },
-    { policyNo: "POL-HLT-004", name: "Senior Health Care", category: "Health", type: "Individual", coverage: 750000, premium: 18000, status: "Inactive", createdDate: "2026-06-07" },
-    { policyNo: "POL-MOT-005", name: "Commercial Vehicle Policy", category: "Motor", type: "Commercial", coverage: 1500000, premium: 22000, status: "Active", createdDate: "2026-06-08" },
-  ];
-  const extra = Array.from({ length: 40 }, (_, i) => {
-    const n = i + 6;
-    const cat = ["Health", "Motor", "Life"][n % 3];
-    return {
-      policyNo: `POL-${cat.slice(0, 3).toUpperCase()}-${String(n).padStart(3, "0")}`,
-      name: `${cat} Plan ${n}`,
-      category: cat,
-      type: n % 2 === 0 ? "Individual" : "Commercial",
-      coverage: 200000 + n * 25000,
-      premium: 6000 + n * 350,
-      status: ["Active", "Draft", "Inactive"][n % 3],
-      createdDate: "2026-06-09",
-    };
-  });
-  return [...base, ...extra].map((p, idx) => ({
-    id: `pol-${idx}`,
-    policyCode: p.policyNo,
-    description: "A comprehensive insurance policy for individuals and families.",
-    minAge: 18,
-    maxAge: 65,
-    currency: "INR",
-    image: "",
-    features: FEATURE_LIBRARY.slice(0, 6 + (idx % 5)),
-    customFeatures: [],
-    premiumConfig: { base: p.premium, tax: Math.round(p.premium * 0.18), discount: 0 },
-    regulations: "Subject to IRDAI guidelines. Pre-existing diseases covered after waiting period.",
-    sales: { totalSales: 800 + idx * 7, revenue: (800 + idx * 7) * p.premium, monthly: [40, 55, 60, 48, 70, 65].map((v) => v + (idx % 10)) },
-    ...p,
-  }));
-};
+// const makeSeedPolicies = () => {
+//   const base = [
+//     { policyNo: "POL-HLT-001", name: "Family Health Gold", category: "Health", type: "Individual", coverage: 500000, premium: 12000, status: "Active", createdDate: "2026-06-01" },
+//     { policyNo: "POL-MOT-002", name: "Vehicle Premium Policy", category: "Motor", type: "Individual", coverage: 300000, premium: 8500, status: "Active", createdDate: "2026-06-03" },
+//     { policyNo: "POL-LFE-003", name: "Life Secure Plus", category: "Life", type: "Individual", coverage: 1000000, premium: 15000, status: "Draft", createdDate: "2026-06-05" },
+//     { policyNo: "POL-HLT-004", name: "Senior Health Care", category: "Health", type: "Individual", coverage: 750000, premium: 18000, status: "Inactive", createdDate: "2026-06-07" },
+//     { policyNo: "POL-MOT-005", name: "Commercial Vehicle Policy", category: "Motor", type: "Commercial", coverage: 1500000, premium: 22000, status: "Active", createdDate: "2026-06-08" },
+//   ];
+//   const extra = Array.from({ length: 40 }, (_, i) => {
+//     const n = i + 6;
+//     const cat = ["Health", "Motor", "Life"][n % 3];
+//     return {
+//       policyNo: `POL-${cat.slice(0, 3).toUpperCase()}-${String(n).padStart(3, "0")}`,
+//       name: `${cat} Plan ${n}`,
+//       category: cat,
+//       type: n % 2 === 0 ? "Individual" : "Commercial",
+//       coverage: 200000 + n * 25000,
+//       premium: 6000 + n * 350,
+//       status: ["Active", "Draft", "Inactive"][n % 3],
+//       createdDate: "2026-06-09",
+//     };
+//   });
+//   return [...base, ...extra].map((p, idx) => ({
+//     id: `pol-${idx}`,
+//     policyNumber: p.policyNo,
+//     description: "A comprehensive insurance policy for individuals and families.",
+//     minAge: 18,
+//     maxAge: 65,
+//     currency: "INR",
+//     image: "",
+//     features: FEATURE_LIBRARY.slice(0, 6 + (idx % 5)),
+//     customFeatures: [],
+//     premiumConfig: { base: p.premium, tax: Math.round(p.premium * 0.18), discount: 0 },
+//     regulations: "Subject to IRDAI guidelines. Pre-existing diseases covered after waiting period.",
+//     sales: { totalSales: 800 + idx * 7, revenue: (800 + idx * 7) * p.premium, monthly: [40, 55, 60, 48, 70, 65].map((v) => v + (idx % 10)) },
+//     ...p,
+//   }));
+// };
 
 const STATUS_STYLES = {
-  Active: "bg-emerald-100 text-emerald-700",
-  Draft: "bg-amber-100 text-amber-700",
-  Inactive: "bg-rose-100 text-rose-700",
+  active: "bg-emerald-100 text-emerald-700",
+  pending: "bg-amber-100 text-amber-700",
+  expired: "bg-rose-100 text-rose-700",
+  cancelled: "bg-slate-200 text-slate-700",
 };
 const CATEGORY_STYLES = {
-  Health: "bg-emerald-50 text-emerald-700",
-  Motor: "bg-blue-50 text-blue-700",
-  Life: "bg-violet-50 text-violet-700",
+  health: "bg-emerald-50 text-emerald-700",
+  auto: "bg-blue-50 text-blue-700",
+  life: "bg-violet-50 text-violet-700",
+  travel: "bg-cyan-50 text-cyan-700",
+  business: "bg-orange-50 text-orange-700",
+  term: "bg-pink-50 text-pink-700",
 };
-
 const fmtINR = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
 const fmtDate = (d) => {
   const dt = new Date(d);
@@ -140,7 +143,8 @@ const inputCls = "h-10 rounded-lg border border-slate-200 px-3 text-sm font-medi
 /* ---------------------------------------------------------------------- */
 
 const PolicyManagement = () => {
-  const [policies, setPolicies] = useState(makeSeedPolicies);
+  // const [policies, setPolicies] = useState(makeSeedPolicies);
+  const [policies, setPolicies] = useState([]);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("All Types");
   const [filterCategory, setFilterCategory] = useState("All Categories");
@@ -155,16 +159,25 @@ const PolicyManagement = () => {
   const formRef = useRef(null);
 
   const categories = useMemo(() => ["All Categories", ...new Set(policies.map((p) => p.category))], [policies]);
-  const types = useMemo(() => ["All Types", ...new Set(policies.map((p) => p.type))], [policies]);
+  const types = useMemo(() => ["All Types", ...new Set(policies.map((p) => p.policyType))], [policies]);
 
   const filtered = useMemo(() => {
     return policies.filter((p) => {
-      if (search && !`${p.policyCode} ${p.name}`.toLowerCase().includes(search.toLowerCase())) return false;
-      if (filterType !== "All Types" && p.type !== filterType) return false;
+      if (search && !`${p.policyNumber} ${p.policyName}`.toLowerCase().includes(search.toLowerCase())) return false;
+      if (filterType !== "All Types" && p.policyType !== filterType) return false;
       if (filterCategory !== "All Categories" && p.category !== filterCategory) return false;
       if (filterStatus !== "All Status" && p.status !== filterStatus) return false;
-      if (dateFrom && p.createdDate < dateFrom) return false;
-      if (dateTo && p.createdDate > dateTo) return false;
+      if (
+  dateFrom &&
+  new Date(p.createdAt) < new Date(dateFrom)
+)
+  return false;
+
+if (
+  dateTo &&
+  new Date(p.createdAt) > new Date(dateTo)
+)
+  return false;
       return true;
     });
   }, [policies, search, filterType, filterCategory, filterStatus, dateFrom, dateTo]);
@@ -172,9 +185,165 @@ const PolicyManagement = () => {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageRows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
+
+
+
+
+
+
+
+
+
+
+
+useEffect(() => {
+  fetchPolicies();
+}, []);
+
+const fetchPolicies = async () => {
+  try {
+    const res = await apiRequest(
+      "/api/policies/admin/all",
+      {
+        method: "GET",
+        useAdminToken: true,
+      }
+    );
+    //  console.log(res.policies);
+    //  console.log(pageRows[0]);
+// console.log(Object.keys(pageRows[0]));
+    setPolicies(res.policies || []);
+  } catch (err) {
+    console.error(err);
+    push(err.message, "error");
+  }
+};
+
+
+const saveAdd = async () => {
+  try {
+    const payload = {
+  companyName: draft.companyName,
+  policyName: draft.policyName,
+  policyNumber: draft.policyNumber,
+  category: draft.category.toLowerCase(),
+  policyType: draft.policyType,
+  premiumAmount: Number(draft.premiumAmount),
+  coverageAmount: Number(draft.coverageAmount),
+  description: draft.description,
+  features: draft.features || [],
+  status: draft.status?.toLowerCase() || "active",
+};
+
+    const res = await apiRequest(
+      "/api/policies/admin/create",
+      {
+        method: "POST",
+        useAdminToken: true,
+        body: JSON.stringify(payload),
+      }
+    );
+
+    setPolicies((prev) => [
+      res.policy,
+      ...prev,
+    ]);
+
+    push("Policy created successfully");
+    closeModal();
+  } catch (err) {
+    console.error(err);
+    push(err.message, "error");
+  }
+};
+
+const saveEdit = async () => {
+  try {
+      const payload = {
+  companyName: draft.companyName,
+  companyLogo: draft.companyLogo,
+  policyName: draft.policyName,
+  policyNumber: draft.policyNumber,
+  category: draft.category.toLowerCase(),
+  policyType: draft.policyType,
+  premiumAmount: Number(draft.premiumAmount),
+  coverageAmount: Number(draft.coverageAmount),
+  monthlyPremium: Number(draft.monthlyPremium),
+  description: draft.description,
+  features: draft.features || [],
+  emiAvailable: draft.emiAvailable,
+  validityYears: Number(draft.validityYears),
+  rating: Number(draft.rating),
+  claimRatio: Number(draft.claimRatio),
+  status: draft.status,
+  start_date: draft.start_date,
+  end_date: draft.end_date,
+};
+
+    const res = await apiRequest(
+      `/api/policies/admin/${modal.policy._id}`,
+      {
+        method: "PUT",
+        useAdminToken: true,
+        body: JSON.stringify(payload),
+      }
+    );
+
+    setPolicies((prev) =>
+      prev.map((p) =>
+        p._id === modal.policy._id
+          ? res.policy
+          : p
+      )
+    );
+
+    push("Policy updated successfully");
+    closeModal();
+  } catch (err) {
+    console.error(err);
+    push(err.message, "error");
+  }
+};
+const confirmDelete = async () => {
+  try {
+    await apiRequest(
+      `/api/policies/admin/${modal.policy._id}`,
+      {
+        method: "DELETE",
+        useAdminToken: true,
+      }
+    );
+
+    setPolicies((prev) =>
+      prev.filter(
+        (p) => p._id !== modal.policy._id
+      )
+    );
+
+    push("Policy deleted successfully");
+    closeModal();
+  } catch (err) {
+    console.error(err);
+    push(err.message, "error");
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
   const summary = useMemo(() => {
     const totalSold = policies.reduce((s, p) => s + (p.sales?.totalSales || 0), 0);
-    const active = policies.filter((p) => p.status === "Active").length;
+    const active = policies.filter(
+  (p) => p.status?.toLowerCase() === "active"
+).length;
     const claimsRaised = 234;
     const claimsApproved = 190;
     return { totalSold, active, claimsRaised, claimsApproved };
@@ -187,7 +356,7 @@ const PolicyManagement = () => {
     closeMenu();
     if (kind === "edit" || kind === "clone") {
       setDraft(kind === "clone"
-        ? { ...policy, policyCode: `${policy.policyCode}-COPY-${Math.floor(Math.random() * 900 + 100)}`, name: `${policy.name} (Copy)`, status: "Draft" }
+        ? { ...policy, policyNumber: `${policy.policyNumber}-COPY-${Math.floor(Math.random() * 900 + 100)}`, policyName: `${policy.policyName} (Copy)`, status: "Draft" }
         : { ...policy });
     } else if (kind === "premium") {
       setDraft({ ...policy.premiumConfig });
@@ -199,43 +368,62 @@ const PolicyManagement = () => {
       setDraft({ regulations: policy.regulations, minAge: policy.minAge, maxAge: policy.maxAge });
     } else if (kind === "add") {
       setDraft({
-        policyCode: `POL-NEW-${Math.floor(Math.random() * 900 + 100)}`,
-        name: "", category: "Health Insurance", type: "Individual",
-        minAge: 18, maxAge: 65, currency: "INR", coverage: 500000, premium: 10000,
-        status: "Active", description: "", features: [], customFeatures: [],
-        premiumConfig: { base: 10000, tax: 1800, discount: 0 },
-        regulations: "", sales: { totalSales: 0, revenue: 0, monthly: [0, 0, 0, 0, 0, 0] },
-        createdDate: new Date().toISOString().slice(0, 10),
-      });
+  companyName: "",
+  companyLogo: "",
+  policyName: "",
+  policyNumber: `POL-${Date.now()}`,
+
+  category: "health",
+  policyType: "individual",
+
+  premiumAmount: 10000,
+  coverageAmount: 500000,
+
+  monthlyPremium: 0,
+
+  description: "",
+  features: [],
+
+  emiAvailable: false,
+
+  validityYears: 1,
+  rating: 4,
+  claimRatio: 95,
+
+  status: "pending",
+
+  start_date: "",
+  end_date: "",
+});
     }
   };
 
   const closeModal = () => { setModal(null); setDraft(null); };
 
-  const updateInTable = (policyCode, changes) =>
-    setPolicies((rows) => rows.map((r) => (r.policyCode === policyCode ? { ...r, ...changes } : r)));
+  const updateInTable = (policyNumber, changes) =>
+    setPolicies((rows) => rows.map((r) => (r.policyNumber === policyNumber ? { ...r, ...changes } : r)));
 
-  const saveEdit = () => {
-    updateInTable(modal.policy.policyCode, draft);
-    push(`${draft.name} updated successfully`);
-    closeModal();
-  };
+  // const saveEdit = () => {
+  //   updateInTable(modal.policy.policyNumber, draft);
+  //   push(`${draft.policyName} updated successfully`);
+  //   closeModal();
+  // };
 
-  const saveAdd = () => {
-    if (!draft.name.trim()) { push("Policy name is required", "error"); return; }
-    setPolicies((rows) => [{ id: `pol-${Date.now()}`, ...draft }, ...rows]);
-    push(`${draft.name} added as Draft`);
-    closeModal();
-  };
+  // const saveAdd = () => {
+  //   if (!draft.policyName.trim()) { push("Policy name is required", "error"); return; }
+  //   setPolicies((rows) => [{ id: `pol-${Date.now()}`, ...draft }, ...rows]);
+  //   push(`${draft.policyName} added as Draft`);
+  //   closeModal();
+  // };
 
   const saveClone = () => {
     setPolicies((rows) => [{ ...draft, id: `pol-${Date.now()}` }, ...rows]);
-    push(`Cloned as ${draft.policyCode}`);
+    push(`Cloned as ${draft.policyNumber}`);
     closeModal();
   };
 
   const savePremium = () => {
-    updateInTable(modal.policy.policyCode, { premiumConfig: draft, premium: draft.base + draft.tax - draft.discount });
+    updateInTable(modal.policy.policyNumber, { premiumConfig: draft, premium: draft.base + draft.tax - draft.discount });
     push("Premium configuration saved");
     closeModal();
   };
@@ -247,7 +435,7 @@ const PolicyManagement = () => {
     // in View Details / future Configure Features sessions.
     const customFeatures = draft.features.filter((f) => !FEATURE_LIBRARY.includes(f));
 
-    updateInTable(modal.policy.policyCode, {
+    updateInTable(modal.policy.policyNumber, {
       features: draft.features,
       customFeatures,
     });
@@ -257,16 +445,16 @@ const PolicyManagement = () => {
   };
 
   const saveRegulations = () => {
-    updateInTable(modal.policy.policyCode, { regulations: draft.regulations, minAge: draft.minAge, maxAge: draft.maxAge });
+    updateInTable(modal.policy.policyNumber, { regulations: draft.regulations, minAge: draft.minAge, maxAge: draft.maxAge });
     push("Regulations & exclusions saved");
     closeModal();
   };
 
-  const confirmDelete = () => {
-    setPolicies((rows) => rows.filter((r) => r.policyCode !== modal.policy.policyCode));
-    push(`${modal.policy.name} deleted`, "error");
-    closeModal();
-  };
+  // const confirmDelete = () => {
+  //   setPolicies((rows) => rows.filter((r) => r.policyNumber !== modal.policy.policyNumber));
+  //   push(`${modal.policy.name} deleted`, "error");
+  //   closeModal();
+  // };
 
   const toggleFeature = (feat) => {
     setDraft((d) => ({
@@ -292,7 +480,7 @@ const PolicyManagement = () => {
   const menuActions = (p) => [
     { key: "view", label: "View Details", icon: Eye, onClick: () => openAction("view", p) },
     { key: "edit", label: "Edit Policy", icon: Edit2, onClick: () => openAction("edit", p) },
-    { key: "clone", label: "Clone Policy", icon: Copy, onClick: () => openAction("clone", p) },
+    // { key: "clone", label: "Clone Policy", icon: Copy, onClick: () => openAction("clone", p) },
     { key: "premium", label: "Configure Premium", icon: Settings2, onClick: () => openAction("premium", p) },
     { key: "features", label: "Configure Features", icon: ListChecks, onClick: () => openAction("features", p) },
     { key: "regulations", label: "Configure Regulations", icon: ShieldAlert, onClick: () => openAction("regulations", p) },
@@ -373,28 +561,28 @@ const PolicyManagement = () => {
             </thead>
             <tbody>
               {pageRows.map((p) => (
-                <tr key={p.id} className="cursor-pointer border-b border-slate-100 hover:bg-slate-50" onClick={() => openAction("view", p)}>
+                <tr key={p._id || p.policyNumber} className="cursor-pointer border-b border-slate-100 hover:bg-slate-50" onClick={() => openAction("view", p)}>
                   <td className="px-4 py-3 font-bold text-slate-800 whitespace-nowrap">
-                    {p.policyCode}
+                    {p.policyNumber}
                   </td>
-                  <td className="px-4 py-3 font-semibold text-slate-700">{p.name}</td>
+                  <td className="px-4 py-3 font-semibold text-slate-700">{p.policyName}</td>
                   <td className="px-4 py-3"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${CATEGORY_STYLES[p.category] || "bg-slate-100 text-slate-700"}`}>{p.category}</span></td>
-                  <td className="px-4 py-3 text-slate-600">{p.type}</td>
-                  <td className="px-4 py-3 text-slate-600">{fmtINR(p.coverage)}</td>
-                  <td className="px-4 py-3 text-slate-600">{fmtINR(p.premium)}</td>
+                  <td className="px-4 py-3 text-slate-600">{p.policyType}</td>
+                  <td className="px-4 py-3 text-slate-600">{fmtINR(p.coverageAmount)}</td>
+                  <td className="px-4 py-3 text-slate-600">{fmtINR(p.premiumAmount)}</td>
                   <td className="px-4 py-3"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${STATUS_STYLES[p.status]}`}>{p.status}</span></td>
-                  <td className="px-4 py-3 text-slate-500">{fmtDate(p.createdDate)}</td>
+                  <td className="px-4 py-3 text-slate-500">{fmtDate(p.createdAt)}</td>
                   <td className="relative px-4 py-3">
                     <div className="flex items-center gap-2">
                       <button onClick={(e) => { e.stopPropagation(); openAction("view", p); }} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50">View</button>
                       <button
-                        onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === p.id ? null : p.id); }}
+                        onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === p._id ? null : p._id); }}
                         className="flex items-center justify-center h-8 w-8 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
                       >
                         <MoreVertical size={16} />
                       </button>
                     </div>
-                    {openMenuId === p.id && (
+                    {openMenuId === p._id && (
                       <div onClick={(e) => e.stopPropagation()} className="absolute right-4 top-12 z-20 w-52 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
                         {menuActions(p).map((a) => (
                           <button
@@ -457,7 +645,7 @@ const PolicyManagement = () => {
       )}
 
       {modal?.kind === "edit" && draft && (
-        <Modal title={`Edit Policy — ${modal.policy.policyCode}`} wide onClose={closeModal} footer={<>
+        <Modal title={`Edit Policy — ${modal.policy.policyNumber}`} wide onClose={closeModal} footer={<>
           <button onClick={closeModal} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-bold">Cancel</button>
           <button onClick={saveEdit} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700">Save Changes</button>
         </>}>
@@ -466,16 +654,18 @@ const PolicyManagement = () => {
       )}
 
       {modal?.kind === "view" && (
-        <Modal title={`Policy Details — ${modal.policy.policyCode}`} wide onClose={closeModal}>
+        <Modal title={`Policy Details — ${modal.policy.policyNumber}`} wide onClose={closeModal}>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Detail label="Policy Name" value={modal.policy.name} />
+            <Detail label="Policy Name" value={modal.policy.policyName} />
+            <Detail label="Policy Number" value={modal.policy.policyNumber} />
+            <Detail label="Company Name" value={modal.policy.companyName} />
             <Detail label="Category" value={modal.policy.category} />
-            <Detail label="Type" value={modal.policy.type} />
+            <Detail label="Type" value={modal.policy.policyType} />
             <Detail label="Status" value={modal.policy.status} />
-            <Detail label="Coverage" value={fmtINR(modal.policy.coverage)} />
-            <Detail label="Premium" value={fmtINR(modal.policy.premium)} />
-            <Detail label="Age Eligibility" value={`${modal.policy.minAge} - ${modal.policy.maxAge} yrs`} />
-            <Detail label="Created" value={fmtDate(modal.policy.createdDate)} />
+            <Detail label="Coverage" value={fmtINR(modal.policy.coverageAmount)} />
+            <Detail label="Premium" value={fmtINR(modal.policy.premiumAmount)} />
+            {/* <Detail label="Age Eligibility" value={`${modal.policy.minAge} - ${modal.policy.maxAge} yrs`} /> */}
+            <Detail label="Created" value={fmtDate(modal.policy.createdAt)} />
           </div>
           <p className="mt-4 text-sm font-bold text-slate-600">Description</p>
           <p className="mt-1 text-sm text-slate-700">{modal.policy.description}</p>
@@ -507,15 +697,15 @@ const PolicyManagement = () => {
           <button onClick={saveClone} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700">Create Clone</button>
         </>}>
           <div className="space-y-3">
-            <Field label="New Policy Name"><input className={inputCls} value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} /></Field>
-            <Field label="New Policy Code"><input className={inputCls} value={draft.policyCode} onChange={(e) => setDraft({ ...draft, policyCode: e.target.value })} /></Field>
+            <Field label="New Policy Name"><input className={inputCls} value={draft.policyName} onChange={(e) => setDraft({ ...draft, policyName: e.target.value })} /></Field>
+            <Field label="New Policy Code"><input className={inputCls} value={draft.policyNumber} onChange={(e) => setDraft({ ...draft, policyNumber: e.target.value })} /></Field>
             <p className="text-xs text-slate-500">Clone will be added as a new <span className="font-bold">Draft</span> row.</p>
           </div>
         </Modal>
       )}
 
       {modal?.kind === "premium" && draft && (
-        <Modal title={`Configure Premium — ${modal.policy.policyCode}`} onClose={closeModal} footer={<>
+        <Modal title={`Configure Premium — ${modal.policy.policyNumber}`} onClose={closeModal} footer={<>
           <button onClick={closeModal} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-bold">Cancel</button>
           <button onClick={savePremium} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700">Save</button>
         </>}>
@@ -531,7 +721,7 @@ const PolicyManagement = () => {
       )}
 
       {modal?.kind === "features" && draft && (
-        <Modal title={`Configure Features — ${modal.policy.policyCode}`} wide onClose={closeModal} footer={<>
+        <Modal title={`Configure Features — ${modal.policy.policyNumber}`} wide onClose={closeModal} footer={<>
           <button onClick={closeModal} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-bold">Cancel</button>
           <button onClick={saveFeatures} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700">Save</button>
         </>}>
@@ -591,7 +781,7 @@ const PolicyManagement = () => {
       )}
 
       {modal?.kind === "regulations" && draft && (
-        <Modal title={`Configure Regulations — ${modal.policy.policyCode}`} onClose={closeModal} footer={<>
+        <Modal title={`Configure Regulations — ${modal.policy.policyNumber}`} onClose={closeModal} footer={<>
           <button onClick={closeModal} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-bold">Cancel</button>
           <button onClick={saveRegulations} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700">Save</button>
         </>}>
@@ -620,7 +810,7 @@ const PolicyManagement = () => {
           <button onClick={confirmDelete} className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-bold text-white hover:bg-rose-700">Delete Permanently</button>
         </>}>
           <p className="text-sm text-slate-700">
-            Are you sure you want to permanently delete <span className="font-black">{modal.policy.name}</span> ({modal.policy.policyCode})? This cannot be undone.
+            Are you sure you want to permanently delete <span className="font-black">{modal.policy.policyName}</span> ({modal.policy.policyNumber})? This cannot be undone.
           </p>
         </Modal>
       )}
@@ -658,7 +848,7 @@ function SalesAnalysis({ policy, policies, onClose }) {
   const portfolioAvg = Math.round(policies.reduce((s, p) => s + p.sales.totalSales, 0) / policies.length);
 
   return (
-    <Modal title={`Sales Analysis — ${policy.policyCode}`} wide onClose={onClose}>
+    <Modal title={`Sales Analysis — ${policy.policyNumber}`} wide onClose={onClose}>
       <div className="grid gap-4 sm:grid-cols-3">
         <Detail label="Total Sales" value={policy.sales.totalSales.toLocaleString("en-IN")} big />
         <Detail label="Revenue" value={fmtINR(policy.sales.revenue)} big />
@@ -757,43 +947,264 @@ function ComparisonBar({ label, value, max, tone }) {
   );
 }
 
+
 function PolicyForm({ draft, setDraft }) {
-  const set = (k) => (e) => setDraft({ ...draft, [k]: e.target.value });
+  const set = (key) => (e) =>
+    setDraft({
+      ...draft,
+      [key]: e.target.value,
+    });
+
   return (
     <div className="grid gap-4 sm:grid-cols-2">
-      <Field label="Policy Name *"><input className={inputCls} value={draft.name} onChange={set("name")} /></Field>
-      <Field label="Policy Code *"><input className={inputCls} value={draft.policyCode} onChange={set("policyCode")} /></Field>
+      <Field label="Policy Name *">
+        <input
+          className={inputCls}
+          value={draft.policyName || ""}
+          onChange={set("policyName")}
+        />
+      </Field>
+
+      <Field label="Company Name *">
+        <input
+          className={inputCls}
+          value={draft.companyName || ""}
+          onChange={set("companyName")}
+        />
+      </Field>
+
+      <Field label="Policy Number *">
+        <input
+          className={inputCls}
+          value={draft.policyNumber || ""}
+          onChange={set("policyNumber")}
+        />
+      </Field>
+
+      <Field label="Company Logo URL">
+        <input
+          className={inputCls}
+          value={draft.companyLogo || ""}
+          onChange={set("companyLogo")}
+          placeholder="https://example.com/logo.png"
+        />
+      </Field>
+
       <Field label="Category *">
-        <select className={inputCls} value={draft.category} onChange={set("category")}>
-          {["Health", "Motor", "Life"].map((c) => <option key={c}>{c}</option>)}
+        <select
+          className={inputCls}
+          value={draft.category || "health"}
+          onChange={set("category")}
+        >
+          <option value="health">Health</option>
+          <option value="auto">Auto</option>
+          <option value="life">Life</option>
+          <option value="travel">Travel</option>
+          <option value="business">Business</option>
+          <option value="term">Term</option>
         </select>
       </Field>
-      <Field label="Type *">
-        <select className={inputCls} value={draft.type} onChange={set("type")}>
-          {["Individual", "Commercial"].map((t) => <option key={t}>{t}</option>)}
+
+      <Field label="Policy Type *">
+        <input
+          className={inputCls}
+          value={draft.policyType || ""}
+          onChange={set("policyType")}
+          placeholder="Individual / Commercial / Enterprise"
+        />
+      </Field>
+
+      <Field label="Status">
+        <select
+          className={inputCls}
+          value={draft.status || "pending"}
+          onChange={set("status")}
+        >
+          <option value="pending">Pending</option>
+          <option value="active">Active</option>
+          <option value="expired">Expired</option>
+          <option value="cancelled">Cancelled</option>
         </select>
       </Field>
-      <Field label="Status *">
-        <select className={inputCls} value={draft.status} onChange={set("status")}>
-          {["Active", "Draft", "Inactive"].map((s) => <option key={s}>{s}</option>)}
+
+      <Field label="Coverage Amount (₹)">
+        <input
+          type="number"
+          className={inputCls}
+          value={draft.coverageAmount || ""}
+          onChange={(e) =>
+            setDraft({
+              ...draft,
+              coverageAmount: Number(e.target.value),
+            })
+          }
+        />
+      </Field>
+
+      <Field label="Premium Amount (₹)">
+        <input
+          type="number"
+          className={inputCls}
+          value={draft.premiumAmount || ""}
+          onChange={(e) =>
+            setDraft({
+              ...draft,
+              premiumAmount: Number(e.target.value),
+            })
+          }
+        />
+      </Field>
+
+      <Field label="Monthly Premium (₹)">
+        <input
+          type="number"
+          className={inputCls}
+          value={draft.monthlyPremium || ""}
+          onChange={(e) =>
+            setDraft({
+              ...draft,
+              monthlyPremium: Number(e.target.value),
+            })
+          }
+        />
+      </Field>
+
+      <Field label="Validity Years">
+        <input
+          type="number"
+          className={inputCls}
+          value={draft.validityYears || 1}
+          onChange={(e) =>
+            setDraft({
+              ...draft,
+              validityYears: Number(e.target.value),
+            })
+          }
+        />
+      </Field>
+
+      <Field label="Claim Ratio (%)">
+        <input
+          type="number"
+          className={inputCls}
+          value={draft.claimRatio || ""}
+          onChange={(e) =>
+            setDraft({
+              ...draft,
+              claimRatio: Number(e.target.value),
+            })
+          }
+        />
+      </Field>
+
+      <Field label="Rating">
+        <input
+          type="number"
+          min="0"
+          max="5"
+          step="0.1"
+          className={inputCls}
+          value={draft.rating || ""}
+          onChange={(e) =>
+            setDraft({
+              ...draft,
+              rating: Number(e.target.value),
+            })
+          }
+        />
+      </Field>
+
+      <Field label="EMI Available">
+        <select
+          className={inputCls}
+          value={draft.emiAvailable ? "yes" : "no"}
+          onChange={(e) =>
+            setDraft({
+              ...draft,
+              emiAvailable: e.target.value === "yes",
+            })
+          }
+        >
+          <option value="yes">Yes</option>
+          <option value="no">No</option>
         </select>
       </Field>
-      <Field label="Currency"><input className={inputCls} value={draft.currency} onChange={set("currency")} /></Field>
-      <Field label="Minimum Age"><input type="number" className={inputCls} value={draft.minAge} onChange={(e) => setDraft({ ...draft, minAge: Number(e.target.value) })} /></Field>
-      <Field label="Maximum Age"><input type="number" className={inputCls} value={draft.maxAge} onChange={(e) => setDraft({ ...draft, maxAge: Number(e.target.value) })} /></Field>
-      <Field label="Coverage (₹)"><input type="number" className={inputCls} value={draft.coverage} onChange={(e) => setDraft({ ...draft, coverage: Number(e.target.value) })} /></Field>
-      <Field label="Premium (₹)"><input type="number" className={inputCls} value={draft.premium} onChange={(e) => setDraft({ ...draft, premium: Number(e.target.value) })} /></Field>
+
+      <Field label="Start Date">
+        <input
+          type="date"
+          className={inputCls}
+          value={
+  draft.start_date
+    ? new Date(draft.start_date)
+        .toISOString()
+        .split("T")[0]
+    : ""
+}
+          onChange={set("start_date")}
+        />
+      </Field>
+
+      <Field label="End Date">
+        <input
+          type="date"
+          className={inputCls}
+          value={
+  draft.end_date
+    ? new Date(draft.end_date)
+        .toISOString()
+        .split("T")[0]
+    : ""
+}
+          onChange={set("end_date")}
+        />
+      </Field>
+
       <div className="sm:col-span-2">
-        <Field label="Short Description">
-          <textarea rows={3} className="rounded-lg border border-slate-200 p-3 text-sm outline-none focus:border-blue-500" value={draft.description} onChange={set("description")} />
+        <Field label="Features (comma separated)">
+          <input
+            className={inputCls}
+            value={(draft.features || []).join(", ")}
+            onChange={(e) =>
+              setDraft({
+                ...draft,
+                features: e.target.value
+                  .split(",")
+                  .map((f) => f.trim())
+                  .filter(Boolean),
+              })
+            }
+          />
         </Field>
       </div>
+
       <div className="sm:col-span-2">
-        <span className="text-sm font-bold text-slate-600">Policy Image</span>
+        <Field label="Description *">
+          <textarea
+            rows={4}
+            className="rounded-lg border border-slate-200 p-3 text-sm outline-none focus:border-blue-500"
+            value={draft.description || ""}
+            onChange={set("description")}
+          />
+        </Field>
+      </div>
+
+      <div className="sm:col-span-2">
+        <span className="text-sm font-bold text-slate-600">
+          Policy Image
+        </span>
+
         <label className="mt-1 flex h-28 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-slate-200 text-slate-400 hover:border-blue-400">
           <UploadCloud size={22} />
-          <span className="text-xs font-bold">Click to upload image (PNG, JPG up to 2MB)</span>
-          <input type="file" accept="image/*" className="hidden" />
+          <span className="text-xs font-bold">
+            Click to upload image (PNG, JPG up to 2MB)
+          </span>
+
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+          />
         </label>
       </div>
     </div>

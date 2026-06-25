@@ -95,6 +95,7 @@ export const useAdminActions = () => {
   // Backend data hydration
   const hydrateAllData = async () => {
     const token = localStorage.getItem("agile_insurance_admin_token");
+    
     if (!token) return;
 
     try {
@@ -126,7 +127,7 @@ export const useAdminActions = () => {
       dispatch(setClaims(backendClaims.map((c) => ({
         id: c.claim_number || c._id,
         user: c.user?.full_name || "Unknown",
-        policy: c.policy?.policy_name || c.claim_type || "Insurance",
+        policy: c.policy?.policyName || c.claim_type || "Insurance",
         amount: c.amount ? `INR ${Number(c.amount).toLocaleString("en-IN")}` : "INR 0",
         status: c.status || "Pending",
         officer: c.assignedAdmin?.full_name || selectedProfile.name,

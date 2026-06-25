@@ -263,7 +263,7 @@ const updateClaim = catchAsync(async (req, res, next) => {
     req.params.id,
     { status, notes, assignedAdmin },
     { new: true, runValidators: true }
-  ).populate("user", "fullName email").populate("policy", "policy_name");
+  ).populate("user", "fullName email").populate("policy", "policyName");
 
   if (!claim) {
     return next(new AppError("Claim not found", 404));

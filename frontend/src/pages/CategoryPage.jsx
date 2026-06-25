@@ -332,13 +332,13 @@ const CategoryPage = () => {
   // Normalize backend policy object to frontend shape used by this page
   const normalizePolicy = (p) => {
     const company = p.companyName || p.company || p.company_brand || "Unknown";
-    const policyName = p.policy_name || p.policyName || p.name || "Policy";
-    const premiumMonthly = p.premium_amount || p.monthlyPremium || 0;
-    const coverageAmount = p.coverage_amount || p.coverageAmount || 0;
+    const policyName = p.policyName || p.policyName || p.name || "Policy";
+    const premiumMonthly = p.policyAmount || p.monthlyPremium || 0;
+    const coverageAmount = p.coverageAmount || p.coverageAmount || 0;
     const rating = p.rating || 4.0;
     const validityYears = p.validityYears || p.validity_years || 1;
     const emiAvailable = !!p.emiAvailable;
-    const policyType = p.policyType || p.policy_type || "Standard";
+    const policyType = p.policyType || p.policyType || "Standard";
     const keyBenefits = p.features || p.keyBenefits || [];
 
     const companyBrand = p.companyLogo
@@ -346,7 +346,7 @@ const CategoryPage = () => {
       : { initials: company.slice(0, 2).toUpperCase(), color: "bg-blue-600" };
 
     return {
-      id: p._id || p.policy_number || `${company}_${policyName}`,
+      id: p._id || p.policyNumber || `${company}_${policyName}`,
       company,
       companyBrand,
       policyName,

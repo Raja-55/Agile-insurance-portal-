@@ -14,6 +14,7 @@ const extractToken = (req) => {
 
 const authenticateUser = catchAsync(async (req, res, next) => {
   const token = extractToken(req);
+  
   if (!token) {
     return next(new AppError("Unauthorized", 401));
   }

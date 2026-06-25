@@ -17,18 +17,18 @@ const createPolicy = async (req, res) => {
     const companyLogo = body.companyLogo || body.company_logo || "";
     const policyName = (
       body.policyName ||
-      body.policy_name ||
-      body.policy_name ||
+      body.policyName ||
+      body.policyName ||
       ""
     ).trim();
-    const policy_number =
-      body.policy_number || body.policyNumber || `POL-${Date.now()}`;
-    const premium_amount =
-      body.premium_amount || body.premiumAmount || body.monthlyPremium || 0;
-    const coverage_amount = body.coverage_amount || body.coverageAmount || 0;
+    const policyNumber =
+      body.policyNumber || body.policyNumber || `POL-${Date.now()}`;
+    const policyAmount =
+      body.policyAmount || body.premiumAmount || body.monthlyPremium || 0;
+    const coverageAmount = body.coverageAmount || body.coverageAmount || 0;
     const category = body.category || "general";
-    const policy_type =
-      body.policy_type || body.policyType || body.policyType || "";
+    const policyType =
+      body.policyType || body.policyType || body.policyType || "";
     const policy_desc =
       body.policy_desc || body.description || body.policyDesc || "";
     const features = Array.isArray(body.features)
@@ -52,7 +52,7 @@ const createPolicy = async (req, res) => {
     // Prevent duplicate policy names under same company
     const duplicate = await Policy.findOne({
       companyName: companyName,
-      policy_name: policyName,
+      policyName: policyName,
     });
     if (duplicate) {
       return res.status(409).json({
@@ -67,11 +67,11 @@ const createPolicy = async (req, res) => {
       companyName,
       companyLogo,
       policyName,
-      policy_number,
-      premiumAmount: Number(premium_amount),
-      coverageAmount: Number(coverage_amount),
+      policyNumber,
+      premiumAmount: Number(policyAmount),
+      coverageAmount: Number(coverageAmount),
       category,
-      policyType: policy_type,
+      policyType: policyType,
       description: policy_desc,
       features,
       emiAvailable,
@@ -181,6 +181,32 @@ const deactivatePolicy = async (req, res) => {
   }
 };
 
+const deletePolicy = async (req, res) => {
+  try {
+    console.log("DELETE CALLED");
+    console.log("ID:", req.params.id);
+
+    const policy = await Policy.findByIdAndDelete(
+      req.params.id
+    );
+
+    console.log("DELETED:", policy);
+
+    if (!policy) {
+      return res.status(404).json({
+        success: false,
+        message: "Policy not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Deleted successfully",
+    });
+  } catch (err) {
+    console.error(err);
+  }
+};
 // ═══════════════════════════════════════════════════════════════════
 //  ADMIN — Get ALL policies (active + inactive) for dashboard
 //  Route  : GET /api/policies/admin/all
@@ -281,6 +307,7 @@ module.exports = {
   deactivatePolicy,
   getAllPoliciesAdmin,
   // User
+  deletePolicy,
   getPoliciesByCategory,
   getPolicyById,
 };

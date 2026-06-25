@@ -952,7 +952,9 @@ const AdminPage = () => {
     const savedProfile = getAdminProfile();
     return savedProfile || loadAdmins()[0];
   });
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] =
+  useState(!!getAdminToken());
+
   const [activePage, setActivePage] = useState("dashboard");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -1100,7 +1102,7 @@ const activeUsers = customerRows.filter(
           backendClaims.map((claim) => ({
             id: claim.claim_number || claim._id,
             user: claim.user?.full_name || claim.user?.name || "Unknown",
-            policy: claim.policy?.policy_name || claim.policy?.type || claim.claim_type || "Insurance",
+            policy: claim.policy?.policyName || claim.policy?.type || claim.claim_type || "Insurance",
             amount: claim.amount ? `INR ${Number(claim.amount).toLocaleString("en-IN")}` : "INR 0",
             status: claim.status || "Pending",
             officer: claim.assignedAdmin?.full_name || selectedProfile.name,
@@ -1109,10 +1111,10 @@ const activeUsers = customerRows.filter(
 
         setPlanRows(
           backendPolicies.map((policy) => ({
-            name: policy.policy_name || policy.name || "Policy",
-            type: policy.policy_type || "Insurance",
-            coverage: policy.coverage_amount ? `INR ${Number(policy.coverage_amount).toLocaleString("en-IN")}` : "INR 0",
-            premium: policy.premium_amount ? `INR ${Number(policy.premium_amount).toLocaleString("en-IN")}/mo` : "INR 0/mo",
+            name: policy.policyName || policy.name || "Policy",
+            type: policy.policyType || "Insurance",
+            coverage: policy.coverageAmount ? `INR ${Number(policy.coverageAmount).toLocaleString("en-IN")}` : "INR 0",
+            premium: policy.policyAmount ? `INR ${Number(policy.policyAmount).toLocaleString("en-IN")}/mo` : "INR 0/mo",
             duration: policy.end_date ? `${new Date(policy.start_date).toLocaleDateString()} - ${new Date(policy.end_date).toLocaleDateString()}` : "1 year",
             state: policy.status || "Active",
           })),
