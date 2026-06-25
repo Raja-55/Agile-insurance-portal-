@@ -16,6 +16,11 @@ const DashboardDocuments = () => {
 
   const upload = async (file) => {
     if (!file) return;
+    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    if (!isPdf) {
+      window.alert("Please upload a PDF file only.");
+      return;
+    }
     setBusy(true);
     try {
       const dataUrl = await fileToDataUrl(file);
@@ -59,9 +64,9 @@ const DashboardDocuments = () => {
             <p className="mt-2 text-slate-600 dark:text-slate-300">KYC status, policy PDFs, invoices, and uploads.</p>
           </div>
           <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-7 py-4 text-sm font-black text-white shadow-sm hover:opacity-95">
-            <input type="file" className="hidden" disabled={busy} onChange={(e) => upload(e.target.files?.[0])} />
+            <input type="file" accept="application/pdf,.pdf" className="hidden" disabled={busy} onChange={(e) => upload(e.target.files?.[0])} />
             <FileUp size={18} />
-            {busy ? "Uploading..." : "Upload document"}
+            {busy ? "Uploading..." : "Upload PDF"}
           </label>
         </div>
       </div>
@@ -86,7 +91,7 @@ const DashboardDocuments = () => {
                 </div>
                 <div className="mt-6 text-xl font-black text-slate-900 dark:text-white">No documents yet</div>
                 <div className="mt-2 text-sm font-semibold text-slate-600 dark:text-slate-300">
-                  Purchase a policy or upload a document to populate your vault.
+                  Purchase a policy or upload a PDF document to populate your vault.
                 </div>
               </div>
             ) : (

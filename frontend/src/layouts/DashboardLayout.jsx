@@ -21,8 +21,8 @@ import { motion } from "framer-motion";
 import { useAuth } from "../contexts/useAuth";
 import FloatingAiAssistant from "../components/FloatingAiAssistant";
 import { apiRequest } from "../utils/api";
+import { getStoredTheme, setHtmlTheme, STORAGE_THEME } from "../utils/theme";
 
-const STORAGE_THEME = "agile_insurance_theme_v1";
 const STORAGE_SETTINGS = "agile_insurance_system_settings_v1";
 // Dashboard brand logo path. Replace the SVG in public/ to refresh the sidebar and favicon branding.
 const AGILE_LOGO_SRC = "/agile-insurance-logo.svg";
@@ -73,13 +73,6 @@ const getNavItems = (settings) => [
 
 
 
-
-const setHtmlTheme = (mode) => {
-  const html = document.documentElement;
-  html.dataset.theme = mode;
-  if (mode === "dark") html.classList.add("dark");
-  else html.classList.remove("dark");
-};
 
 const DashboardNavList = ({
   compact = false,
@@ -140,7 +133,7 @@ const DashboardLayout = () => {
   const { user, logout } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [theme, setTheme] = useState(() => localStorage.getItem(STORAGE_THEME) || "light");
+  const [theme, setTheme] = useState(getStoredTheme);
   const [profilePhoto, setProfilePhoto] = useState(() => user?.profilePhoto || "");
   const [portalName, setPortalName] = useState(() => readPortalSettings().companyName || "Agile Insurance");
   // The top-right profile control intentionally shows only the user's first initial.
@@ -284,7 +277,7 @@ console.log(systemSettings);
               <div className="flex items-center gap-2 xl:hidden">
                 <button
                   onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
-                  className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white p-3 text-slate-800 shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
+                  className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white p-3 text-slate-800 shadow-sm hover:bg-slate-50 active:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10 dark:hover:text-white dark:active:bg-white/15"
                   aria-label="Toggle theme"
                 >
                   {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
@@ -302,7 +295,7 @@ console.log(systemSettings);
 
                 <button
                   onClick={() => navigate("/health-insurance")}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 active:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10 dark:hover:text-white dark:active:bg-white/15"
                 >
                   <BadgeCheck size={18} />
                   Buy Policy
@@ -318,7 +311,7 @@ console.log(systemSettings);
 
                 <button
                   onClick={() => navigate("/dashboard/notifications")}
-                  className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white p-3 text-slate-800 shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
+                  className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white p-3 text-slate-800 shadow-sm hover:bg-slate-50 active:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10 dark:hover:text-white dark:active:bg-white/15"
                   aria-label="Notifications"
                 >
                   <Bell size={18} />
@@ -326,7 +319,7 @@ console.log(systemSettings);
 
                 <button
                   onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 active:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10 dark:hover:text-white dark:active:bg-white/15"
                 >
                   {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
                   {theme === "dark" ? "Light" : "Dark"}

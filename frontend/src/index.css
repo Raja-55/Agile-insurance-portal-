@@ -35,3 +35,60 @@ video,
 canvas {
   max-width: 100%;
 }
+
+.dark .insurance-category-page {
+  background: #070b14;
+  color: #f8fafc;
+}
+
+.dark .insurance-category-page .bg-white {
+  background-color: rgba(15, 23, 42, 0.92);
+}
+
+.dark .insurance-category-page .bg-slate-50 {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.dark .insurance-category-page .from-white {
+  --tw-gradient-from: rgba(255, 255, 255, 0.08) var(--tw-gradient-from-position);
+  --tw-gradient-to: rgba(255, 255, 255, 0) var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+
+.dark .insurance-category-page .to-slate-50 {
+  --tw-gradient-to: rgba(255, 255, 255, 0.02) var(--tw-gradient-to-position);
+}
+
+.dark .insurance-category-page .border-slate-200 {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .insurance-category-page .text-slate-900,
+.dark .insurance-category-page .text-slate-800 {
+  color: #f8fafc;
+}
+
+.dark .insurance-category-page .text-slate-700,
+.dark .insurance-category-page .text-slate-600 {
+  color: #cbd5e1;
+}
+
+.dark .insurance-category-page .text-slate-500 {
+  color: #94a3b8;
+}
+
+.dark .insurance-category-page input,
+.dark .insurance-category-page select {
+  background-color: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+}
+
+.dark .insurance-category-page option {
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+.dark .insurance-category-page .hover\:bg-slate-50:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}

@@ -185,40 +185,40 @@ const InfoPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-[#070B14] dark:to-[#070B14]">
       <div className="max-w-4xl mx-auto px-4 py-12">
         {/* Back button */}
-        <Link to="/" className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-8 font-semibold">
+        <Link to="/" className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-8 font-semibold dark:text-blue-300 dark:hover:text-blue-200">
           <ChevronLeft size={20} />
           Back to Home
         </Link>
 
         {/* Main content card */}
-        <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+        <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm dark:border-white/10 dark:bg-white/5">
           <div className="flex items-start gap-4">
-            <div className="grid h-14 w-14 place-items-center rounded-xl bg-blue-50">
-              <Info className="text-blue-600" size={24} />
+            <div className="grid h-14 w-14 place-items-center rounded-xl bg-blue-50 dark:bg-blue-500/10">
+              <Info className="text-blue-600 dark:text-blue-300" size={24} />
             </div>
             <div className="flex-1">
-              <h1 className="text-3xl font-black text-slate-900">{currentPage.title}</h1>
-              <p className="mt-2 text-lg text-slate-600">{currentPage.description}</p>
+              <h1 className="text-3xl font-black text-slate-900 dark:text-white">{currentPage.title}</h1>
+              <p className="mt-2 text-lg text-slate-600 dark:text-slate-300">{currentPage.description}</p>
             </div>
           </div>
 
           {/* Content section */}
-          <div className="mt-8 rounded-lg border border-slate-200 bg-slate-50 p-6">
-            <p className="text-slate-700 leading-relaxed">{currentPage.content}</p>
+          <div className="mt-8 rounded-lg border border-slate-200 bg-slate-50 p-6 dark:border-white/10 dark:bg-white/5">
+            <p className="text-slate-700 leading-relaxed dark:text-slate-200">{currentPage.content}</p>
           </div>
 
           {/* Features grid */}
           {currentPage.features.length > 0 && (
             <div className="mt-8">
-              <h2 className="text-xl font-bold text-slate-900 mb-4">Key Benefits</h2>
+              <h2 className="text-xl font-bold text-slate-900 mb-4 dark:text-white">Key Benefits</h2>
               <div className="grid gap-4 md:grid-cols-2">
                 {currentPage.features.map((feature) => (
-                  <div key={feature} className="flex items-start gap-3 rounded-lg border border-slate-200 bg-white p-4">
+                  <div key={feature} className="flex items-start gap-3 rounded-lg border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
                     <Check className="text-emerald-600 shrink-0 mt-1" size={20} />
-                    <span className="font-semibold text-slate-700">{feature}</span>
+                    <span className="font-semibold text-slate-700 dark:text-slate-200">{feature}</span>
                   </div>
                 ))}
               </div>
@@ -227,9 +227,9 @@ const InfoPage = () => {
 
           {/* CTA section */}
           <div className="mt-8 grid gap-4 md:grid-cols-2">
-            <div className="rounded-lg border border-blue-200 bg-blue-50 p-6">
-              <h3 className="text-lg font-bold text-slate-900">Need Personalized Advice?</h3>
-              <p className="mt-2 text-sm text-slate-600">
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-6 dark:border-blue-400/20 dark:bg-blue-500/10">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Need Personalized Advice?</h3>
+              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
                 Our insurance experts are ready to help you find the perfect plan for your needs.
               </p>
               <Link
@@ -241,14 +241,14 @@ const InfoPage = () => {
               </Link>
             </div>
 
-            <div className="rounded-lg border border-slate-200 bg-white p-6">
-              <h3 className="text-lg font-bold text-slate-900">Quick Comparison</h3>
-              <p className="mt-2 text-sm text-slate-600">
+            <div className="rounded-lg border border-slate-200 bg-white p-6 dark:border-white/10 dark:bg-white/5">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Quick Comparison</h3>
+              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
                 Compare our plans with competitors and find the best coverage at the best price.
               </p>
               <Link
                 to="/"
-                className="mt-4 inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50"
+                className="mt-4 inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:text-slate-100 dark:hover:bg-white/10"
               >
                 <ChevronLeft size={16} />
                 Explore Plans

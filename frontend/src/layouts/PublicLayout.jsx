@@ -7,7 +7,7 @@ import FloatingAiAssistant from "../components/FloatingAiAssistant";
 // Public site shell. Header, footer, scroll behavior, and floating AI labels are attached here.
 const PublicLayout = () => {
   return (
-    <div className="min-h-screen overflow-x-hidden bg-white">
+    <div className="min-h-screen overflow-x-hidden bg-white dark:bg-[#070B14]">
       <ScrollToTop />
       <Navbar />
       <Outlet />

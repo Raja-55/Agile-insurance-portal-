@@ -534,10 +534,10 @@ const CategoryPage = () => {
 
   if (loadingPolicies) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center bg-white px-4 py-16">
+      <div className="min-h-[60vh] flex items-center justify-center bg-white px-4 py-16 dark:bg-[#070B14]">
         <div className="text-center">
-          <div className="text-xl font-black text-slate-900">Loading policies…</div>
-          <div className="mt-2 text-sm text-slate-600">Fetching available plans from the server.</div>
+          <div className="text-xl font-black text-slate-900 dark:text-white">Loading policies…</div>
+          <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">Fetching available plans from the server.</div>
         </div>
       </div>
     );
@@ -545,10 +545,10 @@ const CategoryPage = () => {
 
   if (policiesError) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center bg-white px-4 py-16">
+      <div className="min-h-[60vh] flex items-center justify-center bg-white px-4 py-16 dark:bg-[#070B14]">
         <div className="text-center">
           <div className="text-xl font-black text-red-600">Failed to load policies</div>
-          <div className="mt-2 text-sm text-slate-600">{policiesError}</div>
+          <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">{policiesError}</div>
         </div>
       </div>
     );
@@ -557,7 +557,7 @@ const CategoryPage = () => {
 
 
   return (
-    <div className="bg-slate-50">
+    <div className="insurance-category-page bg-slate-50">
       <div className="relative overflow-hidden border-b border-slate-200 bg-white">
         <div className="pointer-events-none absolute -top-40 right-0 h-[520px] w-[520px] rounded-full bg-blue-600/10 blur-[110px]" />
         <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14">
