@@ -83,7 +83,7 @@ const loadTickets = async () => {
   try {
     setLoadingTickets(true);
 
-    const res = await apiRequest("/api/support-tickets");
+    const res = await apiRequest("/api/support/support-tickets");
 
     setTickets(res.data || []);
   } catch (err) {
@@ -102,7 +102,7 @@ const sendMessage = async () => {
   setStatusMessage("");
 
   try {
-    await apiRequest("/api/support-tickets", {
+    await apiRequest("/api/support/support-tickets", {
       method: "POST",
       body: JSON.stringify({
         subject,

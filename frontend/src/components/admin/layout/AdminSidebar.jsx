@@ -5,7 +5,7 @@ import { navItems } from "../../../utils/helpers";
 
 const iconMap = {
   dashboard: LayoutDashboard, users: Users, claims: ClipboardCheck,
-  requirements: BadgeCheck, support: Headphones, policies: FileText,
+  // requirements: BadgeCheck, support: Headphones, policies: FileText,
   documents: ShieldCheck, reports: BarChart3, profile: UserCog,
   auditlog: ScrollText, settings: Settings,
 };

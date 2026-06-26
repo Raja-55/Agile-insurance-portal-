@@ -111,7 +111,7 @@ export const EditPanel = ({ editingRecord, onClose, onChange, onSave, onSend }) 
     claims: ["id", "user", "policy", "amount", "status", "officer", "description", "docName"],
     policies: ["name", "type", "coverage", "premium", "duration", "state"],
     documents: ["type", "owner", "status", "note"],
-    requirements: ["user", "age", "budget", "coverage", "status"],
+    // requirements: ["user", "age", "budget", "coverage", "status"],
     support: ["id", "user", "subject", "priority", "status"],
   };
   const fields = editFieldsByKind[editingRecord.kind] || Object.keys(editingRecord.draft);

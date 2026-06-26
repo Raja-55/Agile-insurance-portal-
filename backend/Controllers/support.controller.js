@@ -23,7 +23,8 @@ const createSupportTicket = catchAsync(async (req, res, next) => {
       },
     ],
   });
-
+  console.log("req.user:", req.user);
+console.log("req.user._id:", req.user?._id);
   const ticketWithUser = await SupportTicket.findById(ticket._id)
     .populate("user", "fullName email")
     .populate("assignedAdmin", "fullName email");
