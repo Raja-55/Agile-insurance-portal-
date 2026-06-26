@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { KeyRound, Lock, Mail, MapPin, Phone, ShieldCheck, User } from "lucide-react";
 import { useAuth } from "../contexts/useAuth";
+// import {registerUser, loginUser, logoutUser, getCurrentUser, updateProfile} from "../utils/api";
 
 // Authentication screen copy, field labels, validation messages, and auth CTAs live in this file.
 const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || "").trim());
@@ -30,7 +31,7 @@ const GoogleLogo = () => (
 const AuthPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { register, login, googleLogin, isAuthenticated, bootstrapped } = useAuth();
+  const { register, login } = useAuth();
   const googleTokenClientRef = useRef(null);
 
   const returnTo = useMemo(() => {
@@ -38,11 +39,11 @@ const AuthPage = () => {
     return getSafeReturnTo(params.get("returnTo"));
   }, [location.search]);
 
-  useEffect(() => {
-    if (bootstrapped && isAuthenticated) {
-      navigate(returnTo, { replace: true });
-    }
-  }, [bootstrapped, isAuthenticated, navigate, returnTo]);
+  // useEffect(() => {
+  //   if (bootstrapped && isAuthenticated) {
+  //     navigate(returnTo, { replace: true });
+  //   }
+  // }, [bootstrapped, isAuthenticated, navigate, returnTo]);
 
   const [mode, setMode] = useState("register");
   const [busy, setBusy] = useState(false);
@@ -85,7 +86,13 @@ const AuthPage = () => {
       if (password !== confirmPassword) return setError("Passwords do not match.");
       setBusy(true);
       try {
-        const response = await register({ fullName: trimmedName, email: trimmedEmail, phone: trimmedPhone, address: trimmedAddress, password });
+        const response = await register(
+          {
+             fullName: trimmedName,
+             email: trimmedEmail, 
+             phone: trimmedPhone, 
+             address: trimmedAddress, 
+             password });
         setNotice(response?.message || "Account created successfully.");
         navigate(returnTo, { replace: true });
       } catch (err) {
@@ -109,61 +116,61 @@ const AuthPage = () => {
     }
   };
 
-  const onGoogleAccessToken = async (response) => {
-    resetMessaging();
-    const accessToken = response?.access_token;
-    if (!accessToken) {
-      setError("Select a Google account to continue.");
-      return;
-    }
-    setBusy(true);
-    try {
-      await googleLogin({ accessToken });
-      navigate(returnTo, { replace: true });
-    } catch (err) {
-      setError(err?.message || "Google sign-in failed.");
-    } finally {
-      setBusy(false);
-    }
-  };
+  // const onGoogleAccessToken = async (response) => {
+  //   resetMessaging();
+  //   const accessToken = response?.access_token;
+  //   if (!accessToken) {
+  //     setError("Select a Google account to continue.");
+  //     return;
+  //   }
+  //   setBusy(true);
+  //   try {
+  //     await googleLogin({ accessToken });
+  //     navigate(returnTo, { replace: true });
+  //   } catch (err) {
+  //     setError(err?.message || "Google sign-in failed.");
+  //   } finally {
+  //     setBusy(false);
+  //   }
+  // };
 
-  useEffect(() => {
-    if (!GOOGLE_CLIENT_ID) return;
+  // useEffect(() => {
+  //   if (!GOOGLE_CLIENT_ID) return;
 
-    const initializeGoogleTokenClient = () => {
-      if (!window.google?.accounts?.oauth2) return;
-      googleTokenClientRef.current = window.google.accounts.oauth2.initTokenClient({
-        client_id: GOOGLE_CLIENT_ID,
-        scope: "openid email profile",
-        prompt: "select_account",
-        callback: onGoogleAccessToken,
-      });
-    };
+  //   const initializeGoogleTokenClient = () => {
+  //     if (!window.google?.accounts?.oauth2) return;
+  //     googleTokenClientRef.current = window.google.accounts.oauth2.initTokenClient({
+  //       client_id: GOOGLE_CLIENT_ID,
+  //       scope: "openid email profile",
+  //       prompt: "select_account",
+  //       callback: onGoogleAccessToken,
+  //     });
+  //   };
 
-    const existing = document.getElementById(GOOGLE_SCRIPT_ID);
-    if (existing) {
-      initializeGoogleTokenClient();
-      return;
-    }
+  //   const existing = document.getElementById(GOOGLE_SCRIPT_ID);
+  //   if (existing) {
+  //     initializeGoogleTokenClient();
+  //     return;
+  //   }
 
-    const script = document.createElement("script");
-    script.id = GOOGLE_SCRIPT_ID;
-    script.src = "https://accounts.google.com/gsi/client";
-    script.async = true;
-    script.defer = true;
-    script.onload = initializeGoogleTokenClient;
-    script.onerror = () => setError("Could not load Google sign-in. Check your connection and try again.");
-    document.head.appendChild(script);
-  }, []);
+  //   const script = document.createElement("script");
+  //   script.id = GOOGLE_SCRIPT_ID;
+  //   script.src = "https://accounts.google.com/gsi/client";
+  //   script.async = true;
+  //   script.defer = true;
+  //   script.onload = initializeGoogleTokenClient;
+  //   script.onerror = () => setError("Could not load Google sign-in. Check your connection and try again.");
+  //   document.head.appendChild(script);
+  // }, []);
 
-  const onGoogleLogin = () => {
-    resetMessaging();
-    if (!googleTokenClientRef.current) {
-      setError("Google sign-in is still loading. Please try again in a moment.");
-      return;
-    }
-    googleTokenClientRef.current.requestAccessToken({ prompt: "select_account" });
-  };
+  // const onGoogleLogin = () => {
+  //   resetMessaging();
+  //   if (!googleTokenClientRef.current) {
+  //     setError("Google sign-in is still loading. Please try again in a moment.");
+  //     return;
+  //   }
+  //   googleTokenClientRef.current.requestAccessToken({ prompt: "select_account" });
+  // };
 
   const switchMode = (nextMode) => {
     setMode(nextMode);
@@ -173,17 +180,17 @@ const AuthPage = () => {
   };
 
   
-  if (bootstrapped && isAuthenticated) {
-    return (
-      <div className="grid min-h-[60vh] place-items-center bg-white px-4">
-        <div className="w-full max-w-sm rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="h-2 w-28 animate-pulse rounded-full bg-slate-200" />
-          <div className="mt-4 h-10 w-full animate-pulse rounded-2xl bg-slate-100" />
-          <div className="mt-3 h-10 w-full animate-pulse rounded-2xl bg-slate-100" />
-        </div>
-      </div>
-    );
-  }
+  // if (bootstrapped && isAuthenticated) {
+  //   return (
+  //     <div className="grid min-h-[60vh] place-items-center bg-white px-4">
+  //       <div className="w-full max-w-sm rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+  //         <div className="h-2 w-28 animate-pulse rounded-full bg-slate-200" />
+  //         <div className="mt-4 h-10 w-full animate-pulse rounded-2xl bg-slate-100" />
+  //         <div className="mt-3 h-10 w-full animate-pulse rounded-2xl bg-slate-100" />
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-white to-slate-50 px-4 py-8 sm:px-6 sm:py-12">

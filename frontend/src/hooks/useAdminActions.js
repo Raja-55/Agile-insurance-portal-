@@ -108,6 +108,12 @@ export const useAdminActions = () => {
       ]);
 
       const backendUsers = usersRes?.data?.users || usersRes?.data?.data || usersRes?.data || [];
+      
+      
+      
+      
+      
+      
       dispatch(
   setUsers(
     backendUsers.map((u) => ({
@@ -133,7 +139,43 @@ export const useAdminActions = () => {
         officer: c.assignedAdmin?.full_name || selectedProfile.name,
       }))));
 
-      const backendTickets = Array.isArray(supportRes?.data) ? supportRes.data : [];
+  
+      const backendTickets = Array.isArray(supportRes?.data)
+  ? supportRes.data
+  : [];
+
+dispatch(
+  setChats(
+    backendTickets.map((ticket) => ({
+      id: ticket._id, // MongoDB id
+
+      userId: ticket.user?._id,
+
+      userName:
+        ticket.user?.full_name ||
+        ticket.user?.name ||
+        "Unknown User",
+
+      userEmail:
+        ticket.user?.email || "",
+
+      subject: ticket.subject,
+
+      status: ticket.status,
+
+      priority: ticket.priority,
+
+      assignedAdmin: ticket.assignedAdmin,
+
+      messages: ticket.messages || [],
+
+      createdAt: ticket.createdAt,
+
+      updatedAt: ticket.updatedAt,
+    }))
+  )
+);
+      
       dispatch(setChats(backendTickets));
     } catch (err) {
       console.warn("Backend sync unavailable, using local data.", err);

@@ -15,12 +15,14 @@ const SupportPage = () => {
   const [adminReply, setAdminReply] = useState("");
 
   const selectedChat = chats.find((c) => c.id === selectedChatId) || null;
-
+// console.log(selectedChat);
+// console.log(selectedChat.id);
+// console.log(selectedChat._id);
   const handleReply = async () => {
     if (!selectedChat || !adminReply.trim()) return;
     try {
       const res = await apiRequest(`/api/admin/support-tickets/${selectedChat.id}/messages`, {
-        useAdminToken: true, method: "POST", body: JSON.stringify({ text: adminReply }),
+        useAdminToken: true, method: "POST", body: JSON.stringify({ message: adminReply }),
       });
       if (res?.data) {
         dispatch(updateChat({ id: selectedChat.id, changes: res.data }));
@@ -89,8 +91,8 @@ const SupportPage = () => {
                 <div className="flex-1 space-y-3 overflow-y-auto p-4">
                   {(selectedChat.messages || []).map((msg) => (
                     <div key={msg.id}>
-                      <div className="text-xs font-bold uppercase text-slate-500">{msg.sender}</div>
-                      <div className={`mt-1 rounded-lg px-4 py-3 text-sm font-semibold ${msg.from === "admin" ? "bg-blue-50 text-blue-900" : "bg-slate-100 text-slate-700"}`}>
+                      <div className="text-xs font-bold uppercase text-slate-500">{msg.senderRole === "admin" ? "Admin" : selectedChat.userName}</div>
+                      <div className={`mt-1 rounded-lg px-4 py-3 text-sm font-semibold ${msg.senderRole === "admin" ? "bg-blue-50 text-blue-900" : "bg-slate-100 text-slate-700"}`}>
                         {msg.text}
                       </div>
                     </div>

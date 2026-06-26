@@ -1,4 +1,5 @@
 const express = require("express");
+const router = express.Router();
 
 const authenticateAdmin = require("../Middlewares/admin.middleware");
 
@@ -22,11 +23,11 @@ const {
   deleteClaim,
   getSupportTicketsAdmin,
   updateSupportTicket,
-  replyToSupportTicket,
+  
 } = require("../Controllers/admin.controller");
 
+
 const {registerAdmin, loginAdmin} = require("../Controllers/authAdmin.controller")
-const router = express.Router();
 
 
 router.post("/auth/register", registerAdmin);
@@ -52,6 +53,6 @@ router.get("/audit-logs", getAuditLogs);
 router.post("/audit-logs", createAuditLog);
 router.get("/support-tickets", getSupportTicketsAdmin);
 router.patch("/support-tickets/:id", updateSupportTicket);
-router.post("/support-tickets/:id/messages", replyToSupportTicket);
+// router.post("/support-tickets/:id/messages", replyToSupportTicket);
 
 module.exports = router;

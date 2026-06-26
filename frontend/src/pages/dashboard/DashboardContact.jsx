@@ -1,30 +1,31 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
 import { Clock3, Mail, MapPin, MessageCircle, PhoneCall, Send, ShieldCheck } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { useAuth } from "../../contexts/useAuth";
-
+import { apiRequest } from "../../utils/api";
 // Support chat storage key in localStorage for persistence
-const SUPPORT_CHAT_KEY = "agile_insurance_support_chats_v1";
+// const SUPPORT_CHAT_KEY = "agile_insurance_support_chats_v1";
 
 // Utility to safely parse JSON from localStorage
-const safeJsonParse = (value, fallback) => {
-  try {
-    return JSON.parse(value);
-  } catch {
-    return fallback;
-  }
-};
+// const safeJsonParse = (value, fallback) => {
+//   try {
+//     return JSON.parse(value);
+//   } catch {
+//     return fallback;
+//   }
+// };
 
-// Load all support chats from localStorage
-const readChats = () => {
-  const chats = safeJsonParse(localStorage.getItem(SUPPORT_CHAT_KEY), []);
-  return Array.isArray(chats) ? chats : [];
-};
+// // Load all support chats from localStorage
+// const readChats = () => {
+//   const chats = safeJsonParse(localStorage.getItem(SUPPORT_CHAT_KEY), []);
+//   return Array.isArray(chats) ? chats : [];
+// };
 
-// Save all support chats to localStorage
-const saveChats = (chats) => {
-  localStorage.setItem(SUPPORT_CHAT_KEY, JSON.stringify(chats));
-};
+// // Save all support chats to localStorage
+// const saveChats = (chats) => {
+//   localStorage.setItem(SUPPORT_CHAT_KEY, JSON.stringify(chats));
+// };
 
 // Contact information displayed on the contact page
 // Edit these details to update phone, email, and support information across the app
@@ -56,10 +57,10 @@ const contactDetails = [
 const DashboardContact = () => {
   const { user } = useAuth();
   // Load chats from localStorage on component mount
-  const [chats, setChats] = useState(() => readChats());
+  // const [chats, setChats] = useState(() => readChats());
   const [subject, setSubject] = useState("Policy support");
   const [message, setMessage] = useState("");
-
+const [loadingTickets, setLoadingTickets] = useState(true);
 
   const [statusMessage, setStatusMessage] = useState("");
   // const [isSending, setIsSending] = useState(false);
@@ -67,76 +68,58 @@ const DashboardContact = () => {
    const supportPhone = "+91 79726 57424";
    const [isSending, setIsSending] = useState(false);
   // Filter chats for current user thread
-  const userThread = useMemo(
-    () => chats.filter((chat) => chat.userEmail === user?.email),
-    [chats, user?.email],
-  );
-  const tickets = userThread;
-  const loadingTickets = false;
+  // const userThread = useMemo(
+  //   () => chats.filter((chat) => chat.userEmail === user?.email),
+  //   [chats, user?.email],
+  // );
+  
+const [tickets, setTickets] = useState([]);
 
+useEffect(() => {
+  loadTickets();
+}, []);
+
+const loadTickets = async () => {
+  try {
+    setLoadingTickets(true);
+
+    const res = await apiRequest("/api/support-tickets");
+
+    setTickets(res.data || []);
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoadingTickets(false);
+  }
+};
   // Send message handler - creates new chat or adds to existing thread
-const sendMessage = () => {
+const sendMessage = async () => {
   const text = message.trim();
 
   if (!text) return;
 
   setIsSending(true);
-    setStatusMessage("");
+  setStatusMessage("");
 
   try {
-    const nextMessage = {
-      id: `msg_${Date.now()}`,
-      from: "user",
-      sender: user?.fullName || "Customer",
-      senderRole: "user",
-      text,
-      createdAt: new Date().toISOString(),
-    };
+    await apiRequest("/api/support-tickets", {
+      method: "POST",
+      body: JSON.stringify({
+        subject,
+        message: text,
+      }),
+    });
 
-    const existing = chats.find(
-      (chat) =>
-        chat.userEmail === user?.email &&
-        chat.status !== "Resolved"
-    );
+    await loadTickets();
 
-    const nextChats = existing
-      ? chats.map((chat) =>
-          chat.id === existing.id
-            ? {
-                ...chat,
-                subject,
-                status: "Open",
-                messages: [...chat.messages, nextMessage],
-                updatedAt: new Date().toISOString(),
-              }
-            : chat
-        )
-      : [
-          {
-            id: `chat_${Date.now()}`,
-            userId: user?.id,
-            userName: user?.fullName || "Customer",
-            userEmail: user?.email || "guest@agile.insurance",
-            subject,
-            priority: "Medium",
-            status: "Open",
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            messages: [nextMessage],
-          },
-          ...chats,
-        ];
-
-    setChats(nextChats);
-    saveChats(nextChats);
     setMessage("");
-    setStatusMessage("Message sent. Our support team will reply in this thread.");
-    setIsSending(false);
+    setStatusMessage("Message sent successfully.");
+  } catch (err) {
+    setStatusMessage(err.message);
   } finally {
     setIsSending(false);
   }
 };
-
   return (
     <div className="space-y-8">
       <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-white/5 sm:p-8">

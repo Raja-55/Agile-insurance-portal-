@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route } from "react-router-dom";
 import LandingPage from "./pages/LandingPage";
 import PublicLayout from "./layouts/PublicLayout";
 import AuthLayout from "./layouts/AuthLayout";
@@ -26,8 +26,23 @@ import DashboardSecurity from "./pages/dashboard/DashboardSecurity";
 import NotFoundPage from "./pages/NotFoundPage";
 import { Provider } from "react-redux";
 import { store } from "./store/adminStore";
+import { Routes, useLocation } from "react-router-dom";
+import useSettings from "./hooks/useSettings";
+import MaintenancePage from "./pages/admin/MaintenancePage";
 // Routes are organized by layout type: public, auth-only, admin, and protected dashboard
 const App = () => {
+  const settings = useSettings();
+  const location = useLocation();
+
+  const isAdmin = location.pathname.startsWith("/admin");
+
+  if (settings?.maintenanceMode?.enabled && !isAdmin) {
+    return (
+        <MaintenancePage
+            message={settings.maintenanceMode.message}
+        />
+    );
+}
   return (
     <Routes>
       {/* Public routes - includes navbar, footer, and floating AI assistant */}

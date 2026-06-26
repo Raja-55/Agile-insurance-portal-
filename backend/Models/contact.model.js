@@ -34,24 +34,22 @@ const supportTicketSchema = new mongoose.Schema(
 
     assignedAdmin: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      default: null,
+      ref: "Admin",
     },
 
     // Add this section
     messages: [
       {
         sender: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "User",
-          required: true,
-        },
+    type: mongoose.Schema.Types.ObjectId,
+    required: true,
+},
 
-        senderRole: {
-          type: String,
-          enum: ["user", "admin"],
-          required: true,
-        },
+senderRole: {
+    type: String,
+    enum: ["user", "admin"],
+    required: true,
+},
 
         text: {
           type: String,

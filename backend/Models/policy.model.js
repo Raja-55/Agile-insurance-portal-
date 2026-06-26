@@ -21,10 +21,7 @@ const policySchema = new mongoose.Schema(
       required: [true, 'Policy name is required'],
       trim: true,
     },
-
-
      monthlyPremium: Number,
-
 
   validityYears: {
       type: Number,
@@ -128,7 +125,7 @@ const policySchema = new mongoose.Schema(
     status: {
       type: String,
       enum: ["active", "expired", "pending", "cancelled"],
-      default: "pending",
+      default: "active",
     },
     start_date: {
       type: Date,

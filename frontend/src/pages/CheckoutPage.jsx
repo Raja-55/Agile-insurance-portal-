@@ -14,7 +14,7 @@ import {
   User,
   Wallet,
 } from "lucide-react";
-import { getPolicyById } from "../data/catalog";
+// import { getPolicyById } from "../data/catalog";
 import { load, save, uid } from "../utils/storage";
 import { useAuth } from "../contexts/useAuth";
 import { apiRequest } from "../utils/api";
@@ -28,11 +28,13 @@ const CheckoutPage = () => {
   const { policyId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const policy = getPolicyById(policyId);
+  // const policy = getPolicyById(policyId);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("upi");
-  
+  const [policy, setPolicy] = useState(null);
+  const [loading, setLoading] = useState(true);
+
   const [settingsPayments, setSettingsPayments] = useState({
   netBanking: true,
   upi: true,
@@ -40,7 +42,33 @@ const CheckoutPage = () => {
   wallets: true,
 });
 
+const normalizePolicy = (p) => ({
+  id: p._id,
+  company: p.companyName,
+  policyName: p.policyName,
+  premiumYearly: p.premiumAmount,
+  coverageLabel: formatInr(p.coverageAmount),
+  claimSettlementRatio: p.claimRatio,
+  validityYears: p.validityYears,
+  features: p.features,
+});
 
+useEffect(() => {
+  const fetchPolicy = async () => {
+    try {
+      const res = await apiRequest(`/api/policies/${policyId}`);
+
+      // depending on your controller
+      setPolicy(normalizePolicy(res.data));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchPolicy();
+}, [policyId]);
 
 
 useEffect(() => {
@@ -151,7 +179,9 @@ useEffect(() => {
       setBusy(false);
     }
   };
-
+if (loading) {
+  return <div>Loading...</div>;
+}
   if (!policy) {
     return (
       <div className="min-h-[70vh] bg-white px-4 py-16 sm:px-6 sm:py-20">
@@ -201,10 +231,10 @@ useEffect(() => {
             <div className="text-sm font-black text-slate-900">Selected policy summary</div>
             <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
               {[
-                { label: "Company", value: policy.company },
+                { label: "Company", value: policy.companyName },
                 { label: "Plan", value: policy.policyName },
-                { label: "Coverage", value: policy.coverageLabel },
-                { label: "Claim ratio", value: `${policy.claimSettlementRatio}%` },
+                { label: "Coverage", value: policy.coverageAmount },
+                { label: "Claim ratio", value: `${policy.claimRatio}%` },
               ].map((x) => (
                 <div key={x.label} className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
                   <div className="text-xs font-bold text-slate-500">{x.label}</div>

@@ -23,7 +23,7 @@ import AdminProfilePage from "./AdminProfilePage";
 // Lightweight stubs for remaining pages (add full components as needed)
 import PoliciesPage from "./PoliciesPage";
 import DocumentsPage from "./DocumentsPage";
-import RequirementsPage from "./RequirementsPage";
+// import RequirementsPage from "./RequirementsPage";
 import SettingsPage from "./SettingsPage";
 
 import { EditPanel } from "../../components/admin/shared";
@@ -35,7 +35,7 @@ const pageMap = {
   dashboard: Dashboard,
   users: UsersPage,
   claims: ClaimsPage,
-  requirements: RequirementsPage,
+  // requirements: RequirementsPage,
   support: SupportPage,
   policies: PoliciesPage,
   documents: DocumentsPage,
