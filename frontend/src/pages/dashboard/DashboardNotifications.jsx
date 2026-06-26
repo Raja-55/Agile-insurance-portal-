@@ -1,11 +1,18 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Bell, ShieldCheck, Sparkles } from "lucide-react";
 import { load } from "../../utils/storage";
+import { apiRequest } from "../../utils/api";
 
 // Notification titles, alert body text, and empty/default notification copy are generated here.
 const DashboardNotifications = () => {
-  const purchases = useMemo(() => load("purchases", []), []);
+  const [purchases, setPurchases] = useState([]);
   const claims = useMemo(() => load("claims", []), []);
+
+  useEffect(() => {
+    apiRequest("/api/user/my-policies")
+      .then((res) => setPurchases(res.data || []))
+      .catch((err) => console.error("Notifications error:", err));
+  }, []);
 
   const items = useMemo(() => {
     const list = [];
@@ -13,12 +20,14 @@ const DashboardNotifications = () => {
       list.push({ type: "offer", title: "Welcome offer", body: "Explore Health Insurance plans with AI recommendations." });
     }
     purchases.slice(0, 3).forEach((p) => {
+      const pNum = p.purchase_number || p.policyNumber || "Policy";
       list.push({
         type: "renewal",
         title: "Policy active",
-        body: `Your policy ${p.policyNumber} is active. Documents are available in Documents Center.`,
+        body: `Your policy ${pNum} is active. Documents are available in Documents Center.`,
       });
     });
+
     claims.slice(0, 3).forEach((c) => {
       list.push({
         type: "claim",

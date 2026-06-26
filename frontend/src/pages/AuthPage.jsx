@@ -172,7 +172,7 @@ const AuthPage = () => {
     resetMessaging();
   };
 
-  
+
   if (bootstrapped && isAuthenticated) {
     return (
       <div className="grid min-h-[60vh] place-items-center bg-white px-4">
@@ -382,29 +382,6 @@ const AuthPage = () => {
                 Edit registration details
               </button>
             )}
-
-            <div className="border-t border-slate-200 pt-4">
-              <div className="mb-3 flex items-center gap-3">
-                <div className="h-px flex-1 bg-slate-200" />
-                <span className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">or</span>
-                <div className="h-px flex-1 bg-slate-200" />
-              </div>
-              {GOOGLE_CLIENT_ID ? (
-                <button
-                  type="button"
-                  onClick={onGoogleLogin}
-                  disabled={busy}
-                  className="inline-flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-bold text-slate-800 shadow-sm hover:bg-slate-50 disabled:opacity-70"
-                >
-                  <GoogleLogo />
-                  Continue with Google
-                </button>
-              ) : (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
-                  Google sign-in needs VITE_GOOGLE_CLIENT_ID before users can select a Google account.
-                </div>
-              )}
-            </div>
 
             <div className="text-center text-sm font-medium text-slate-600">
               {mode === "register" ? (

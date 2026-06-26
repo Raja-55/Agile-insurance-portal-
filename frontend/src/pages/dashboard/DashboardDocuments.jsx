@@ -1,13 +1,26 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { FileText, FileUp, ShieldCheck, Sparkles, Download, Trash2 } from "lucide-react";
 import { load, save } from "../../utils/storage";
-import { fileToDataUrl } from "../../utils/api";
+import { fileToDataUrl, apiRequest } from "../../utils/api";
 
 // Documents Center headings, upload labels, KYC status text, and vault card copy are controlled here.
 const DashboardDocuments = () => {
-  const [purchases, setPurchases] = useState(() => load("purchases", []));
+  const [purchases, setPurchases] = useState([]);
   const [vault, setVault] = useState(() => load("documents", []));
   const [busy, setBusy] = useState(false);
+
+
+  useEffect(() => {
+    const fetchPurchases = async () => {
+      try {
+        const res = await apiRequest("/api/user/my-policies");
+        setPurchases(res.data || []);
+      } catch (err) {
+        console.error("Documents fetch error:", err);
+      }
+    };
+    fetchPurchases();
+  }, []);
 
   const kycStatus = useMemo(() => {
     const has = purchases.some((p) => p.kyc?.filename);
@@ -37,7 +50,6 @@ const DashboardDocuments = () => {
       ];
       setVault(documents);
       save("documents", documents);
-      setPurchases(load("purchases", []));
     } finally {
       setBusy(false);
     }
@@ -56,9 +68,14 @@ const DashboardDocuments = () => {
 
   const docsFromPurchases = useMemo(() => {
     return purchases
-      .map((p) => ({ id: p.id, name: `${p.policyNumber} - Policy Document.pdf`, createdAt: p.activatedAt }))
+      .map((p) => ({
+        id: p._id || p.id,
+        name: `${p.purchase_number || p.policyNumber || "Policy"} - Policy Document.pdf`,
+        createdAt: p.start_date || p.activatedAt,
+      }))
       .slice(0, 10);
   }, [purchases]);
+
 
   const allDocs = [...docsFromPurchases, ...vault];
 

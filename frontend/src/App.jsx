@@ -53,12 +53,18 @@ const App = () => {
             </ProtectedRoute>
           }
         />
-        {/* Footer navigation information pages */}
+        <Route
+          path="/purchase-success"
+          element={
+            <ProtectedRoute>
+              <PaymentSuccessPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Footer navigation information pages - only non-insurance-product pages go here */}
         <Route path="/general-insurance" element={<InfoPage />} />
-        <Route path="/life-insurance" element={<InfoPage />} />
-        <Route path="/term-insurance" element={<InfoPage />} />
         <Route path="/investment" element={<InfoPage />} />
-        <Route path="/health-insurance" element={<InfoPage />} />
         <Route path="/other-insurance" element={<InfoPage />} />
         <Route path="/articles" element={<InfoPage />} />
         <Route path="/reviews" element={<InfoPage />} />

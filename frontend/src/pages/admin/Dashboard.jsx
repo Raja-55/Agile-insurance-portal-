@@ -1,11 +1,13 @@
 // src/components/pages/Dashboard.jsx
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { Users, FileText, AlertTriangle, CheckCircle2, XCircle, MessageSquare, CreditCard, PieChart, LineChart, BarChart3, ShieldCheck, } from "lucide-react";
 
 import { LineChart as ReLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,} from "recharts";
 import { SectionTitle, MiniBars, LineSpark } from "../../components/admin/shared";
 import { useAdminActions } from "../../hooks/useAdminActions";
+import { apiRequest } from "../../utils/api";
+
 
 const baseMetrics = [
   { label: "Total Users", icon: Users, tone: "bg-blue-600", page: "users" },
@@ -24,6 +26,21 @@ const Dashboard = () => {
   const userRows = useSelector((s) => s.users.rows);
   const planRows = useSelector((s) => s.policies.rows);
   const supportChats = useSelector((s) => s.support.chats);
+  const [purchaseStats, setPurchaseStats] = useState({ totalPurchases: 0, totalRevenue: 0 });
+
+  useEffect(() => {
+    apiRequest("/api/admin/purchases", { useAdminToken: true })
+      .then((res) => {
+        if (res?.success && res?.data?.stats) {
+          setPurchaseStats({
+            totalPurchases: res.data.stats.totalPurchases,
+            totalRevenue: res.data.stats.totalRevenue,
+          });
+        }
+      })
+      .catch((err) => console.error("Admin dashboard purchase stats load error:", err));
+  }, []);
+
   const monthlyPolicySales = [
     { month: "Jan", sales: 55 },
     { month: "Feb", sales: 70 },
@@ -48,8 +65,10 @@ const Dashboard = () => {
     if (m.label === "Rejected Claims") return { ...m, value: String(claimRows.filter((c) => c.status === "Rejected").length), change: "-2.3%" };
     if (m.label === "Open Support Tickets") return { ...m, value: String(supportChats.filter((c) => c.status !== "Resolved").length), change: `${supportChats.length} total` };
     if (m.label === "Active Policies") return { ...m, value: String(planRows.filter((p) => p.state === "Active").length), change: "+8.1%" };
+    if (m.label === "Revenue Generated") return { ...m, value: `₹${purchaseStats.totalRevenue.toLocaleString("en-IN")}`, change: `${purchaseStats.totalPurchases} purchases` };
     return m;
-  }), [userRows, claimRows, planRows, supportChats, activeUsers]);
+  }), [userRows, claimRows, planRows, supportChats, activeUsers, purchaseStats]);
+
 
   return (
     <div className="space-y-6">

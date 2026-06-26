@@ -1,14 +1,50 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { BadgeCheck, CreditCard, Download, ShieldCheck, Sparkles, Wallet } from "lucide-react";
+import { BadgeCheck, CreditCard, Download, ShieldCheck, Sparkles, Wallet, Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
 import { load, save } from "../../utils/storage";
+import { apiRequest } from "../../utils/api";
+
 
 const formatInr = (n) => `₹${Number(n).toLocaleString("en-IN")}`;
 
 // Payment page headings, invoice labels, autopay text, and chart labels are controlled here.
 const DashboardPayments = () => {
-  const [payments, setPayments] = useState(() => load("payments", []));
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [autopay, setAutopay] = useState(() => load("autopay", { enabled: true }).enabled);
+
+  const fetchPayments = async () => {
+    try {
+      setLoading(true);
+      const res = await apiRequest("/api/user/my-policies");
+      const list = res.data || [];
+      const extracted = list
+        .map((p) => {
+          if (!p.payment) return null;
+          return {
+            ...p.payment,
+            id: p.payment._id || p.payment.id,
+            invoiceNumber: p.payment.invoice_number || "—",
+            purchaseId: p.purchase_number || p.policyNumber || p._id || p.id,
+            createdAt: p.payment.paid_at || p.payment.createdAt || p.createdAt,
+            method: p.payment.payment_method || p.payment.method || "upi",
+            status: p.payment.payment_status === "success" ? "Success" : "Pending",
+            amount: p.payment.final_amount || p.payment.amount || 0,
+          };
+        })
+        .filter(Boolean);
+      setPayments(extracted);
+    } catch (err) {
+      console.error("Failed to load user payments:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPayments();
+  }, []);
 
   const yearly = useMemo(() => {
     const base = new Array(12).fill(0);
@@ -20,14 +56,31 @@ const DashboardPayments = () => {
     return { base, max };
   }, [payments]);
 
+
   const toggleAutopay = () => {
     const next = !autopay;
     setAutopay(next);
     save("autopay", { enabled: next });
   };
 
+  if (loading) {
+    return (
+      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+          className="h-10 w-10 text-blue-600 animate-spin"
+        >
+          <Loader2 size={40} />
+        </motion.div>
+        <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Loading payment history…</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
+
       <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-white/5 sm:rounded-[2.6rem] sm:p-8">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -134,11 +187,12 @@ const DashboardPayments = () => {
             <div className="mt-1 text-sm font-semibold text-slate-600 dark:text-slate-300">Download invoices</div>
           </div>
           <button
-            onClick={() => setPayments(load("payments", []))}
+            onClick={fetchPayments}
             className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-800 shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
           >
             Refresh
           </button>
+
         </div>
 
         <div className="mt-6 overflow-x-auto rounded-3xl border border-slate-200 dark:border-white/10">

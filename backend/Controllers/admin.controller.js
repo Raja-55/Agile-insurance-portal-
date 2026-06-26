@@ -24,10 +24,9 @@ const getDashboard = catchAsync(async (req, res) => {
 
   const [totalUsers, activePolicies, pendingClaims, revenueAgg, pendingKyc] = await Promise.all([
     User.countDocuments({ role: "user" }),
-    // User.countDocuments({ role: "agent" }),
-    Policy.countDocuments({ status: "active" }),
+    Policy.countDocuments({ isActive: true }),
     Claim.countDocuments({ status: "pending" }),
-    Payment.aggregate([{ $match: { status: "success" } }, { $group: { _id: null, total: { $sum: "$amount" } } }]),
+    Payment.aggregate([{ $match: { payment_status: "success" } }, { $group: { _id: null, total: { $sum: "$final_amount" } } }]),
     KycRequest.countDocuments({ status: "pending" }),
   ]);
   const recentUsers = await User.find().select("fullName email role created_at kyc_status").sort({ created_at: -1 }).limit(8);
@@ -37,7 +36,6 @@ const getDashboard = catchAsync(async (req, res) => {
     data: {
       widgets: {
         totalUsers,
-        totalAgents,
         activePolicies,
         pendingClaims,
         totalRevenue: revenueAgg?.[0]?.total || 0,

@@ -25,6 +25,8 @@ import PoliciesPage from "./PoliciesPage";
 import DocumentsPage from "./DocumentsPage";
 import RequirementsPage from "./RequirementsPage";
 import SettingsPage from "./SettingsPage";
+import PurchasesPage from "./PurchasesPage";
+
 
 import { EditPanel } from "../../components/admin/shared";
 
@@ -39,8 +41,9 @@ const pageMap = {
   support: SupportPage,
   policies: PoliciesPage,
   documents: DocumentsPage,
-  reports: () => <PlaceholderPage title="Reports & Analytics" />,
+  reports: PurchasesPage,
   notifications: () => <PlaceholderPage title="Notification Center" />,
+
   profile: AdminProfilePage,
   auditlog: AuditLogPage,
   settings: SettingsPage,

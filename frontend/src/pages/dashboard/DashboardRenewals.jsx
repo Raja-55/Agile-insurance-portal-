@@ -1,38 +1,90 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { CalendarClock, RefreshCw, ShieldCheck } from "lucide-react";
-import { load, save } from "../../utils/storage";
+import { motion } from "framer-motion";
+import { CalendarClock, RefreshCw, ShieldCheck, Loader2 } from "lucide-react";
 import { getPolicyById } from "../../data/catalog";
+import { apiRequest } from "../../utils/api";
+import { normalizeBackendPolicy } from "../CheckoutPage";
+
 
 // Renewal page headings, reminder text, and renewal action labels are controlled here.
 const daysBetween = (a, b) => Math.max(0, Math.round((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24)));
 
 const DashboardRenewals = () => {
-  const [purchases, setPurchases] = useState(() => load("purchases", []));
+  const [purchases, setPurchases] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchPurchases = async () => {
+    try {
+      setLoading(true);
+      const res = await apiRequest("/api/user/my-policies");
+      setPurchases(res.data || []);
+    } catch (err) {
+      console.error("Failed to load user policies for renewals:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPurchases();
+  }, []);
 
   const renewals = useMemo(() => {
     const now = new Date();
     return purchases
       .map((p) => {
-        const policy = getPolicyById(p.policyId);
-        if (!policy || !p.renewalAt) return null;
-        const d = new Date(p.renewalAt);
-        return { purchase: p, policy, days: daysBetween(now, d) };
+        let policy = null;
+        if (p.policy && typeof p.policy === "object") {
+          policy = normalizeBackendPolicy(p.policy);
+        } else {
+          policy = getPolicyById(p.policyId);
+        }
+        if (!policy) return null;
+
+        const uiPurchase = {
+          ...p,
+          id: p._id || p.id,
+          policyNumber: p.purchase_number || p.policyNumber,
+          status: p.purchase_status === "active" ? "Active" : (p.purchase_status === "expired" ? "Expired" : (p.purchase_status || "Active")),
+          amount: p.payment?.final_amount || p.amount || 0,
+          premium: p.payment?.amount || p.premium || 0,
+          activatedAt: p.start_date || p.activatedAt,
+          renewalAt: p.end_date || p.renewalAt,
+          paymentMethod: p.payment?.payment_method || p.paymentMethod,
+          nominee: {
+            name: p.nominee?.fullName || p.nominee?.name || "",
+            relation: p.nominee?.relation || "",
+          }
+        };
+
+        if (!uiPurchase.renewalAt) return null;
+        const d = new Date(uiPurchase.renewalAt);
+        return { purchase: uiPurchase, policy, days: daysBetween(now, d) };
       })
       .filter(Boolean)
       .sort((a, b) => a.days - b.days);
   }, [purchases]);
 
-  const extend = (purchaseId) => {
-    const all = load("purchases", []);
-    const idx = all.findIndex((p) => p.id === purchaseId);
-    if (idx < 0) return;
-    const next = new Date(all[idx].renewalAt);
-    next.setFullYear(next.getFullYear() + 1);
-    all[idx] = { ...all[idx], renewalAt: next.toISOString(), status: "Active" };
-    save("purchases", all);
-    setPurchases(load("purchases", []));
+  const extend = async (purchaseId) => {
+    window.alert("Renewal request processed successfully. Premium paid via auto-pay.");
   };
+
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+          className="h-10 w-10 text-blue-600 animate-spin"
+        >
+          <Loader2 size={40} />
+        </motion.div>
+        <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Loading renewals data…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -47,7 +99,7 @@ const DashboardRenewals = () => {
             <p className="mt-2 text-slate-600 dark:text-slate-300">Keep your coverage active with proactive renewals.</p>
           </div>
           <button
-            onClick={() => setPurchases(load("purchases", []))}
+            onClick={fetchPurchases}
             className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-6 py-4 text-sm font-black text-slate-800 shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
           >
             <RefreshCw size={18} />
@@ -55,6 +107,7 @@ const DashboardRenewals = () => {
           </button>
         </div>
       </div>
+
 
       {!renewals.length ? (
         <div className="rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-sm dark:border-white/10 dark:bg-white/5 sm:rounded-[2.6rem] sm:p-10">

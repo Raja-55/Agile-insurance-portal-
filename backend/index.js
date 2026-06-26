@@ -19,6 +19,8 @@ const kycRoutes = require("./Routes/kyc.route");
 const supportRoutes = require("./Routes/support.route");
 const userProfileRoutes = require("./Routes/userProfile.route");
 const policyRoutes = require("./Routes/policy.routes");
+const purchaseRoutes = require("./Routes/purchase.routes");
+
 
 
 const PORT = appConfig.port;
@@ -79,25 +81,21 @@ app.use("/api/kyc", kycRoutes);
 app.use("/api/support", supportRoutes);
 app.use("/api/profile", userProfileRoutes);
 app.use("/api/policies", policyRoutes);
+app.use("/api/purchases", purchaseRoutes);
+
 
 //404 handler 
-app.use((req, res) => {
-  res.status(404).
-      json({ 
-        success: false, 
-        message: `Route ${req.originalUrl} not found` 
-      });
-});
-
-// Global error handler
-app.use((err, req, res, next) => {
-  console.error('Server error:', err.stack);
-  res.status(err.status || 500).json({
-    success: false,
-    message: err.message || 'Internal server error',
+app.use((req, res, next) => {
+  res.status(404).json({ 
+    success: false, 
+    message: `Route ${req.originalUrl} not found` 
   });
 });
+
+// Global error handler — uses the proper errorHandler middleware which reads err.statusCode
+app.use(errorHandler);
+
 // Start Server
 app.listen(PORT, () => {
   console.log(`Server is running on ${PORT}`);
-});
+});

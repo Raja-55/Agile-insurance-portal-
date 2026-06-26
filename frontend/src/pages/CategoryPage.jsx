@@ -12,7 +12,6 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
-import { getCategoryBySlug, getPoliciesByCategory } from "../data/catalog";
 import { useAuth } from "../contexts/useAuth";
 import { apiRequest } from "../utils/api";
 
@@ -58,15 +57,7 @@ const PolicyListingFooter = ({
           Reset
         </button>
 
-
-
-
-
-
-
-
-
-       {features?.aiAssistant && (
+      {features?.aiAssistant && (
   <button
     type="button"
     onClick={() =>
@@ -84,13 +75,6 @@ const PolicyListingFooter = ({
     Ask AI
   </button>
 )}
-
-
-
-
-
-
-
         <button
           type="button"
           onClick={() => navigate("/dashboard")}
@@ -227,7 +211,7 @@ const FiltersPanel = ({
         <div className="flex items-center gap-3">
           <input
             type="range"
-            min={85}
+            min={0}
             max={99}
             value={claimMin}
             onChange={(e) => setClaimMin(Number(e.target.value))}
@@ -310,9 +294,16 @@ const CategoryPage = () => {
   const { categorySlug } = useParams();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
-  
-  const category = getCategoryBySlug(categorySlug);
-  const [allPolicies, setAllPolicies] = useState(() => getPoliciesByCategory(categorySlug));
+
+  // Derive a human-readable title from the URL slug
+  const categoryTitle = categorySlug
+    ? categorySlug
+        .replace(/-insurance$/i, "")
+        .replace(/-/g, " ")
+        .replace(/\b\w/g, (m) => m.toUpperCase()) + " Insurance"
+    : "Insurance Plans";
+
+  const [allPolicies, setAllPolicies] = useState([]);
   const [loadingPolicies, setLoadingPolicies] = useState(false);
   const [policiesError, setPoliciesError] = useState(null);
 
@@ -329,38 +320,53 @@ const CategoryPage = () => {
     return slug.replace(/-insurance$/i, "");
   };
 
-  // Normalize backend policy object to frontend shape used by this page
+  // Normalize backend response to UI shape.
+  // The MongoDB schema stores: premium_amount, coverage_amount, policyName,
+  // policyType, description, claimRatio, features, emiAvailable, validityYears.
   const normalizePolicy = (p) => {
-    const company = p.companyName || p.company || p.company_brand || "Unknown";
-    const policyName = p.policyName || p.policyName || p.name || "Policy";
-    const premiumMonthly = p.policyAmount || p.monthlyPremium || 0;
-    const coverageAmount = p.coverageAmount || p.coverageAmount || 0;
-    const rating = p.rating || 4.0;
+    const company = p.companyName || p.company || p.company_brand || "Unknown Provider";
+    // policyName is the canonical field in the schema
+    const policyName = p.policyName || p.policy_name || p.name || "Policy";
+    // premium_amount is the canonical schema field; also accept premiumAmount/policyAmount/monthlyPremium for safety
+    const premiumMonthly = Number(p.premium_amount ?? p.premiumAmount ?? p.policyAmount ?? p.monthlyPremium ?? 0);
+    // coverage_amount is the canonical schema field
+    const coverageAmount = Number(p.coverage_amount ?? p.coverageAmount ?? 0);
+    const rating = Number(p.rating) || 4.0;
     const validityYears = p.validityYears || p.validity_years || 1;
     const emiAvailable = !!p.emiAvailable;
-    const policyType = p.policyType || p.policyType || "Standard";
-    const keyBenefits = p.features || p.keyBenefits || [];
+    // policyType is the canonical schema field; also accept policy_type
+    const policyType = p.policyType || p.policy_type || "Standard";
+    const keyBenefits = Array.isArray(p.features) ? p.features : Array.isArray(p.keyBenefits) ? p.keyBenefits : [];
+    const familyCoverage = keyBenefits.some((f) => typeof f === "string" && f.toLowerCase().includes("family"));
 
-    const companyBrand = p.companyLogo
-      ? { initials: company.slice(0, 2).toUpperCase(), color: "bg-blue-600" }
-      : { initials: company.slice(0, 2).toUpperCase(), color: "bg-blue-600" };
+    // claimRatio from schema: stored as a percentage (e.g. 0.02 or 96).
+    // Normalise to 0-100.
+    const rawClaim = Number(p.claimRatio ?? p.claim_ratio ?? 90);
+    const claimSettlementRatio = rawClaim <= 1 ? Math.round(rawClaim * 100) : rawClaim;
+
+    const companyBrand = {
+      initials: company.trim().split(/\s+/).map((w) => w[0] ?? "").join("").slice(0, 2).toUpperCase() || "IN",
+      color: "bg-blue-600",
+    };
 
     return {
-      id: p._id || p.policyNumber || `${company}_${policyName}`,
+      id: p._id || p.policyNumber || p.policy_number || `${company}_${policyName}`,
       company,
+      companyLogo: p.companyLogo || "",
       companyBrand,
       policyName,
       premiumMonthly,
       premiumLabel: formatInr(premiumMonthly),
       coverageAmount,
       coverageLabel: formatInr(coverageAmount),
-      claimSettlementRatio: p.claimRatio || p.claim_ratio || 90,
+      claimSettlementRatio,
       validityYears,
       emiAvailable,
-      familyCoverage: p.familyCoverage || false,
+      familyCoverage,
       policyType,
       rating,
       keyBenefits,
+      description: p.description || p.policy_desc || "",
       aiBadge: p.aiBadge || null,
     };
   };
@@ -374,8 +380,13 @@ const CategoryPage = () => {
         const cat = mapSlugToCategory(categorySlug);
         const res = await apiRequest(`/api/policies/category/${encodeURIComponent(cat)}`);
         // backend returns { success, count, total, data: [policies] }
-        const apiPolicies = Array.isArray(res?.data) ? res.data : (Array.isArray(res?.policies) ? res.policies : []);
+        const apiPolicies = Array.isArray(res?.data)
+          ? res.data
+          : Array.isArray(res?.policies)
+          ? res.policies
+          : [];
         const normalized = apiPolicies.map(normalizePolicy);
+        console.log("Policies:", normalized);
         if (mounted) setAllPolicies(normalized);
       } catch (err) {
         console.error("Failed to fetch policies for category", categorySlug, err);
@@ -412,11 +423,9 @@ const CategoryPage = () => {
 
 
   const [search, setSearch] = useState("");
-  const [premiumRange, setPremiumRange] = useState([premiumMin, premiumMax]);
-
-
-  const [coverageRange, setCoverageRange] = useState([coverageMin, coverageMax]);
-  const [claimMin, setClaimMin] = useState(90);
+  const [premiumRange, setPremiumRange] = useState([0, 100000]);
+  const [coverageRange, setCoverageRange] = useState([0, 50000000]);
+  const [claimMin, setClaimMin] = useState(0);
   const [policyType, setPolicyType] = useState("All");
   const [sortBy, setSortBy] = useState("best-rating");
   const [emiOnly, setEmiOnly] = useState(false);
@@ -431,15 +440,21 @@ const CategoryPage = () => {
     try {
       const response = await apiRequest("/api/admin/settings");
       const settings = response?.data;
-
       setFeatures(settings?.features || {});
     } catch (error) {
       console.error("Failed to load features:", error);
     }
   };
-
   fetchSettings();
 }, []);
+
+  // Sync slider ranges whenever policies load
+  useEffect(() => {
+    if (allPolicies.length > 0) {
+      setPremiumRange([premiumMin, premiumMax]);
+      setCoverageRange([coverageMin, coverageMax]);
+    }
+  }, [premiumMin, premiumMax, coverageMin, coverageMax]);
 
 
   const policyTypes = useMemo(() => {
@@ -473,7 +488,7 @@ const CategoryPage = () => {
       tags.push(`Premium: ${formatInr(premiumRange[0])}–${formatInr(premiumRange[1])}`);
     if (coverageRange[0] !== coverageMin || coverageRange[1] !== coverageMax)
       tags.push(`Coverage: ${formatInr(coverageRange[0])}–${formatInr(coverageRange[1])}`);
-    if (claimMin !== 90) tags.push(`CSR ≥ ${claimMin}%`);
+    if (claimMin !== 0) tags.push(`CSR ≥ ${claimMin}%`);
     if (policyType !== "All") tags.push(`Type: ${policyType}`);
     if (emiOnly) tags.push("EMI only");
     if (familyOnly) tags.push("Family coverage");
@@ -487,7 +502,7 @@ const CategoryPage = () => {
     setSearch("");
     setPremiumRange([premiumMin, premiumMax]);
     setCoverageRange([coverageMin, coverageMax]);
-    setClaimMin(90);
+    setClaimMin(0);
     setPolicyType("All");
     setSortBy("best-rating");
     setEmiOnly(false);
@@ -510,27 +525,6 @@ const CategoryPage = () => {
     navigate(`/checkout/${policyId}`);
   };
 
-  if (!category) {
-    return (
-      <div className="min-h-[70vh] bg-white px-4 py-16 sm:px-6 sm:py-20">
-        <div className="mx-auto max-w-4xl rounded-3xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-6 shadow-sm sm:rounded-[2.5rem] sm:p-10">
-          <h1 className="text-2xl font-black text-slate-900 sm:text-3xl">Category not found</h1>
-          <p className="mt-2 text-slate-600">Try one of the supported categories from the homepage service cards.</p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link to="/health-insurance" className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white">
-              Health
-            </Link>
-            <Link to="/term-insurance" className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-800">
-              Term
-            </Link>
-            <Link to="/car-insurance" className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-800">
-              Car
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   if (loadingPolicies) {
     return (
@@ -568,8 +562,10 @@ const CategoryPage = () => {
                 <ShieldCheck size={16} className="text-blue-600" />
                 AI-Powered Listing • Compare & buy in minutes
               </div>
-              <h1 className="mt-6 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">{category.title}</h1>
-              <p className="mt-3 text-slate-600">{category.subtitle}</p>
+              <h1 className="mt-6 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">{categoryTitle}</h1>
+              <p className="mt-3 text-slate-600">
+                Compare and buy top-rated {categoryTitle.toLowerCase()} plans with instant digital verification.
+              </p>
 
               <div className="mt-6 flex flex-wrap items-center gap-2">
                 {activeTags.length ? (
@@ -757,6 +753,29 @@ const CategoryPage = () => {
               </motion.div>
               ))}
             </div>
+
+            {/* Empty state */}
+            {!loadingPolicies && filtered.length === 0 && (
+              <div className="flex flex-col items-center justify-center rounded-3xl border border-slate-200 bg-white p-16 text-center shadow-sm">
+                <div className="mb-4 rounded-full bg-slate-100 p-6">
+                  <Search size={36} className="text-slate-300" />
+                </div>
+                <h3 className="text-lg font-black text-slate-900">No policies available for this category</h3>
+                <p className="mt-2 text-sm text-slate-500">
+                  {allPolicies.length > 0
+                    ? "Try adjusting your filters."
+                    : "No policies have been added for this category yet."}
+                </p>
+                {allPolicies.length > 0 && (
+                  <button
+                    onClick={resetFilters}
+                    className="mt-6 rounded-2xl bg-blue-600 px-6 py-3 text-sm font-black text-white hover:bg-blue-700"
+                  >
+                    Reset Filters
+                  </button>
+                )}
+              </div>
+            )}
 
           {features?.policyCompare && compareIds.length ? (
             <div className="sticky bottom-5 z-20 rounded-3xl border border-slate-200 bg-white/90 p-4 shadow-[0_24px_80px_rgba(2,6,23,0.12)] backdrop-blur-xl sm:rounded-[2.2rem] sm:p-5">

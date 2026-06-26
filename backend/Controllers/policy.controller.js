@@ -15,21 +15,15 @@ const createPolicy = async (req, res) => {
     // normalize input fields (accept both camelCase and snake_case variants)
     const companyName = (body.companyName || body.company_name || "").trim();
     const companyLogo = body.companyLogo || body.company_logo || "";
-    const policyName = (
-      body.policyName ||
-      body.policyName ||
-      body.policyName ||
-      ""
-    ).trim();
+    const policyName = (body.policyName || body.policy_name || "").trim();
     const policyNumber =
-      body.policyNumber || body.policyNumber || `POL-${Date.now()}`;
-    const policyAmount =
-      body.policyAmount || body.premiumAmount || body.monthlyPremium || 0;
-    const coverageAmount = body.coverageAmount || body.coverageAmount || 0;
+      body.policy_number || body.policyNumber || `POL-${Date.now()}`;
+    const premiumAmount =
+      body.premium_amount || body.premiumAmount || body.monthlyPremium || 0;
+    const coverageAmount = body.coverage_amount || body.coverageAmount || 0;
     const category = body.category || "general";
-    const policyType =
-      body.policyType || body.policyType || body.policyType || "";
-    const policy_desc =
+    const policyType = body.policy_type || body.policyType || "";
+    const description =
       body.policy_desc || body.description || body.policyDesc || "";
     const features = Array.isArray(body.features)
       ? body.features
@@ -51,8 +45,8 @@ const createPolicy = async (req, res) => {
 
     // Prevent duplicate policy names under same company
     const duplicate = await Policy.findOne({
-      companyName: companyName,
-      policyName: policyName,
+      companyName,
+      policyName,
     });
     if (duplicate) {
       return res.status(409).json({
@@ -64,20 +58,27 @@ const createPolicy = async (req, res) => {
     // Build policy doc matching the Policy schema
     const policyDoc = {
       admin: admin._id || admin,
+
       companyName,
       companyLogo,
+
       policyName,
       policyNumber,
-      premiumAmount: Number(policyAmount),
+
+      premiumAmount: Number(premiumAmount),
       coverageAmount: Number(coverageAmount),
+
       category,
-      policyType: policyType,
-      description: policy_desc,
+      policyType,
+
+      description,
+
       features,
       emiAvailable,
       validityYears,
       rating,
       claimRatio,
+
       isActive: true,
     };
 
@@ -181,32 +182,6 @@ const deactivatePolicy = async (req, res) => {
   }
 };
 
-const deletePolicy = async (req, res) => {
-  try {
-    console.log("DELETE CALLED");
-    console.log("ID:", req.params.id);
-
-    const policy = await Policy.findByIdAndDelete(
-      req.params.id
-    );
-
-    console.log("DELETED:", policy);
-
-    if (!policy) {
-      return res.status(404).json({
-        success: false,
-        message: "Policy not found",
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: "Deleted successfully",
-    });
-  } catch (err) {
-    console.error(err);
-  }
-};
 // ═══════════════════════════════════════════════════════════════════
 //  ADMIN — Get ALL policies (active + inactive) for dashboard
 //  Route  : GET /api/policies/admin/all
@@ -274,6 +249,22 @@ const getPoliciesByCategory = async (req, res) => {
   }
 };
 
+const getAllPolicies = async (req, res) => {
+  try {
+    const policies = await Policy.find({ isActive: true });
+    res.status(200).json({
+      success: true,
+      count: policies.length,
+      data: policies,
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
 // GET /api/policies/:id
 const getPolicyById = async (req, res) => {
   try {
@@ -301,13 +292,11 @@ const getPolicyById = async (req, res) => {
 };
 
 module.exports = {
-  // Admin
   createPolicy,
   updatePolicy,
   deactivatePolicy,
   getAllPoliciesAdmin,
-  // User
-  deletePolicy,
+  getAllPolicies,
   getPoliciesByCategory,
   getPolicyById,
 };

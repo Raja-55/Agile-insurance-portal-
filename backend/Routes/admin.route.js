@@ -26,7 +26,9 @@ const {
 } = require("../Controllers/admin.controller");
 
 const {registerAdmin, loginAdmin} = require("../Controllers/authAdmin.controller")
+const { getAllPurchases } = require("../Controllers/purchase.controller");
 const router = express.Router();
+
 
 
 router.post("/auth/register", registerAdmin);
@@ -46,6 +48,8 @@ router.patch("/claims/:id", updateClaim);
 router.delete("/claims/:id", deleteClaim);
 // router.get("/agents", getAgents);
 router.get("/payments", getPayments);
+router.get("/purchases", getAllPurchases);
+
 router.get("/kyc-requests", getKycRequests);
 router.patch("/kyc-requests/:id", reviewKyc);
 router.get("/audit-logs", getAuditLogs);

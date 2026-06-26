@@ -44,11 +44,11 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
-    // role: {
-    //   type: String,
-    //   enum: ["user", "admin", "agent"],
-    //   default: "user",
-    // },
+    role: {
+      type: String,
+      enum: ["user", "admin", "agent"],
+      default: "user",
+    },
     is_verified: {
       type: Boolean,
       default: false,
