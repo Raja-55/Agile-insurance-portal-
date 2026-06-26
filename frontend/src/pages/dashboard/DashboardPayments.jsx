@@ -44,8 +44,8 @@ const DashboardPayments = () => {
               className={[
                 "inline-flex items-center justify-center gap-2 rounded-2xl border px-6 py-4 text-sm font-black shadow-sm transition",
                 autopay
-                  ? "border-emerald-600 bg-emerald-600 text-white"
-                  : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100",
+                  ? "border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700"
+                  : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10",
               ].join(" ")}
             >
               <Wallet size={18} />

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { FileText, FileUp, ShieldCheck, Sparkles, Download } from "lucide-react";
+import { FileText, FileUp, ShieldCheck, Sparkles, Download, Trash2 } from "lucide-react";
 import { load, save } from "../../utils/storage";
 import { fileToDataUrl } from "../../utils/api";
 
@@ -41,6 +41,17 @@ const DashboardDocuments = () => {
     } finally {
       setBusy(false);
     }
+  };
+
+  const removeDocument = (docId) => {
+    const isFromPurchase = purchases.some((p) => p.id === docId);
+    if (isFromPurchase) {
+      window.alert("Policy documents generated from purchases cannot be deleted.");
+      return;
+    }
+    const updated = vault.filter((d) => d.id !== docId);
+    setVault(updated);
+    save("documents", updated);
   };
 
   const docsFromPurchases = useMemo(() => {
@@ -106,17 +117,26 @@ const DashboardDocuments = () => {
                       {d.createdAt ? new Date(d.createdAt).toLocaleString() : "-"}
                     </div>
                   </div>
-                  <button
-                    onClick={() =>
-                      d.dataUrl
-                        ? window.open(d.dataUrl, "_blank")
-                        : window.alert("Policy document will be available after activation.")
-                    }
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-800 shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 sm:w-auto"
-                  >
-                    <Download size={16} />
-                    Download
-                  </button>
+                  <div className="flex w-full gap-3 sm:w-auto">
+                    <button
+                      onClick={() =>
+                        d.dataUrl
+                          ? window.open(d.dataUrl, "_blank")
+                          : window.alert("Policy document will be available after activation.")
+                      }
+                      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-800 shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10"
+                    >
+                      <Download size={16} />
+                      Download
+                    </button>
+                    <button
+                      onClick={() => removeDocument(d.id)}
+                      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-800 shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10"
+                    >
+                      <Trash2 size={16} />
+                      Remove
+                    </button>
+                  </div>
                 </div>
               ))
             )}

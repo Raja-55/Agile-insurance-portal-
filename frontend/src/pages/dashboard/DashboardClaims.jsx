@@ -293,7 +293,7 @@ const DashboardClaims = () => {
                     Step {step + 1} of {claimSteps.length}: {claimSteps[step]}
                   </div>
                 </div>
-                <button onClick={close} className="rounded-2xl border border-slate-200 bg-white p-3 text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100">
+                <button onClick={close} className="rounded-2xl border border-slate-200 bg-white p-3 text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10">
                   <X size={18} />
                 </button>
               </div>
@@ -311,7 +311,7 @@ const DashboardClaims = () => {
                             "rounded-2xl border px-5 py-4 text-left text-sm font-black shadow-sm transition",
                             form.type === t
                               ? "border-blue-600 bg-blue-600 text-white"
-                              : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100",
+                              : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10",
                           ].join(" ")}
                         >
                           {t} Claim
@@ -402,7 +402,7 @@ const DashboardClaims = () => {
                 <button
                   onClick={back}
                   disabled={step === 0 || busy}
-                  className="rounded-2xl border border-slate-200 bg-white px-6 py-3 text-sm font-black text-slate-800 shadow-sm hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
+                  className="rounded-2xl border border-slate-200 bg-white px-6 py-3 text-sm font-black text-slate-800 shadow-sm hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10"
                 >
                   Back
                 </button>
