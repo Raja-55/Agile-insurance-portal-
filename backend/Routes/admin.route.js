@@ -42,6 +42,8 @@ router.post("/users", createUser);
 router.patch("/users/:id", updateUser);
 router.delete("/users/:id", deleteUser);
 router.get("/policies", getPolicies);
+
+
 router.get("/claims", getClaims);
 router.patch("/claims/:id", updateClaim);
 router.delete("/claims/:id", deleteClaim);

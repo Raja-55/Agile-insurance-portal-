@@ -23,7 +23,7 @@ const claimSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-    amount: {
+    claim_amount: {
       type: Number,
       required: true,
       min: 0,

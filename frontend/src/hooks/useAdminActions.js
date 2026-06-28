@@ -132,11 +132,11 @@ export const useAdminActions = () => {
       const backendClaims = Array.isArray(claimsRes?.data) ? claimsRes.data : [];
       dispatch(setClaims(backendClaims.map((c) => ({
         id: c.claim_number || c._id,
-        user: c.user?.full_name || "Unknown",
+        user: c.user?.fullName || "Unknown",
         policy: c.policy?.policyName || c.claim_type || "Insurance",
-        amount: c.amount ? `INR ${Number(c.amount).toLocaleString("en-IN")}` : "INR 0",
+        amount: c.claim_amount ? `INR ${Number(c.amount).toLocaleString("en-IN")}` : "INR 0",
         status: c.status || "Pending",
-        officer: c.assignedAdmin?.full_name || selectedProfile.name,
+        officer: c.assignedAdmin?.fullName || selectedProfile.name,
       }))));
 
   

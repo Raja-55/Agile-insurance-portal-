@@ -113,28 +113,28 @@ const DashboardClaims = () => {
     setClaims(readMyClaims());
   };
 
-  const runAi = async (id) => {
-    const all = load("claims", []);
-    const idx = all.findIndex((c) => c.id === id);
-    if (idx < 0) return;
-    all[idx] = { ...all[idx], aiStatus: "Verifying..." };
-    save("claims", all);
-    setClaims(readMyClaims());
-    await new Promise((r) => setTimeout(r, 900));
-    const approved = !chance(0.18);
-    const now = new Date().toISOString();
-    const status = approved ? "Reviewing" : "Rejected";
-    const timeline = [...(all[idx].timeline || []), { at: now, label: approved ? "AI verification passed" : "AI flagged anomaly" }];
-    all[idx] = {
-      ...all[idx],
-      status,
-      aiStatus: approved ? "Verified" : "Flagged",
-      progress: approved ? 5 : 7,
-      timeline,
-    };
-    save("claims", all);
-    setClaims(readMyClaims());
-  };
+  // const runAi = async (id) => {
+  //   const all = load("claims", []);
+  //   const idx = all.findIndex((c) => c.id === id);
+  //   if (idx < 0) return;
+  //   all[idx] = { ...all[idx], aiStatus: "Verifying..." };
+  //   save("claims", all);
+  //   setClaims(readMyClaims());
+  //   await new Promise((r) => setTimeout(r, 900));
+  //   const approved = !chance(0.18);
+  //   const now = new Date().toISOString();
+  //   const status = approved ? "Reviewing" : "Rejected";
+  //   const timeline = [...(all[idx].timeline || []), { at: now, label: approved ? "AI verification passed" : "AI flagged anomaly" }];
+  //   all[idx] = {
+  //     ...all[idx],
+  //     status,
+  //     aiStatus: approved ? "Verified" : "Flagged",
+  //     progress: approved ? 5 : 7,
+  //     timeline,
+  //   };
+  //   save("claims", all);
+  //   setClaims(readMyClaims());
+  // };
 
   return (
     <div className="space-y-8">
