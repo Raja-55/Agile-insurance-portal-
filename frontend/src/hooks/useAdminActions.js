@@ -32,7 +32,7 @@ export const useAdminActions = () => {
     };
     dispatch(addLog(entry));
     try {
-      if (localStorage.getItem("agile_insurance_admin_token")) {
+      if (getAdminToken()) {
         apiRequest("/api/admin/audit-logs", {
           useAdminToken: true,
           method: "POST",
@@ -94,7 +94,7 @@ export const useAdminActions = () => {
 
   // Backend data hydration
   const hydrateAllData = async () => {
-    const token = localStorage.getItem("agile_insurance_admin_token");
+    const token = getAdminToken();
     
     if (!token) return;
 
@@ -135,7 +135,7 @@ export const useAdminActions = () => {
         user: c.user?.fullName || "Unknown",
         policy: c.policy?.policyName || c.claim_type || "Insurance",
         amount: c.claim_amount ? `INR ${Number(c.amount).toLocaleString("en-IN")}` : "INR 0",
-        status: c.status || "Pending",
+         status: c.status ? (c.status.charAt(0).toUpperCase() + c.status.slice(1)) : "Pending",
         officer: c.assignedAdmin?.fullName || selectedProfile.name,
       }))));
 

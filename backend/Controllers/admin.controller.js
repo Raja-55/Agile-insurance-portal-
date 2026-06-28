@@ -38,7 +38,13 @@ const getDashboard = catchAsync(async (req, res) => {
     KycRequest.countDocuments({ status: "pending" }),
   ]);
   const recentUsers = await User.find().select("fullName email role created_at kyc_status").sort({ created_at: -1 }).limit(8);
-  const recentClaims = await Claim.find().populate("user", "fullName email").sort({ createdAt: -1 }).limit(8);
+
+  const recentClaims = await Claim.find()
+    .populate("user", "fullName email")
+    .populate("policy", "policyName category")
+    .sort({ createdAt: -1 })
+    .limit(8);
+
   res.status(200).json({
     success: true,
     data: {
@@ -150,19 +156,17 @@ const deleteUser = catchAsync(async (req, res, next) => {
 });
 
 
-
-// const getAgents = catchAsync(async (req, res) => {
-//   const agents = await User.find({ role: "agent" }).select("-password").sort({ created_at: -1 });
-//   res.status(200).json({ success: true, data: agents });
-// });
-
 const getPolicies = catchAsync(async (req, res) => {
   const policies = await Policy.find().populate("admin", "fullName email role").sort({ createdAt: -1 });
   res.status(200).json({ success: true, data: policies });
 });
 
 const getClaims = catchAsync(async (req, res) => {
-  const claims = await Claim.find().populate("user", "fullName email phone role").populate("policy").sort({ createdAt: -1 });
+  const claims = await Claim.find()
+    .populate("user",    "fullName email phone role")
+    .populate("policy",  "policyName category companyName")
+    .populate("purchase")
+    .sort({ createdAt: -1 });
   res.status(200).json({ success: true, data: claims });
 });
 
@@ -260,17 +264,23 @@ const reviewKyc = catchAsync(async (req, res, next) => {
 });
 
 const updateClaim = catchAsync(async (req, res, next) => {
-  const { status, notes, assignedAdmin } = req.body;
+  const { status, notes } = req.body;
 
-  if (status && !["pending", "reviewing", "approved", "rejected"].includes(status)) {
-    return next(new AppError("Invalid claim status", 400));
+ 
+  const validStatuses = ["pending", "reviewing", "approved", "rejected"];
+  if (status && !validStatuses.includes(status)) {
+    return next(new AppError("Invalid claim status. Must be one of: pending, reviewing, approved, rejected", 400));
   }
 
+  const updateData = {};
+  if (status !== undefined) updateData.status = status;
+  if (notes  !== undefined) updateData.notes  = notes;
+  
   const claim = await Claim.findByIdAndUpdate(
     req.params.id,
-    { status, notes, assignedAdmin },
+    updateData,
     { new: true, runValidators: true }
-  ).populate("user", "fullName email").populate("policy", "policyName");
+ ).populate("user", "fullName email phone").populate("assignedAdmin", "fullName email");
 
   if (!claim) {
     return next(new AppError("Claim not found", 404));
@@ -385,9 +395,9 @@ const replyToSupportTicket = catchAsync(async (req, res, next) => {
   await ticket.save();
 
   const updatedTicket = await SupportTicket.findById(ticket._id)
-    .populate("user", "full_name email")
-    .populate("assignedAdmin", "full_name email")
-    .populate("messages.sender", "full_name email");
+     .populate("user", "fullName email phone")
+    .populate("assignedAdmin", "fullName email")
+    .populate("messages.sender", "fullName email");
 
   res.status(200).json({
     success: true,
@@ -412,7 +422,8 @@ const getAdminProfile = catchAsync(async(req, res) => {
             message: err.message
         });
     }
-})
+});
+
 const updateAdminProfile = catchAsync(async (req, res, next) => {
     const { fullName, phone, email, profilePhoto } = req.body;
 
@@ -444,6 +455,7 @@ const updateAdminProfile = catchAsync(async (req, res, next) => {
         data: admin,
     });
 });
+
 const changeAdminPassword = catchAsync(async (req, res) => {
 
     const { oldPassword, newPassword } = req.body;

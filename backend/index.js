@@ -23,8 +23,8 @@ const adminSupportRoutes = require("./Routes/adminSupport.route");
 
 const PORT = appConfig.port;
 const documentRoutes = require("./Routes/document.route");
-
-
+const claimRoutes = require("./Routes/claim.route");
+const uploadRoutes = require("./Routes/upload.route");
 
 // Middleware
 app.use(
@@ -81,6 +81,9 @@ app.use("/api/profile", userProfileRoutes);
 app.use("/api/policies", policyRoutes);
 app.use("/api/admin", adminSupportRoutes);
 app.use("/api/documents", documentRoutes);
+
+app.use("/api/claims", claimRoutes);
+app.use("/api/upload", uploadRoutes);
 const path = require("path");
 
 app.use(

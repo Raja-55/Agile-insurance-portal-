@@ -1,194 +1,252 @@
-import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { BadgeCheck, CreditCard, Download, ShieldCheck, Sparkles, Wallet } from "lucide-react";
-import { load, save } from "../../utils/storage";
+import { useMemo, useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import {
+  BadgeCheck,
+  Bell,
+  CreditCard,
+  FileText,
+  LineChart,
+  ShieldCheck,
+  Sparkles,
+  Target,
+  Loader2,
+  ArrowUpRight,
+  ChevronRight,
+  Wallet,
+  Activity
+} from "lucide-react";
+import { load } from "../../utils/storage";
+import { getPolicyById } from "../../data/catalog";
+import { useAuth } from "../../contexts/useAuth";
+import { apiRequest } from "../../utils/api";
 
 const formatInr = (n) => `₹${Number(n).toLocaleString("en-IN")}`;
 
-// Payment page headings, invoice labels, autopay text, and chart labels are controlled here.
-const DashboardPayments = () => {
-  const [payments, setPayments] = useState(() => load("payments", []));
-  const [autopay, setAutopay] = useState(() => load("autopay", { enabled: true }).enabled);
+const DashboardOverview = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [rawPurchases, setRawPurchases] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const yearly = useMemo(() => {
-    const base = new Array(12).fill(0);
-    payments.forEach((p) => {
-      const d = new Date(p.createdAt || 0);
-      base[d.getMonth()] += Number(p.amount || 0);
-    });
-    const max = Math.max(...base, 1);
-    return { base, max };
-  }, [payments]);
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        const res = await apiRequest("/api/user/my-policies");
+        setRawPurchases(res.data || []);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDashboardData();
+  }, []);
 
-  const toggleAutopay = () => {
-    const next = !autopay;
-    setAutopay(next);
-    save("autopay", { enabled: next });
-  };
+  const purchases = useMemo(() => rawPurchases.map(p => ({
+    ...p,
+    id: p._id || p.id,
+    status: p.purchase_status || "active",
+    amount: p.payment?.final_amount || 0,
+    renewalAt: p.end_date,
+    policyNumber: p.purchase_number
+  })), [rawPurchases]);
+
+  const activePolicies = purchases.filter((p) => p.status === "active");
+  const totalInvestment = purchases.reduce((sum, p) => sum + (p.amount || 0), 0);
+  const claims = useMemo(() => load("claims", []), []);
+  const approvedClaims = claims.filter((c) => c.status === "Approved");
+  const upcomingRenewals = purchases.filter(p => p.renewalAt).slice(0, 2);
+  const rewardPoints = Math.round(totalInvestment / 800);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <Loader2 className="animate-spin text-blue-600" size={40} />
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-8">
-      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-white/5 sm:rounded-[2.6rem] sm:p-8">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
-              <ShieldCheck size={16} className="text-blue-600 dark:text-blue-400" />
-              Payment history - Secure gateway - EMI options
-            </div>
-            <h1 className="mt-6 text-3xl font-black tracking-tight text-slate-900 dark:text-white">Payments</h1>
-            <p className="mt-2 text-slate-600 dark:text-slate-300">Track invoices, auto-pay, and yearly analytics.</p>
-          </div>
-          <div className="grid grid-cols-1 gap-3 sm:flex sm:flex-wrap">
-            <button
-              onClick={toggleAutopay}
-              className={[
-                "inline-flex items-center justify-center gap-2 rounded-2xl border px-6 py-4 text-sm font-black shadow-sm transition",
-                autopay
-                  ? "border-emerald-600 bg-emerald-600 text-white"
-                  : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100",
-              ].join(" ")}
-            >
-              <Wallet size={18} />
-              Auto-pay {autopay ? "On" : "Off"}
-            </button>
-            <Link
-              to="/health-insurance"
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 text-sm font-black text-white shadow-sm hover:opacity-95"
-            >
-              <CreditCard size={18} />
-              Pay premium
-            </Link>
+    <div className="mx-auto max-w-7xl space-y-6 pb-12">
+
+      {/* HEADER SECTION: Clean & Minimal */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 px-2">
+        <div>
+          <h1 className="text-3xl font-black tracking-tight text-slate-900">
+            Analytics <span className="text-slate-400">/</span> {user?.fullName?.split(' ')[0] || "Overview"}
+          </h1>
+          <p className="text-sm font-bold text-slate-500 mt-1">Your coverage is 84% optimized. <span className="text-blue-600 cursor-pointer">View Insights</span></p>
+        </div>
+        <div className="flex gap-2">
+          <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2 shadow-sm">
+            <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-xs font-black text-slate-700 uppercase tracking-tighter">Live Market Rates</span>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-white/5 sm:rounded-[2.6rem] sm:p-8">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <div className="text-sm font-black text-slate-900 dark:text-slate-100">Yearly insurance expenses</div>
-              <div className="mt-1 text-sm font-semibold text-slate-600 dark:text-slate-300">Monthly payment breakdown</div>
-            </div>
-            <span className="rounded-full bg-blue-600/10 px-4 py-2 text-xs font-black text-blue-700 dark:text-blue-300">
-              {payments.length} payments
-            </span>
-          </div>
+      {/* MAIN BENTO GRID */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-          <div className="mt-6 grid grid-cols-12 items-end gap-2">
-            {yearly.base.map((v, i) => (
-              <div key={i} className="col-span-1">
-                <div
-                  className="w-full rounded-2xl bg-gradient-to-t from-blue-600 to-indigo-600"
-                  style={{ height: `${Math.max(10, (v / yearly.max) * 140)}px` }}
-                  title={`${i + 1}: ${formatInr(v)}`}
-                />
+        {/* LEFT COLUMN: PRIMARY DATA (8 Units) */}
+        <div className="lg:col-span-8 space-y-6">
+
+          {/* THE WEALTH CARD (High Impact) */}
+          <div className="relative overflow-hidden rounded-[2.5rem] bg-slate-900 p-8 text-white shadow-2xl md:p-10">
+            <div className="relative z-10">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-blue-400">Total Portfolio Value</p>
+                <div className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest backdrop-blur-md">
+                  Institutional Grade
+                </div>
               </div>
-            ))}
-          </div>
-
-          <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-5 dark:border-white/10 dark:bg-white/5">
-            <div className="flex items-center justify-between">
-              <div className="text-xs font-bold text-slate-500 dark:text-slate-400">Total spent</div>
-              <div className="text-lg font-black text-slate-900 dark:text-slate-100">
-                {formatInr(payments.reduce((s, p) => s + Number(p.amount || 0), 0))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950 p-5 text-white shadow-[0_40px_120px_rgba(2,6,23,0.35)] dark:border-white/10 sm:rounded-[2.6rem] sm:p-8">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <div className="text-xs font-bold text-white/70">Secure payment gateway</div>
-              <div className="mt-2 text-2xl font-black tracking-tight">PCI-DSS security messaging</div>
-              <div className="mt-2 text-sm font-semibold text-white/70">
-                Trust badges, encryption hints, and fraud checks are simulated to feel enterprise-ready.
+              <h2 className="mt-4 text-5xl font-black tracking-tighter sm:text-6xl">
+                {formatInr(totalInvestment)}
+              </h2>
+              <div className="mt-10 flex flex-wrap gap-8">
+                <div>
+                  <p className="text-[10px] font-bold uppercase text-slate-400">Active Policies</p>
+                  <p className="text-xl font-black">{activePolicies.length}</p>
+                </div>
+                <div className="h-10 w-px bg-slate-700/50 hidden sm:block" />
+                <div>
+                  <p className="text-[10px] font-bold uppercase text-slate-400">Claims Settled</p>
+                  <p className="text-xl font-black">{approvedClaims.length}</p>
+                </div>
+                <div className="h-10 w-px bg-slate-700/50 hidden sm:block" />
+                <div>
+                  <p className="text-[10px] font-bold uppercase text-slate-400">Loyalty Points</p>
+                  <p className="text-xl font-black text-emerald-400">{rewardPoints} <span className="text-[10px] text-slate-400">PTS</span></p>
+                </div>
               </div>
             </div>
-            <span className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-4 py-3 text-xs font-black">
-              <Sparkles size={16} />
-              Premium UX
-            </span>
-          </div>
-
-          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {[
-              { t: "Encryption", d: "Tokenized payments" },
-              { t: "Fraud checks", d: "AI risk scan simulation" },
-              { t: "EMI plans", d: "Available on select policies" },
-              { t: "Instant receipts", d: "Invoice download" },
-            ].map((x) => (
-              <div key={x.t} className="rounded-3xl border border-white/10 bg-white/5 p-5">
-                <div className="text-sm font-black">{x.t}</div>
-                <div className="mt-2 text-sm font-semibold text-white/70">{x.d}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-white/5 sm:rounded-[2.6rem] sm:p-8">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="text-sm font-black text-slate-900 dark:text-slate-100">Payment history</div>
-            <div className="mt-1 text-sm font-semibold text-slate-600 dark:text-slate-300">Download invoices</div>
-          </div>
-          <button
-            onClick={() => setPayments(load("payments", []))}
-            className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-800 shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
-          >
-            Refresh
-          </button>
-        </div>
-
-        <div className="mt-6 overflow-x-auto rounded-3xl border border-slate-200 dark:border-white/10">
-          <div className="min-w-[760px]">
-          <div className="grid grid-cols-[1.1fr_1fr_0.8fr_0.8fr_0.8fr] bg-slate-50 px-5 py-3 text-xs font-black text-slate-700 dark:bg-white/5 dark:text-slate-200">
-            <div>Invoice</div>
-            <div>Date</div>
-            <div>Method</div>
-            <div>Status</div>
-            <div className="text-right">Amount</div>
-          </div>
-          {!payments.length ? (
-            <div className="px-5 py-10 text-center text-sm font-semibold text-slate-600 dark:text-slate-300">
-              No payments yet. Buy a policy to generate payment history.
+            {/* Background design elements to look 'Human Made' */}
+            <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-blue-600/20 blur-[100px]" />
+            <div className="absolute bottom-0 right-0 p-4 opacity-10">
+              <ShieldCheck size={180} />
             </div>
-          ) : (
-            payments.slice(0, 12).map((p) => (
-              <div
-                key={p.id}
-                className="grid grid-cols-[1.1fr_1fr_0.8fr_0.8fr_0.8fr] items-center gap-4 border-t border-slate-200 px-5 py-4 text-sm font-semibold text-slate-700 dark:border-white/10 dark:text-slate-200"
-              >
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => window.alert("Invoice download is being prepared.")}
-                    className="grid h-10 w-10 place-items-center rounded-2xl bg-blue-600/10 text-blue-700 dark:text-blue-300"
-                  >
-                    <Download size={18} />
-                  </button>
-                  <div className="min-w-0">
-                    <div className="truncate font-black text-slate-900 dark:text-slate-100">{p.invoiceNumber}</div>
-                    <div className="truncate text-xs text-slate-500 dark:text-slate-400">{p.purchaseId}</div>
+          </div>
+
+          {/* SECONDARY STATS: 3-column row */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                <Activity size={20} />
+              </div>
+              <p className="mt-6 text-xs font-black uppercase tracking-widest text-slate-400">Health Score</p>
+              <p className="text-2xl font-black text-slate-900">92 <span className="text-xs text-slate-400">/ 100</span></p>
+            </div>
+
+            <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+                <CreditCard size={20} />
+              </div>
+              <p className="mt-6 text-xs font-black uppercase tracking-widest text-slate-400">Pending Dues</p>
+              <p className="text-2xl font-black text-slate-900">02 <span className="text-xs text-slate-400">Invoices</span></p>
+            </div>
+
+            <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                <BadgeCheck size={20} />
+              </div>
+              <p className="mt-6 text-xs font-black uppercase tracking-widest text-slate-400">KYC Status</p>
+              <p className="text-2xl font-black text-slate-900">Verified</p>
+            </div>
+          </div>
+
+          {/* POLICY LISTING / CATEGORIES */}
+          <div className="rounded-[2.5rem] border border-slate-200 bg-white p-8 shadow-sm">
+            <div className="flex items-center justify-between mb-8">
+              <h3 className="text-lg font-black text-slate-900">Portfolio Breakdown</h3>
+              <Link to="/dashboard/policies" className="text-xs font-black text-blue-600 uppercase tracking-widest">Manage All</Link>
+            </div>
+            <div className="space-y-3">
+              {["Health", "Auto", "Term", "Travel"].map(cat => (
+                <div key={cat} className="flex items-center justify-between rounded-2xl bg-slate-50 p-4 transition hover:bg-slate-100">
+                  <div className="flex items-center gap-4">
+                    <div className="h-2 w-2 rounded-full bg-blue-600" />
+                    <span className="text-sm font-black text-slate-800">{cat} Insurance</span>
+                  </div>
+                  <div className="flex items-center gap-6">
+                    <span className="text-xs font-bold text-slate-500">{purchases.filter(p => p.categorySlug?.includes(cat.toLowerCase())).length} Active</span>
+                    <ChevronRight size={16} className="text-slate-300" />
                   </div>
                 </div>
-                <div>{new Date(p.createdAt).toLocaleString()}</div>
-                <div className="uppercase text-slate-500 dark:text-slate-400">{p.method}</div>
-                <div>
-                  <span className="inline-flex items-center gap-2 rounded-full bg-emerald-600/10 px-3 py-2 text-xs font-black text-emerald-700 dark:text-emerald-300">
-                    <BadgeCheck size={14} />
-                    {p.status}
-                  </span>
-                </div>
-                <div className="text-right font-black text-slate-900 dark:text-slate-100">{formatInr(p.amount)}</div>
-              </div>
-            ))
-          )}
+              ))}
+            </div>
           </div>
+        </div>
+
+        {/* RIGHT COLUMN: ACTION SIDEBAR (4 Units) */}
+        <div className="lg:col-span-4 space-y-6">
+
+          {/* QUICK ACTION TILES */}
+          <div className="grid grid-cols-1 gap-4">
+            <button
+              onClick={() => navigate("/dashboard/claims")}
+              className="group flex items-center justify-between rounded-3xl bg-blue-600 p-6 text-left text-white transition hover:bg-blue-700 shadow-xl shadow-blue-900/10"
+            >
+              <div>
+                <p className="text-lg font-black tracking-tight">File a Claim</p>
+                <p className="text-xs font-medium text-blue-100/80 mt-1">Instant 7-step digital filing</p>
+              </div>
+              <div className="rounded-full bg-white/20 p-2 transition group-hover:rotate-45">
+                <ArrowUpRight size={20} />
+              </div>
+            </button>
+
+            <button
+              onClick={() => navigate("/dashboard/documents")}
+              className="group flex items-center justify-between rounded-3xl border border-slate-200 bg-white p-6 text-left transition hover:border-blue-200 shadow-sm"
+            >
+              <div>
+                <p className="text-lg font-black tracking-tight text-slate-900">Document Vault</p>
+                <p className="text-xs font-bold text-slate-400 mt-1">Policy PDFs & KYC Records</p>
+              </div>
+              <FileText size={20} className="text-slate-300 group-hover:text-blue-600" />
+            </button>
+          </div>
+
+          {/* UPCOMING EVENTS FEED */}
+          <div className="rounded-[2.5rem] border border-slate-200 bg-white p-8 shadow-sm">
+            <div className="flex items-center gap-2 mb-6">
+              <Bell size={18} className="text-blue-600" />
+              <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">Timeline</h3>
+            </div>
+            <div className="space-y-6">
+              {upcomingRenewals.length > 0 ? upcomingRenewals.map(u => (
+                <div key={u.id} className="relative pl-6 before:absolute before:left-0 before:top-2 before:h-2 before:w-2 before:rounded-full before:bg-amber-400">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Renewal Pending</p>
+                  <p className="text-sm font-black text-slate-800 mt-1">{u.policyNumber}</p>
+                  <p className="text-xs font-bold text-blue-600 mt-2 cursor-pointer hover:underline">Complete Payment →</p>
+                </div>
+              )) : (
+                <p className="text-xs font-bold text-slate-400 italic">No upcoming alerts for this month.</p>
+              )}
+            </div>
+          </div>
+
+          {/* PROMO CARD */}
+          <div className="rounded-[2.5rem] bg-gradient-to-br from-indigo-600 to-blue-800 p-8 text-white shadow-lg">
+            <Sparkles className="text-blue-200 mb-4" size={28} />
+            <h4 className="text-xl font-black leading-tight">Unlock AI Shortlisting</h4>
+            <p className="mt-2 text-xs font-medium text-blue-100 opacity-80 leading-relaxed">
+              Add one more policy to your portfolio to unlock the Agile AI automatic shortlisting feature.
+            </p>
+            <button
+              onClick={() => navigate('/health-insurance')}
+              className="mt-6 w-full rounded-2xl bg-white py-4 text-xs font-black uppercase tracking-widest text-blue-600 transition hover:bg-blue-50"
+            >
+              Explore Marketplace
+            </button>
+          </div>
+
         </div>
       </div>
     </div>
   );
 };
 
-export default DashboardPayments;
+export default DashboardOverview;
