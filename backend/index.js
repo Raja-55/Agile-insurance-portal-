@@ -22,9 +22,9 @@ const policyRoutes = require("./Routes/policy.routes");
 const adminSupportRoutes = require("./Routes/adminSupport.route");
 
 const PORT = appConfig.port;
+const documentRoutes = require("./Routes/document.route");
 
-// Connect Database
-connectDB();
+
 
 // Middleware
 app.use(
@@ -80,6 +80,13 @@ app.use("/api/support", supportRoutes);
 app.use("/api/profile", userProfileRoutes);
 app.use("/api/policies", policyRoutes);
 app.use("/api/admin", adminSupportRoutes);
+app.use("/api/documents", documentRoutes);
+const path = require("path");
+
+app.use(
+    "/uploads",
+    express.static(path.join(__dirname, "uploads"))
+);
 //404 handler 
 app.use((req, res) => {
   res.status(404).
@@ -103,6 +110,19 @@ app.use((err, req, res, next) => {
 });
 
 // Start Server
-app.listen(PORT, () => {
-  console.log(`Server is running on ${PORT}`);
-});
+const startServer = async () => {
+  try {
+    await connectDB();
+
+    console.log("MongoDB Connected");
+
+    app.listen(PORT, () => {
+      console.log(`Server is running on ${PORT}`);
+    });
+  } catch (err) {
+    console.error("Database connection failed:", err);
+    process.exit(1);
+  }
+};
+
+startServer();

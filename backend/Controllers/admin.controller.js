@@ -7,6 +7,13 @@ const SystemSetting = require("../Models/systemSetting.model");
 const AuditLog = require("../Models/auditlog.model");
 const catchAsync = require("../Utils/catchAsync");
 const AppError = require("../Utils/appError");
+const Admin = require("../Models/admin.model");
+
+
+const Document = require("../Models/document.model");
+const path = require("path");
+const fs = require("fs");
+
 
 const flattenObject = (obj, prefix = "") => {
   return Object.keys(obj).reduce((acc, key) => {
@@ -389,6 +396,197 @@ const replyToSupportTicket = catchAsync(async (req, res, next) => {
   });
 });
 
+const getAdminProfile = catchAsync(async(req, res) => {
+  try{
+    const admin = await Admin.findById(req.admin.id)
+    .select("-password");
+
+    res.json({
+      success: true,
+      data: admin
+    });
+  }
+  catch (err) {
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+    }
+})
+const updateAdminProfile = catchAsync(async (req, res, next) => {
+    const { fullName, phone, email, profilePhoto } = req.body;
+
+    const existing = await Admin.findOne({
+        _id: { $ne: req.admin._id },
+        $or: [{ email }, { phone }]
+    });
+
+    if (existing) {
+        return next(new AppError("Email or phone already exists.", 400));
+    }
+
+    const admin = await Admin.findByIdAndUpdate(
+        req.admin._id,
+        {
+            fullName,
+            email,
+            phone,
+            profilePhoto,
+        },
+        {
+            new: true,
+            runValidators: true,
+        }
+    ).select("-password");
+
+    res.json({
+        success: true,
+        data: admin,
+    });
+});
+const changeAdminPassword = catchAsync(async (req, res) => {
+
+    const { oldPassword, newPassword } = req.body;
+
+    const admin = await Admin.findById(req.admin.id);
+
+    const isMatch = await admin.comparePassword(oldPassword);
+
+    if (!isMatch) {
+        return res.status(400).json({
+            message: "Old password incorrect"
+        });
+    }
+
+    admin.password = newPassword;
+
+    await admin.save();
+
+    res.json({
+        success: true,
+        message: "Password updated"
+    });
+
+});
+
+
+
+
+// GET /api/admin/documents
+// Returns all documents with populated user info
+const getDocuments = async (req, res) => {
+  try {
+    const docs = await Document.find()
+      .populate("user", "fullName email phone")
+      .sort({ createdAt: -1 });
+
+    const formatted = docs.map((doc) => ({
+      id: doc._id,
+      type: doc.documentType,
+      fileName: doc.fileName,
+      filePath: doc.filePath,
+      mimeType: doc.mimeType,
+      size: doc.size,
+      status: doc.status,
+      note: doc.note,
+      owner: doc.user?.fullName || doc.user?.email || "Unknown",
+      ownerEmail: doc.user?.email,
+      userId: doc.user?._id,
+      createdAt: doc.createdAt,
+      updatedAt: doc.updatedAt,
+    }));
+
+    res.json({ success: true, data: formatted });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// PATCH /api/admin/documents/:id/approve
+const approveDocument = async (req, res) => {
+  try {
+    const doc = await Document.findByIdAndUpdate(
+      req.params.id,
+      { status: "Approved", note: req.body.note || "" },
+      { new: true }
+    ).populate("user", "fullName email");
+
+    if (!doc) return res.status(404).json({ success: false, message: "Document not found" });
+
+    res.json({ success: true, message: "Document approved", data: doc });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// PATCH /api/admin/documents/:id/reject
+const rejectDocument = async (req, res) => {
+  try {
+    const doc = await Document.findByIdAndUpdate(
+      req.params.id,
+      { status: "Rejected", note: req.body.note || "Document rejected by admin." },
+      { new: true }
+    ).populate("user", "fullName email");
+
+    if (!doc) return res.status(404).json({ success: false, message: "Document not found" });
+
+    res.json({ success: true, message: "Document rejected", data: doc });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// PATCH /api/admin/documents/:id/correction
+// Admin sends correction note (with optional markup JSON)
+const sendDocumentCorrection = async (req, res) => {
+  try {
+    const { note, marks } = req.body;
+
+    const doc = await Document.findByIdAndUpdate(
+      req.params.id,
+      {
+        status: "Re-upload Requested",
+        note: note || "Admin has requested corrections. Please re-upload.",
+        ...(marks && { marks }), // if you later add a marks field to schema
+      },
+      { new: true }
+    ).populate("user", "fullName email");
+
+    if (!doc) return res.status(404).json({ success: false, message: "Document not found" });
+
+    res.json({ success: true, message: "Correction sent", data: doc });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// GET /api/admin/documents/:id/file
+// Streams the actual file back to admin for preview
+const getDocumentFile = async (req, res) => {
+  try {
+    const doc = await Document.findById(req.params.id);
+    if (!doc) return res.status(404).json({ success: false, message: "Document not found" });
+
+    const absolutePath = path.resolve(doc.filePath);
+    if (!fs.existsSync(absolutePath)) {
+      return res.status(404).json({ success: false, message: "File not found on disk" });
+    }
+
+    res.setHeader("Content-Type", doc.mimeType);
+    res.setHeader("Content-Disposition", `inline; filename="${doc.fileName}"`);
+    fs.createReadStream(absolutePath).pipe(res);
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+
+
+
+
+
+
+
 module.exports = {
   getDashboard,
   getUsers,
@@ -410,4 +608,13 @@ module.exports = {
   getSupportTicketsAdmin,
   updateSupportTicket,
   replyToSupportTicket,
+  getAdminProfile,
+  updateAdminProfile,
+  changeAdminPassword,
+  
+  getDocuments,
+  approveDocument,
+  rejectDocument,
+  sendDocumentCorrection,
+  getDocumentFile,
 };

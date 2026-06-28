@@ -145,7 +145,6 @@ const DashboardLayout = () => {
     [systemSettings]
   );
 
-console.log(systemSettings);
   
   useEffect(() => {
   const loadSettings = async () => {
@@ -154,7 +153,7 @@ console.log(systemSettings);
 
       setSystemSettings(response.data);
 
-      console.log("Loaded Settings:", response.data);
+    
     } catch (error) {
       console.error("Error loading system settings:", error);
     }
