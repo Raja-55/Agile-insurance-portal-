@@ -1,7 +1,7 @@
 // src/components/pages/Dashboard.jsx
 import { useMemo, useState, useEffect } from "react";
 import { useSelector } from "react-redux";
-import { Users, FileText, AlertTriangle, CheckCircle2, XCircle, MessageSquare, CreditCard, PieChart, LineChart, BarChart3, ShieldCheck, } from "lucide-react";
+import { Users, FileText, AlertTriangle, CheckCircle2, XCircle, MessageSquare, CreditCard, PieChart, LineChart, BarChart3, ShieldCheck, Clock } from "lucide-react";
 
 import { LineChart as ReLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,} from "recharts";
 import { SectionTitle, MiniBars, LineSpark } from "../../components/admin/shared";
@@ -193,6 +193,76 @@ const Dashboard = () => {
               </button>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Recent Support Tickets */}
+      <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <SectionTitle icon={MessageSquare} title="Recent Support Tickets & Updates" />
+        <div className="mt-5 space-y-3">
+          {supportChats.length === 0 ? (
+            <div className="text-sm font-semibold text-slate-500 py-4">No support tickets raised yet.</div>
+          ) : (
+            supportChats.slice(0, 5).map((chat) => {
+              const lastMessage = chat.messages?.[chat.messages.length - 1]?.text || "No messages yet";
+              const lastMessageTime = chat.messages?.[chat.messages.length - 1]?.createdAt || chat.createdAt;
+              const initials = chat.userName ? chat.userName.trim().split(/\s+/).map((w) => w[0] ?? "").join("").slice(0, 2).toUpperCase() : "US";
+              
+              const priorityColors = {
+                High: "bg-rose-50 text-rose-700 border-rose-200",
+                Medium: "bg-amber-50 text-amber-700 border-amber-200",
+                Low: "bg-slate-50 text-slate-700 border-slate-200",
+              };
+              
+              const statusColors = {
+                Open: "bg-blue-50 text-blue-700",
+                "In Progress": "bg-indigo-50 text-indigo-700",
+                Resolved: "bg-emerald-50 text-emerald-700",
+              };
+
+              return (
+                <div
+                  key={chat.id}
+                  className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4 transition hover:bg-slate-100/50 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="flex items-start gap-3 min-w-0">
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-blue-600 text-sm font-black text-white">
+                      {initials}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-black text-slate-900">{chat.userName}</span>
+                        <span className="text-xs text-slate-400 font-semibold">{chat.userEmail}</span>
+                        <span className="rounded-full bg-blue-600/10 px-2 py-0.5 text-[10px] font-black text-blue-700">
+                          {chat.subject}
+                        </span>
+                        <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black ${priorityColors[chat.priority] || priorityColors.Medium}`}>
+                          {chat.priority} Priority
+                        </span>
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${statusColors[chat.status] || statusColors.Open}`}>
+                          {chat.status}
+                        </span>
+                      </div>
+                      <div className="mt-1.5 text-xs text-slate-600 font-semibold truncate max-w-xl">
+                        Message: <span className="font-bold text-slate-800">"{lastMessage}"</span>
+                      </div>
+                      <div className="mt-1 flex items-center gap-1 text-[10px] text-slate-400 font-bold">
+                        <Clock size={12} />
+                        {new Date(lastMessageTime).toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => openPage("support")}
+                    className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-xs font-black text-slate-700 shadow-sm hover:bg-slate-50"
+                  >
+                    View Ticket
+                  </button>
+                </div>
+              );
+            })
+          )}
         </div>
       </section>
     </div>

@@ -104,7 +104,7 @@ const DashboardOverview = () => {
     ...pay,
     status: pay.payment_status === "success" ? "Success" : (pay.payment_status || "Success")
   })), [purchases]);
-  
+
   const claims = useMemo(() => load("claims", []), []);
 
   const activePolicies = purchases.filter((p) => p.status === "Active");

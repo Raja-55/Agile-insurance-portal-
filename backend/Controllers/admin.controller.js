@@ -302,7 +302,7 @@ const getSupportTicketsAdmin = catchAsync(async (req, res) => {
     return {
       id: ticket._id,
       userId: user._id || null,
-      userName: user.full_name || "Unknown user",
+      userName: user.fullName || user.full_name || "Unknown user",
       userEmail: user.email || "",
       userPhone: user.phone || "",
       subject: ticket.subject || "Support ticket",

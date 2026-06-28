@@ -8,8 +8,9 @@ const {
   getAllPoliciesAdmin,
   getAllPolicies,
   getPoliciesByCategory,
-  getPolicyById,
-} = require("../Controllers/policy.controller");
+  getPolicyById
+} =
+  require("../Controllers/policy.controller");
 
 const authenticateAdmin = require("../Middlewares/admin.middleware");
 
@@ -22,7 +23,7 @@ router.get("/admin/all", authenticateAdmin, getAllPoliciesAdmin);
 // ── User / public routes ─────────────────────────────────────────
 // NOTE: /category/:category must come before /:id
 // otherwise Express reads "category" as a Mongo ObjectId → CastError
-router.get("/", getPoliciesByCategory);
+router.get("/", getAllPolicies);
 router.get("/category/:category", getPoliciesByCategory);
 router.get("/:id", getPolicyById);
 

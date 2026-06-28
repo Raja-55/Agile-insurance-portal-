@@ -11,6 +11,7 @@ import AdminPage from "./pages/admin/AdminPage";
 import CalculatorPage from "./pages/CalculatorPage";
 import InfoPage from "./pages/InfoPage";
 import WhyChoosePage from "./pages/WhyChoosePage";
+import ClaimProcessKnow from "./pages/ClaimProcessKnow";
 import ProtectedRoute from "./components/ProtectedRoute";
 import DashboardLayout from "./layouts/DashboardLayout";
 import DashboardOverview from "./pages/dashboard/DashboardOverview";
@@ -34,6 +35,7 @@ const App = () => {
       <Route element={<PublicLayout />}>
         <Route path="/" element={<LandingPage />} />
         <Route path="/calculator" element={<CalculatorPage />} />
+        <Route path="/claim-process-know" element={<ClaimProcessKnow />} />
         <Route path="/why-choose/:featureSlug" element={<WhyChoosePage />} />
         <Route path="/:categorySlug" element={<CategoryPage />} />
         <Route path="/policies/:policyId" element={<PolicyDetailsPage />} />
