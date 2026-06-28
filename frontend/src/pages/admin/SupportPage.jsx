@@ -87,9 +87,11 @@ const SupportPage = () => {
                 </div>
 
                 <div className="flex-1 space-y-3 overflow-y-auto p-4">
-                  {(selectedChat.messages || []).map((msg) => (
-                    <div key={msg.id}>
-                      <div className="text-xs font-bold uppercase text-slate-500">{msg.sender}</div>
+                  {(selectedChat.messages || []).map((msg, idx) => (
+                    <div key={msg.id || msg._id || idx}>
+                      <div className="text-xs font-bold uppercase text-slate-500">
+                        {typeof msg.sender === "object" ? (msg.sender?.fullName || msg.sender?.email || "User") : msg.sender}
+                      </div>
                       <div className={`mt-1 rounded-lg px-4 py-3 text-sm font-semibold ${msg.from === "admin" ? "bg-blue-50 text-blue-900" : "bg-slate-100 text-slate-700"}`}>
                         {msg.text}
                       </div>

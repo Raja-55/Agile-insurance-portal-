@@ -31,15 +31,28 @@ const DashboardProfile = () => {
     window.dispatchEvent(new CustomEvent("agile-profile-updated", { detail: nextSessionUser }));
   };
 
-  const uploadPhoto = (file) => {
+  const uploadPhoto = async (file) => {
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const nextPhoto = String(reader.result || "");
-      setProfilePhoto(nextPhoto);
-      updateStoredUser({ profilePhoto: nextPhoto });
-    };
-    reader.readAsDataURL(file);
+    try {
+      setStatusMessage("Uploading photo to Cloudinary...");
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await apiRequest("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (res?.url) {
+        setProfilePhoto(res.url);
+        updateStoredUser({ profilePhoto: res.url });
+        setStatusMessage("Profile photo uploaded to Cloudinary!");
+      } else {
+        setStatusMessage("Failed to upload profile photo.");
+      }
+    } catch (err) {
+      console.error(err);
+      setStatusMessage("Error uploading photo to Cloudinary.");
+    }
   };
 
   useEffect(() => {

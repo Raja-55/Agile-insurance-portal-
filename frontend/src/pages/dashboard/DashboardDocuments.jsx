@@ -36,20 +36,34 @@ const DashboardDocuments = () => {
     }
     setBusy(true);
     try {
-      const dataUrl = await fileToDataUrl(file);
-      const documents = [
-        {
-          id: `doc_${Date.now()}`,
-          name: file.name,
-          mimeType: file.type,
-          size: file.size,
-          dataUrl,
-          createdAt: new Date().toISOString(),
-        },
-        ...vault,
-      ];
-      setVault(documents);
-      save("documents", documents);
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await apiRequest("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (res?.url) {
+        const documents = [
+          {
+            id: `doc_${Date.now()}`,
+            name: file.name,
+            mimeType: file.type,
+            size: file.size,
+            dataUrl: res.url,
+            createdAt: new Date().toISOString(),
+          },
+          ...vault,
+        ];
+        setVault(documents);
+        save("documents", documents);
+        window.alert("Document uploaded successfully to Cloudinary!");
+      } else {
+        window.alert("Failed to upload document. Please try again.");
+      }
+    } catch (err) {
+      console.error(err);
+      window.alert("Error uploading document to Cloudinary.");
     } finally {
       setBusy(false);
     }

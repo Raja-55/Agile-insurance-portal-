@@ -20,6 +20,9 @@ const supportRoutes = require("./Routes/support.route");
 const userProfileRoutes = require("./Routes/userProfile.route");
 const policyRoutes = require("./Routes/policy.routes");
 const purchaseRoutes = require("./Routes/purchase.routes");
+const claimRoutes = require("./Routes/claim.routes");
+const supportTicketRoutes = require("./Routes/supportTicket.routes");
+const uploadRoutes = require("./Routes/upload.route");
 
 
 
@@ -82,6 +85,9 @@ app.use("/api/support", supportRoutes);
 app.use("/api/profile", userProfileRoutes);
 app.use("/api/policies", policyRoutes);
 app.use("/api/purchases", purchaseRoutes);
+app.use("/api/claims", claimRoutes);
+app.use("/api", supportTicketRoutes);
+app.use("/api/upload", uploadRoutes);
 
 
 //404 handler 

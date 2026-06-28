@@ -30,7 +30,11 @@ const getDashboard = catchAsync(async (req, res) => {
     KycRequest.countDocuments({ status: "pending" }),
   ]);
   const recentUsers = await User.find().select("fullName email role created_at kyc_status").sort({ created_at: -1 }).limit(8);
-  const recentClaims = await Claim.find().populate("user", "fullName email").sort({ createdAt: -1 }).limit(8);
+  const recentClaims = await Claim.find()
+    .populate("user", "fullName email")
+    .populate("policy", "policyName category")
+    .sort({ createdAt: -1 })
+    .limit(8);
   res.status(200).json({
     success: true,
     data: {
@@ -153,7 +157,11 @@ const getPolicies = catchAsync(async (req, res) => {
 });
 
 const getClaims = catchAsync(async (req, res) => {
-  const claims = await Claim.find().populate("user", "fullName email phone role").populate("policy").sort({ createdAt: -1 });
+  const claims = await Claim.find()
+    .populate("user",    "fullName email phone role")
+    .populate("policy",  "policyName category companyName")
+    .populate("purchase")
+    .sort({ createdAt: -1 });
   res.status(200).json({ success: true, data: claims });
 });
 
@@ -251,15 +259,20 @@ const reviewKyc = catchAsync(async (req, res, next) => {
 });
 
 const updateClaim = catchAsync(async (req, res, next) => {
-  const { status, notes, assignedAdmin } = req.body;
+  const { status, notes } = req.body;
 
-  if (status && !["pending", "reviewing", "approved", "rejected"].includes(status)) {
-    return next(new AppError("Invalid claim status", 400));
+  const validStatuses = ["pending", "reviewing", "approved", "rejected"];
+  if (status && !validStatuses.includes(status)) {
+    return next(new AppError("Invalid claim status. Must be one of: pending, reviewing, approved, rejected", 400));
   }
+
+  const updateData = {};
+  if (status !== undefined) updateData.status = status;
+  if (notes  !== undefined) updateData.notes  = notes;
 
   const claim = await Claim.findByIdAndUpdate(
     req.params.id,
-    { status, notes, assignedAdmin },
+    updateData,
     { new: true, runValidators: true }
   ).populate("user", "fullName email").populate("policy", "policyName");
 
@@ -331,7 +344,7 @@ const updateSupportTicket = catchAsync(async (req, res, next) => {
   const SupportTicket = require("../Models/contact.model");
   const { status, priority, assignedAdmin } = req.body;
 
-  const validStatuses = ["Open", "In Progress", "Resolved"];
+  const validStatuses = ["Open", "In Progress", "Resolved", "open", "in_progress", "resolved", "closed"];
   if (status && !validStatuses.includes(status)) {
     return next(new AppError("Invalid status", 400));
   }
@@ -340,16 +353,43 @@ const updateSupportTicket = catchAsync(async (req, res, next) => {
     req.params.id,
     { status, priority, assignedAdmin },
     { new: true }
-  ).populate("user", "full_name email").populate("assignedAdmin", "full_name email");
+  ).populate("user", "fullName email phone").populate("assignedAdmin", "fullName email");
 
   if (!ticket) {
     return next(new AppError("Support ticket not found", 404));
   }
 
+  const formattedTicket = {
+    id: ticket._id,
+    userId: ticket.user?._id || ticket.user || null,
+    userName: ticket.user?.fullName || "Unknown user",
+    userEmail: ticket.user?.email || "",
+    userPhone: ticket.user?.phone || "",
+    subject: ticket.subject || "Support ticket",
+    status: ticket.status || "Open",
+    priority: ticket.priority || "Medium",
+    assignedAdmin: ticket.assignedAdmin
+      ? {
+          _id: ticket.assignedAdmin._id || null,
+          full_name: ticket.assignedAdmin.fullName || "Unassigned",
+          email: ticket.assignedAdmin.email || "",
+        }
+      : null,
+    messages: (ticket.messages || []).map(m => ({
+      id: m._id || m.id,
+      sender: m.senderRole === "admin" ? "Admin" : (ticket.user?.fullName || "User"),
+      from: m.senderRole,
+      text: m.text,
+      createdAt: m.createdAt
+    })),
+    createdAt: ticket.createdAt,
+    updatedAt: ticket.updatedAt,
+  };
+
   res.status(200).json({
     success: true,
     message: "Support ticket updated",
-    data: ticket,
+    data: formattedTicket,
   });
 });
 
@@ -376,14 +416,41 @@ const replyToSupportTicket = catchAsync(async (req, res, next) => {
   await ticket.save();
 
   const updatedTicket = await SupportTicket.findById(ticket._id)
-    .populate("user", "full_name email")
-    .populate("assignedAdmin", "full_name email")
-    .populate("messages.sender", "full_name email");
+    .populate("user", "fullName email phone")
+    .populate("assignedAdmin", "fullName email")
+    .populate("messages.sender", "fullName email");
+
+  const formattedTicket = {
+    id: updatedTicket._id,
+    userId: updatedTicket.user?._id || updatedTicket.user || null,
+    userName: updatedTicket.user?.fullName || "Unknown user",
+    userEmail: updatedTicket.user?.email || "",
+    userPhone: updatedTicket.user?.phone || "",
+    subject: updatedTicket.subject || "Support ticket",
+    status: updatedTicket.status || "Open",
+    priority: updatedTicket.priority || "Medium",
+    assignedAdmin: updatedTicket.assignedAdmin
+      ? {
+          _id: updatedTicket.assignedAdmin._id || null,
+          full_name: updatedTicket.assignedAdmin.fullName || "Unassigned",
+          email: updatedTicket.assignedAdmin.email || "",
+        }
+      : null,
+    messages: (updatedTicket.messages || []).map(m => ({
+      id: m._id || m.id,
+      sender: m.senderRole === "admin" ? "Admin" : (updatedTicket.user?.fullName || "User"),
+      from: m.senderRole,
+      text: m.text,
+      createdAt: m.createdAt
+    })),
+    createdAt: updatedTicket.createdAt,
+    updatedAt: updatedTicket.updatedAt,
+  };
 
   res.status(200).json({
     success: true,
     message: "Reply added successfully",
-    data: updatedTicket,
+    data: formattedTicket,
   });
 });
 

@@ -22,7 +22,6 @@ import {
   Layers,
   Check,
 } from "lucide-react";
-import { load, save, uid } from "../../utils/storage";
 import { chance } from "../../utils/ids";
 import { useAuth } from "../../contexts/useAuth";
 import { apiRequest } from "../../utils/api";
@@ -54,27 +53,32 @@ const supportAgents = [
 const DashboardClaims = () => {
   const { user } = useAuth();
 
-  // Claims state (loaded from local storage)
-  const readMyClaims = () => {
-    const allClaims = load("claims", []);
-    if (!user?.id) return allClaims;
-    return allClaims.filter((claim) => !claim.userId || claim.userId === user.id);
-  };
-  const [claims, setClaims] = useState(readMyClaims);
+  // Claims state – loaded from backend
+  const [claims, setClaims] = useState([]);
+  const [loadingClaims, setLoadingClaims] = useState(false);
 
-  // Tabs state: 'file' | 'track' | 'support' (Default highlighted: 'file')
+  // Purchased policies state
+  const [userPurchases, setUserPurchases] = useState([]);
+  const [loadingPurchases, setLoadingPurchases] = useState(false);
+
+  // Dynamic form fields state
+  const [dynamicFields, setDynamicFields] = useState([]);
+
+  // Tabs state: 'file' | 'track' | 'support'
   const [activeTab, setActiveTab] = useState("file");
 
   // Claim Filing Stepper Form
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({
+    purchaseId: "",
     type: "Health",
     description: "",
     amount: "",
     docName: "",
     incidentDate: new Date().toISOString().split("T")[0],
     location: "",
+    claim_data: {},
   });
 
   // Claim Support States
@@ -89,7 +93,75 @@ const DashboardClaims = () => {
   const [loadingTickets, setLoadingTickets] = useState(false);
   const [ticketStatus, setTicketStatus] = useState("");
 
+  // Chat/Support and Cloudinary Upload states
+  const [activeChatTicket, setActiveChatTicket] = useState(null);
+  const [userReplyText, setUserReplyText] = useState("");
+  const [sendingReply, setSendingReply] = useState(false);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+
   const [features, setFeatures] = useState(null);
+
+  // --- Normalise a backend Claim document → frontend display shape ---
+  const normaliseBackendClaim = (c) => {
+    const claimStat = c.claim_status || c.status || "pending";
+    const normalStatus =
+      claimStat.toLowerCase() === "pending" || claimStat.toLowerCase() === "submitted" ? "Pending" :
+      claimStat.toLowerCase() === "reviewing" ? "Reviewing" :
+      claimStat.toLowerCase() === "approved"  ? "Approved"  :
+      claimStat.toLowerCase() === "rejected"  ? "Rejected"  : "Pending";
+
+    return {
+      id:           c.claim_number || c._id,
+      _mongoId:     c._id,
+      userId:       c.user,
+      type:         c.claim_type,
+      policy:       c.policy?.policyName || c.claim_type,
+      description:  c.claim_reason || c.description,
+      amount:       c.claim_amount || c.amount || 0,
+      docName:      c.doc_name || "",
+      incidentDate: c.incident_date
+        ? new Date(c.incident_date).toISOString().split("T")[0]
+        : "",
+      location:     c.location || "",
+      status:       normalStatus,
+      aiStatus:
+        c.ai_status === "verified" ? "Verified" :
+        c.ai_status === "flagged"  ? "Flagged"  : "Pending",
+      createdAt: c.createdAt,
+      timeline:  c.timeline || [],
+      progress:  c.timeline?.length || 1,
+    };
+  };
+
+  // Fetch user's purchased policies
+  const fetchUserPurchases = async () => {
+    setLoadingPurchases(true);
+    try {
+      const res = await apiRequest("/api/user/purchases");
+      if (res?.data) {
+        setUserPurchases(res.data);
+      }
+    } catch (err) {
+      console.error("Failed to load user policies:", err);
+    } finally {
+      setLoadingPurchases(false);
+    }
+  };
+
+  // Fetch user's claims from backend
+  const fetchMyClaims = async () => {
+    setLoadingClaims(true);
+    try {
+      const res = await apiRequest("/api/claims/my");
+      if (res?.data) {
+        setClaims(res.data.map(normaliseBackendClaim));
+      }
+    } catch (err) {
+      console.error("Failed to fetch claims:", err);
+    } finally {
+      setLoadingClaims(false);
+    }
+  };
 
   // Generate support credentials
   const generateSupportCode = () => {
@@ -116,7 +188,7 @@ const DashboardClaims = () => {
   const fetchTickets = async () => {
     setLoadingTickets(true);
     try {
-      const res = await apiRequest("/api/support/tickets");
+      const res = await apiRequest("/api/user/support");
       if (res?.data) {
         setTickets(res.data);
       }
@@ -130,97 +202,99 @@ const DashboardClaims = () => {
   useEffect(() => {
     fetchSettings();
     fetchTickets();
+    fetchMyClaims();
+    fetchUserPurchases();
   }, [user]);
 
   // Stepper functions
   const next = () => setStep((s) => Math.min(claimSteps.length - 1, s + 1));
   const back = () => setStep((s) => Math.max(0, s - 1));
 
-  // Submit Claim
+  // Submit Claim – saves to backend
   const submitClaim = async () => {
+    if (!form.purchaseId) return window.alert("Please select a purchased policy first.");
     if (!form.description.trim()) return window.alert("Please add a claim description.");
-    if (!String(form.amount).trim()) return window.alert("Please enter the claim amount.");
-    if (!form.docName.trim()) return window.alert("Please upload supporting documents.");
+    if (!String(form.amount).trim())  return window.alert("Please enter the claim amount.");
+    if (!form.docName.trim())         return window.alert("Please upload supporting documents.");
+
+    // Validate dynamic category-specific fields
+    for (const f of dynamicFields) {
+      if (f.required && !form.claim_data?.[f.name]) {
+        return window.alert(`Field '${f.label}' is required.`);
+      }
+    }
+
     setBusy(true);
 
-    await new Promise((r) => setTimeout(r, 1200));
+    try {
+      const res = await apiRequest("/api/claims", {
+        method: "POST",
+        body: JSON.stringify({
+          purchaseId:    form.purchaseId,
+          claim_type:    form.type,
+          claim_amount:  Number(form.amount),
+          claim_reason:  form.description.trim(),
+          claim_data:    form.claim_data,
+          doc_name:      form.docName,
+        }),
+      });
 
-    const now = new Date().toISOString();
-    const all = load("claims", []);
-    const newClaim = {
-      id: `CLM-${Date.now().toString().slice(-6)}`,
-      userId: user?.id || "",
-      user: user?.fullName || "Customer",
-      email: user?.email || "",
-      type: form.type,
-      policy: form.type,
-      description: form.description.trim(),
-      amount: Number(form.amount) || 0,
-      docName: form.docName,
-      incidentDate: form.incidentDate,
-      location: form.location.trim() || "Online",
-      status: "AI Verification",
-      aiStatus: "Pending",
-      createdAt: now,
-      timeline: [
-        { at: now, label: "Claim filed successfully" },
-        { at: now, label: "Documents uploaded and received" },
-        { at: now, label: "Queued for automated verification" },
-      ],
-      progress: 3,
-    };
-
-    all.unshift(newClaim);
-    save("claims", all);
-    setClaims(readMyClaims());
-
-    // Reset Form
-    setForm({
-      type: "Health",
-      description: "",
-      amount: "",
-      docName: "",
-      incidentDate: new Date().toISOString().split("T")[0],
-      location: "",
-    });
-    setStep(0);
-    setBusy(false);
-
-    // Switch to tracking tab automatically
-    setActiveTab("track");
-    window.alert("Claim submitted successfully! Check status below.");
+      if (res?.success) {
+        // Reset form
+        setForm({
+          purchaseId: "",
+          type: "Health",
+          description: "",
+          amount: "",
+          docName: "",
+          incidentDate: new Date().toISOString().split("T")[0],
+          location: "",
+          claim_data: {},
+        });
+        setDynamicFields([]);
+        setStep(0);
+        // Refresh claims list from backend
+        await fetchMyClaims();
+        setActiveTab("track");
+        window.alert("Claim submitted successfully! Check status below.");
+      } else {
+        window.alert(res?.message || "Failed to submit claim. Please try again.");
+      }
+    } catch (err) {
+      console.error(err);
+      window.alert(err?.message || "Error submitting claim. Please try again.");
+    } finally {
+      setBusy(false);
+    }
   };
 
-  // Run AI Verification Simulation
+  // AI Verification Simulation – updates local state only (no DB write needed for demo)
   const runAi = async (id) => {
-    const all = load("claims", []);
-    const idx = all.findIndex((c) => c.id === id);
-    if (idx < 0) return;
-
-    all[idx] = { ...all[idx], aiStatus: "Verifying..." };
-    save("claims", all);
-    setClaims(readMyClaims());
+    setClaims((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, aiStatus: "Verifying..." } : c))
+    );
 
     await new Promise((r) => setTimeout(r, 1000));
 
     const approved = !chance(0.15);
     const now = new Date().toISOString();
     const status = approved ? "Reviewing" : "Rejected";
-    const timeline = [
-      ...(all[idx].timeline || []),
-      { at: now, label: approved ? "AI scan passed: No fraud signals" : "AI scan flagged anomalies" },
-    ];
 
-    all[idx] = {
-      ...all[idx],
-      status,
-      aiStatus: approved ? "Verified" : "Flagged",
-      progress: approved ? 5 : 7,
-      timeline,
-    };
-
-    save("claims", all);
-    setClaims(readMyClaims());
+    setClaims((prev) =>
+      prev.map((c) => {
+        if (c.id !== id) return c;
+        return {
+          ...c,
+          status,
+          aiStatus:  approved ? "Verified" : "Flagged",
+          progress:  approved ? 5 : 7,
+          timeline:  [
+            ...(c.timeline || []),
+            { at: now, label: approved ? "AI scan passed: No fraud signals" : "AI scan flagged anomalies" },
+          ],
+        };
+      })
+    );
   };
 
   // Raise support ticket
@@ -233,7 +307,7 @@ const DashboardClaims = () => {
     setTicketStatus("");
 
     try {
-      const res = await apiRequest("/api/support/tickets", {
+      const res = await apiRequest("/api/claim-support", {
         method: "POST",
         body: JSON.stringify({
           subject: ticketForm.subject,
@@ -258,6 +332,57 @@ const DashboardClaims = () => {
       setTicketStatus("Error submitting ticket to backend.");
     } finally {
       setBusy(false);
+    }
+  };
+
+  // Upload document directly to Cloudinary via backend upload API
+  const handleDocUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setUploadingDoc(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      
+      const res = await apiRequest("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      
+      if (res?.url) {
+        setForm((prev) => ({ ...prev, docName: res.url }));
+        window.alert("Document uploaded successfully to Cloudinary!");
+      } else {
+        window.alert(res?.message || "Failed to upload document.");
+      }
+    } catch (err) {
+      console.error(err);
+      window.alert("Error uploading document to Cloudinary.");
+    } finally {
+      setUploadingDoc(false);
+    }
+  };
+
+  // Send a user reply to an active support ticket conversation
+  const handleUserSendReply = async () => {
+    if (!activeChatTicket || !userReplyText.trim()) return;
+    setSendingReply(true);
+    try {
+      const res = await apiRequest(`/api/support-tickets/${activeChatTicket._id || activeChatTicket.id}/messages`, {
+        method: "POST",
+        body: JSON.stringify({ text: userReplyText.trim() }),
+      });
+      if (res?.data) {
+        setActiveChatTicket(res.data);
+        setUserReplyText("");
+        fetchTickets(); // Refresh tickets list in background
+      }
+    } catch (err) {
+      console.error(err);
+      window.alert("Failed to send reply. Please try again.");
+    } finally {
+      setSendingReply(false);
     }
   };
 
@@ -388,33 +513,77 @@ const DashboardClaims = () => {
 
                 <div className="py-6 min-h-[300px]">
                   
-                  {/* Step 1: Select claim type */}
+                  {/* Step 1: Load purchased policies */}
                   {step === 0 && (
                     <div className="space-y-4">
-                      <div className="text-sm font-black text-slate-800 dark:text-slate-200">Select Claim Insurance Category</div>
-                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                        {["Health", "Car", "Life", "Travel", "Home", "Business"].map((t) => (
-                          <button
-                            key={t}
-                            onClick={() => setForm((p) => ({ ...p, type: t }))}
-                            className={`rounded-2xl border p-5 text-left transition-all relative ${
-                              form.type === t
-                                ? "border-blue-600 bg-blue-50/50 dark:bg-blue-950/20 text-blue-900 dark:text-blue-300 font-black shadow-sm ring-1 ring-blue-500"
-                                : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10 font-semibold"
-                            }`}
-                          >
-                            <span className="text-base block">{t} Claim</span>
-                            <span className="text-[10px] text-slate-400 block mt-1">File under {t} policies</span>
-                            {form.type === t && (
-                              <Check size={14} className="absolute top-4 right-4 text-blue-600" />
-                            )}
-                          </button>
-                        ))}
-                      </div>
+                      <div className="text-sm font-black text-slate-800 dark:text-slate-200">Select Purchased Policy for Claim</div>
+                      {loadingPurchases ? (
+                        <div className="text-center py-6 text-xs text-slate-500">Loading your policies...</div>
+                      ) : userPurchases.length === 0 ? (
+                        <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center dark:border-white/10 dark:bg-white/5">
+                          <p className="text-xs font-semibold text-slate-500">
+                            No active purchased policies found. You must purchase an insurance policy before filing a claim.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                          {userPurchases.map((p) => {
+                            const isSelected = form.purchaseId === p._id;
+                            const policyName = p.policy?.policyName || "Standard Insurance Plan";
+                            const companyName = p.policy?.companyName || "Agile Insurance";
+                            const category = p.policy?.category || "health";
+                            const policyNum = p.purchase_number || p.policyNumber || "N/A";
+                            return (
+                              <button
+                                key={p._id}
+                                onClick={async () => {
+                                  setForm((prev) => ({
+                                    ...prev,
+                                    purchaseId: p._id,
+                                    type: category.charAt(0).toUpperCase() + category.slice(1),
+                                  }));
+                                  // Fetch dynamic form fields from backend
+                                  try {
+                                    const res = await apiRequest(`/api/claims/form/${p._id}`);
+                                    if (res?.data) {
+                                      setDynamicFields(res.data.fields || []);
+                                      const initialData = {};
+                                      res.data.fields.forEach((f) => {
+                                        initialData[f.name] = "";
+                                      });
+                                      setForm((prev) => ({
+                                        ...prev,
+                                        claim_data: initialData,
+                                      }));
+                                    }
+                                  } catch (err) {
+                                    console.error("Failed to load claim config:", err);
+                                  }
+                                }}
+                                className={`rounded-2xl border p-5 text-left transition-all relative ${
+                                  isSelected
+                                    ? "border-blue-600 bg-blue-50/50 dark:bg-blue-950/20 text-blue-900 dark:text-blue-300 font-black shadow-sm ring-1 ring-blue-500"
+                                    : "border-slate-200 bg-white text-slate-800 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10 font-semibold"
+                                }`}
+                              >
+                                <span className="text-base block font-black">{policyName}</span>
+                                <span className="text-xs text-slate-500 block mt-1">Provider: {companyName}</span>
+                                <span className="text-[10px] text-slate-400 block mt-0.5">Policy #: {policyNum}</span>
+                                <span className="inline-block mt-2 rounded bg-slate-100 dark:bg-white/10 px-2.5 py-1 text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase">
+                                  {category}
+                                </span>
+                                {isSelected && (
+                                  <Check size={14} className="absolute top-4 right-4 text-blue-600" />
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   )}
-
-                  {/* Step 2: Fill smart form */}
+                  
+                  {/* Step 2: Fill smart form with dynamic inputs */}
                   {step === 1 && (
                     <div className="space-y-4">
                       <div className="text-sm font-black text-slate-800 dark:text-slate-200">Provide Claim Information</div>
@@ -432,30 +601,19 @@ const DashboardClaims = () => {
                           </div>
                         </label>
                         <label className="block space-y-2">
-                          <span className="text-xs font-bold text-slate-700 dark:text-slate-200">Incident Location / Facility Name</span>
+                          <span className="text-xs font-bold text-slate-700 dark:text-slate-200">Claim Amount (INR)</span>
                           <input
-                            type="text"
-                            value={form.location}
-                            onChange={(e) => setForm((p) => ({ ...p, location: e.target.value }))}
+                            value={form.amount}
+                            onChange={(e) => setForm((p) => ({ ...p, amount: e.target.value.replace(/[^\d]/g, "").slice(0, 8) }))}
                             className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none focus:border-blue-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
-                            placeholder="e.g. City General Hospital, wagholi junction"
+                            inputMode="numeric"
+                            placeholder="Enter estimated reimbursement or damage amount..."
                           />
                         </label>
                       </div>
 
                       <label className="block space-y-2">
-                        <span className="text-xs font-bold text-slate-700 dark:text-slate-200">Claim Amount (INR)</span>
-                        <input
-                          value={form.amount}
-                          onChange={(e) => setForm((p) => ({ ...p, amount: e.target.value.replace(/[^\d]/g, "").slice(0, 8) }))}
-                          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none focus:border-blue-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
-                          inputMode="numeric"
-                          placeholder="Enter estimated reimbursement or damage amount..."
-                        />
-                      </label>
-
-                      <label className="block space-y-2">
-                        <span className="text-xs font-bold text-slate-700 dark:text-slate-200">Incident Description</span>
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-200">Incident Description / Reason</span>
                         <textarea
                           value={form.description}
                           onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
@@ -463,6 +621,50 @@ const DashboardClaims = () => {
                           placeholder="Provide specific details about the loss/event..."
                         />
                       </label>
+
+                      {/* Render Dynamic Fields */}
+                      {dynamicFields.length > 0 && (
+                        <div className="mt-6 border-t border-slate-100 pt-5 space-y-4 dark:border-white/5">
+                          <div className="text-xs font-black text-slate-500 uppercase tracking-wider">Additional Category-Specific Information</div>
+                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            {dynamicFields.map((f) => (
+                              <label key={f.name} className="block space-y-2">
+                                <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{f.label}</span>
+                                {f.type === "textarea" ? (
+                                  <textarea
+                                    value={form.claim_data?.[f.name] || ""}
+                                    onChange={(e) => setForm((prev) => ({
+                                      ...prev,
+                                      claim_data: {
+                                        ...prev.claim_data,
+                                        [f.name]: e.target.value,
+                                      },
+                                    }))}
+                                    className="w-full min-h-[90px] rounded-2xl border border-slate-200 bg-white p-4 text-sm font-semibold text-slate-800 outline-none focus:border-blue-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
+                                    placeholder={`Enter ${f.label.toLowerCase()}...`}
+                                    required={f.required}
+                                  />
+                                ) : (
+                                  <input
+                                    type={f.type || "text"}
+                                    value={form.claim_data?.[f.name] || ""}
+                                    onChange={(e) => setForm((prev) => ({
+                                      ...prev,
+                                      claim_data: {
+                                        ...prev.claim_data,
+                                        [f.name]: e.target.value,
+                                      },
+                                    }))}
+                                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none focus:border-blue-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
+                                    placeholder={`Enter ${f.label.toLowerCase()}...`}
+                                    required={f.required}
+                                  />
+                                )}
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -485,14 +687,19 @@ const DashboardClaims = () => {
                             <input
                               type="file"
                               className="hidden"
-                              onChange={(e) => setForm((p) => ({ ...p, docName: e.target.files?.[0]?.name ?? "" }))}
+                              disabled={uploadingDoc}
+                              onChange={handleDocUpload}
                             />
-                            Choose PDF / File
+                            <FileUp size={18} />
+                            {uploadingDoc ? "Uploading to Cloudinary..." : "Choose PDF / File"}
                           </label>
                           {form.docName && (
-                            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-semibold text-emerald-800 flex items-center gap-2">
-                              <CheckCircle2 size={16} className="text-emerald-600" />
-                              Selected File: <span className="font-black">{form.docName}</span>
+                            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-semibold text-emerald-800 flex flex-col gap-1 items-center max-w-full">
+                              <div className="flex items-center gap-2">
+                                <CheckCircle2 size={16} className="text-emerald-600" />
+                                <span>File uploaded successfully!</span>
+                              </div>
+                              <span className="font-black truncate max-w-xs">{form.docName}</span>
                             </div>
                           )}
                         </div>
@@ -589,7 +796,9 @@ const DashboardClaims = () => {
                 </div>
 
                 <div className="mt-6 space-y-4">
-                  {claims.length === 0 ? (
+                  {loadingClaims ? (
+                    <div className="text-center py-10 text-xs text-slate-500">Loading your claims...</div>
+                  ) : claims.length === 0 ? (
                     <div className="rounded-3xl border border-slate-200 bg-slate-50 p-10 text-center dark:border-white/10 dark:bg-white/5">
                       <div className="mx-auto grid h-16 w-16 place-items-center rounded-3xl bg-blue-600/10 text-blue-700 dark:text-blue-300">
                         <Sparkles size={26} />
@@ -646,7 +855,7 @@ const DashboardClaims = () => {
 
                         {/* Action buttons */}
                         <div className="mt-5 flex flex-wrap gap-3 border-t border-slate-200 dark:border-white/5 pt-4">
-                          {c.status === "AI Verification" && (
+                          {c.status === "Pending" && (
                             <button
                               onClick={() => runAi(c.id)}
                               className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-3 text-xs font-black text-white hover:opacity-95 shadow-sm shadow-blue-500/10"
@@ -656,7 +865,7 @@ const DashboardClaims = () => {
                             </button>
                           )}
                           <button
-                            onClick={() => setClaims(readMyClaims())}
+                            onClick={fetchMyClaims}
                             className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-xs font-black text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
                           >
                             Refresh Status
@@ -798,44 +1007,117 @@ const DashboardClaims = () => {
                   </div>
                 </div>
 
-                {/* Users Active Tickets */}
+                 {/* Users Active Tickets */}
                 <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-white/5 sm:rounded-[2.6rem] sm:p-8">
-                  <div className="text-sm font-black text-slate-900 dark:text-white mb-4">Your Active Support Tickets</div>
-                  
-                  <div className="space-y-3">
-                    {loadingTickets ? (
-                      <div className="text-center py-6 text-xs text-slate-500">Loading active tickets...</div>
-                    ) : tickets.length === 0 ? (
-                      <div className="text-center py-6 text-xs text-slate-500">
-                        No support tickets raised yet. Fill the form above if you need help.
-                      </div>
-                    ) : (
-                      tickets.map((t) => (
-                        <div
-                          key={t._id || t.id}
-                          className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+                  {activeChatTicket ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-white/5">
+                        <button
+                          type="button"
+                          onClick={() => setActiveChatTicket(null)}
+                          className="inline-flex items-center gap-1.5 text-xs font-black text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400"
                         >
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">{t.subject}</span>
-                              <span className="rounded-full bg-blue-100 dark:bg-blue-900/40 px-2.5 py-0.5 text-[10px] font-bold text-blue-800 dark:text-blue-300">
-                                {t.priority} Priority
-                              </span>
-                            </div>
-                            <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1 truncate max-w-lg">
-                              Last Message: {t.messages?.[t.messages.length - 1]?.text || "No messages"}
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center gap-3">
-                            <span className="text-xs font-black bg-emerald-50 dark:bg-emerald-950/10 text-emerald-700 px-3 py-1.5 rounded-lg">
-                              Status: {t.status}
-                            </span>
-                          </div>
+                          &larr; Back to tickets list
+                        </button>
+                        <div className="flex gap-2">
+                          <span className="inline-block rounded-full bg-blue-100 dark:bg-blue-900/40 px-2.5 py-0.5 text-[10px] font-bold text-blue-800 dark:text-blue-300">
+                            {activeChatTicket.priority} Priority
+                          </span>
+                          <span className="inline-block rounded-full bg-emerald-100 dark:bg-emerald-900/40 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800 dark:text-emerald-300">
+                            Status: {activeChatTicket.status}
+                          </span>
                         </div>
-                      ))
-                    )}
-                  </div>
+                      </div>
+                      
+                      <div className="text-sm font-black text-slate-900 dark:text-white">
+                        Subject: {activeChatTicket.subject}
+                      </div>
+
+                      {/* Chat Messages Log */}
+                      <div className="max-h-[300px] overflow-y-auto space-y-3 p-3 bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-slate-100 dark:border-white/5">
+                        {(activeChatTicket.messages || []).map((msg, idx) => {
+                          const isMe = msg.senderRole === "user";
+                          const senderName = isMe ? "You" : "Agile Claim Admin";
+                          return (
+                            <div key={msg.id || msg._id || idx} className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}>
+                              <span className="text-[10px] font-bold text-slate-400 mb-1">{senderName}</span>
+                              <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-xs font-semibold ${isMe ? "bg-blue-600 text-white rounded-br-none" : "bg-white border border-slate-200 text-slate-800 dark:bg-slate-800 dark:border-white/10 dark:text-slate-100 rounded-bl-none"}`}>
+                                {msg.text}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Reply Input Form */}
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={userReplyText}
+                          onChange={(e) => setUserReplyText(e.target.value)}
+                          placeholder="Type your message..."
+                          onKeyDown={async (e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              await handleUserSendReply();
+                            }
+                          }}
+                          className="flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-semibold outline-none focus:border-blue-500 dark:border-white/10 dark:bg-slate-800 dark:text-white"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleUserSendReply}
+                          disabled={sendingReply || !userReplyText.trim()}
+                          className="rounded-2xl bg-blue-600 px-5 py-3 text-xs font-black text-white hover:bg-blue-700 disabled:opacity-50"
+                        >
+                          Send
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="text-sm font-black text-slate-900 dark:text-white mb-4">Your Active Support Tickets</div>
+                      
+                      <div className="space-y-3">
+                        {loadingTickets ? (
+                          <div className="text-center py-6 text-xs text-slate-500">Loading active tickets...</div>
+                        ) : tickets.length === 0 ? (
+                          <div className="text-center py-6 text-xs text-slate-500">
+                            No support tickets raised yet. Fill the form above if you need help.
+                          </div>
+                        ) : (
+                          tickets.map((t) => (
+                            <div
+                              key={t._id || t.id}
+                              onClick={() => {
+                                setActiveChatTicket(t);
+                                setUserReplyText("");
+                              }}
+                              className="rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 p-4 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10 cursor-pointer flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between transition-all"
+                            >
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">{t.subject}</span>
+                                  <span className="rounded-full bg-blue-100 dark:bg-blue-900/40 px-2.5 py-0.5 text-[10px] font-bold text-blue-800 dark:text-blue-300">
+                                    {t.priority} Priority
+                                  </span>
+                                </div>
+                                <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1 truncate max-w-lg">
+                                  Last Message: {t.messages?.[t.messages.length - 1]?.text || "No messages"}
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center gap-3">
+                                <span className="text-xs font-black bg-emerald-50 dark:bg-emerald-950/10 text-emerald-700 px-3 py-1.5 rounded-lg">
+                                  Status: {t.status}
+                                </span>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
               </motion.div>
             )}
