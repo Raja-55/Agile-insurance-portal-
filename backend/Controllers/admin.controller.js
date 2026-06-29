@@ -155,20 +155,96 @@ const deleteUser = catchAsync(async (req, res, next) => {
   res.status(200).json({ success: true, message: "User deleted successfully" });
 });
 
-
 const getPolicies = catchAsync(async (req, res) => {
   const policies = await Policy.find().populate("admin", "fullName email role").sort({ createdAt: -1 });
   res.status(200).json({ success: true, data: policies });
 });
 
-const getClaims = catchAsync(async (req, res) => {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const getClaims = catchAsync(async (req, res, next) => {
   const claims = await Claim.find()
-    .populate("user",    "fullName email phone role")
-    .populate("policy",  "policyName category companyName")
-    .populate("purchase")
+    .populate("user", "fullName email phone")
+    .populate("policy", "policyName category companyName")
+    .populate("purchase", "purchase_number")
     .sort({ createdAt: -1 });
-  res.status(200).json({ success: true, data: claims });
+  res.status(200).json({
+    success: true,
+    count: claims.length,
+    data: claims,
+  });
 });
+
+const updateClaim = catchAsync(async (req, res, next) => {
+  const { status, notes } = req.body;
+  const updateFields = {};
+  if (status) {
+    updateFields.claim_status = status;
+    updateFields.status = status === "submitted" ? "pending" : status;
+    updateFields.reviewed_at = new Date();
+  }
+  if (notes !== undefined) {
+    updateFields.admin_review = notes;
+    updateFields.notes = notes;
+  }
+
+  const claim = await Claim.findByIdAndUpdate(
+    req.params.id,
+    { $set: updateFields },
+    { new: true }
+  )
+    .populate("user", "fullName email")
+    .populate("policy", "policyName category");
+
+  if (!claim) return next(new AppError("Claim not found", 404));
+
+  res.status(200).json({ success: true, data: claim });
+});
+
+const deleteClaim = catchAsync(async (req, res, next) => {
+  const claim = await Claim.findByIdAndDelete(req.params.id);
+  if (!claim) return next(new AppError("Claim not found", 404));
+  res.status(200).json({ success: true, message: "Claim deleted successfully" });
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 const getPayments = catchAsync(async (req, res) => {
   const payments = await Payment.find().populate("user", "fullName email phone role").populate("policy").sort({ createdAt: -1 });
@@ -263,48 +339,6 @@ const reviewKyc = catchAsync(async (req, res, next) => {
   });
 });
 
-const updateClaim = catchAsync(async (req, res, next) => {
-  const { status, notes } = req.body;
-
- 
-  const validStatuses = ["pending", "reviewing", "approved", "rejected"];
-  if (status && !validStatuses.includes(status)) {
-    return next(new AppError("Invalid claim status. Must be one of: pending, reviewing, approved, rejected", 400));
-  }
-
-  const updateData = {};
-  if (status !== undefined) updateData.status = status;
-  if (notes  !== undefined) updateData.notes  = notes;
-  
-  const claim = await Claim.findByIdAndUpdate(
-    req.params.id,
-    updateData,
-    { new: true, runValidators: true }
- ).populate("user", "fullName email phone").populate("assignedAdmin", "fullName email");
-
-  if (!claim) {
-    return next(new AppError("Claim not found", 404));
-  }
-
-  res.status(200).json({
-    success: true,
-    message: "Claim updated successfully",
-    data: claim,
-  });
-});
-
-const deleteClaim = catchAsync(async (req, res, next) => {
-  const claim = await Claim.findByIdAndDelete(req.params.id);
-
-  if (!claim) {
-    return next(new AppError("Claim not found", 404));
-  }
-
-  res.status(200).json({
-    success: true,
-    message: "Claim deleted successfully",
-  });
-});
 
 const getSupportTicketsAdmin = catchAsync(async (req, res) => {
   const SupportTicket = require("../Models/contact.model");
