@@ -21,11 +21,11 @@ const adminSettingCards = [
   { id: "forms",         title: "Policy Forms",           description: "Generate forms for different policies.",                                        icon: ClipboardCheck },
   { id: "features",      title: "Manage Features",        description: "Generate features for different plans.",                                        icon: Edit3 },
   { id: "regulations",   title: "Policy Regulations",     description: "Define what will and will not be covered in plans.",                            icon: AlertTriangle },
-  { id: "seo",           title: "SEO Configuration",      description: "Configure meta title, description, and keywords.",                              icon: LineChart },
+  // { id: "seo",           title: "SEO Configuration",      description: "Configure meta title, description, and keywords.",                              icon: LineChart },
   { id: "pages",         title: "Manage Pages",           description: "Control dynamic and static pages of the system.",                               icon: FileText },
   { id: "kyc",           title: "KYC Setting",            description: "Configure client information fields.",                                          icon: ShieldCheck },
   { id: "social",        title: "Social Login Setting",   description: "Provide required social login information.",                                    icon: Users },
-  { id: "maintenance",   title: "Maintenance Mode",       description: "Enable or disable maintenance mode when required.",                             icon: Settings },
+  { id: "maintenanceMode",   title: "Maintenance Mode",       description: "Enable or disable maintenance mode when required.",                             icon: Settings },
 ];
 
 const settingFieldGroups = {
@@ -105,11 +105,11 @@ const settingFieldGroups = {
 
 
 
-  seo: [
-    { name: "metaTitle", label: "Meta Title", type: "text", defaultValue: "Agile Insurance Portal" },
-    { name: "metaDescription", label: "Meta Description", type: "textarea", defaultValue: "Compare, buy, and manage insurance policies online." },
-    { name: "keywords", label: "Meta Keywords", type: "textarea", defaultValue: "insurance, claims, policy, health insurance, car insurance" },
-  ],
+  // seo: [
+  //   { name: "metaTitle", label: "Meta Title", type: "text", defaultValue: "Agile Insurance Portal" },
+  //   { name: "metaDescription", label: "Meta Description", type: "textarea", defaultValue: "Compare, buy, and manage insurance policies online." },
+  //   { name: "keywords", label: "Meta Keywords", type: "textarea", defaultValue: "insurance, claims, policy, health insurance, car insurance" },
+  // ],
 
 
 
@@ -177,11 +177,20 @@ const settingFieldGroups = {
   //   { name: "terms", label: "Terms and Conditions", type: "textarea", defaultValue: "Policy terms are subject to verification and approval." },
   //   { name: "privacy", label: "Privacy Policy", type: "textarea", defaultValue: "Customer data is stored securely for insurance operations." },
   // ],
-  maintenance: [
-    { name: "enabled", label: "Maintenance Mode", type: "boolean", defaultValue: false },
-    { name: "message", label: "Maintenance Message", type: "textarea", defaultValue: "The portal is temporarily under maintenance. Please check back soon." },
-  ],
- 
+  maintenanceMode: [
+    {
+        name: "enabled",
+        label: "Maintenance Mode",
+        type: "boolean",
+        defaultValue: false
+    },
+    {
+        name: "message",
+        label: "Maintenance Message",
+        type: "textarea",
+        defaultValue: "The portal is temporarily under maintenance."
+    }
+]
  
 };
 
@@ -256,6 +265,7 @@ const SettingDetail = ({ card, onBack }) => {
       const res = await apiRequest("/api/admin/settings", {
         useAdminToken: true,
         method: "PATCH",
+
         body: JSON.stringify({ [card.id]: sectionValues }),
       });
       if (res?.data) dispatch(mergeSettings(res.data));

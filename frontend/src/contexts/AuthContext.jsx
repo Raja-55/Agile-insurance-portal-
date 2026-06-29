@@ -3,34 +3,34 @@ import { AuthContext } from "./authContextInstance";
 import { apiRequest, getToken, setToken } from "../utils/api";
 
 const STORAGE_SESSION = "agile_insurance_session_v1";
-const STORAGE_LEGACY = "agile_insurance_auth_v1";
-const STORAGE_USERS = "agile_insurance_users_v1";
-const STORAGE_PENDING = "agile_insurance_pending_user_v1";
+// const STORAGE_LEGACY = "agile_insurance_auth_v1";
+// const STORAGE_USERS = "agile_insurance_users_v1";
+// const STORAGE_PENDING = "agile_insurance_pending_user_v1";
 
-// Auth provider is now frontend-only and stores demo users in localStorage.
-const safeJsonParse = (value, fallback) => {
-  try {
-    return JSON.parse(value);
-  } catch {
-    return fallback;
-  }
-};
+// // Auth provider is now frontend-only and stores demo users in localStorage.
+// const safeJsonParse = (value, fallback) => {
+//   try {
+//     return JSON.parse(value);
+//   } catch {
+//     return fallback;
+//   }
+// };
 
-const readUsers = () => {
-  const users = safeJsonParse(localStorage.getItem(STORAGE_USERS), []);
-  // Keep old/corrupted localStorage values from breaking register/login array checks.
-  if (Array.isArray(users)) return users;
-  localStorage.setItem(STORAGE_USERS, JSON.stringify([]));
-  return [];
-};
+// const readUsers = () => {
+//   const users = safeJsonParse(localStorage.getItem(STORAGE_USERS), []);
+//   // Keep old/corrupted localStorage values from breaking register/login array checks.
+//   if (Array.isArray(users)) return users;
+//   localStorage.setItem(STORAGE_USERS, JSON.stringify([]));
+//   return [];
+// };
 
-const writeUsers = (users) => {
-  localStorage.setItem(STORAGE_USERS, JSON.stringify(users));
-};
+// const writeUsers = (users) => {
+//   localStorage.setItem(STORAGE_USERS, JSON.stringify(users));
+// };
 
 const normalizeUser = (user) => ({
   id: user?._id || user?.id || `usr_${Date.now()}`,
-  fullName: user?.fullName || user?.fullName || user?.name || "",
+  fullName: user?.fullName || user?.name || "",
   email: user?.email || "",
   phone: user?.phone || "",
   address: user?.address || "",
@@ -39,11 +39,13 @@ const normalizeUser = (user) => ({
   ...user,
 });
 
-const saveSession = (token, nextUser) => {
-  setToken(token || `frontend_demo_${Date.now()}`);
-  localStorage.setItem(STORAGE_SESSION, JSON.stringify({ user: nextUser }));
+const saveSession = (token, user) => {
+  setToken(token);
+  localStorage.setItem(
+    STORAGE_SESSION,
+    JSON.stringify({ user })
+  );
 };
-
 
 
 
@@ -51,21 +53,16 @@ const saveSession = (token, nextUser) => {
 // const createOtp = () => String(Math.floor(100000 + Math.random() * 900000));
 
 const bootstrapUser = () => {
-  const legacy = localStorage.getItem(STORAGE_LEGACY);
-  if (legacy) {
-    const parsed = safeJsonParse(legacy, null);
-    if (parsed?.user) {
-      localStorage.setItem(STORAGE_SESSION, JSON.stringify({ user: parsed.user }));
+    const session = localStorage.getItem(STORAGE_SESSION);
+
+    if (!session) return null;
+
+    try {
+        return JSON.parse(session).user;
+    } catch {
+        return null;
     }
-    localStorage.removeItem(STORAGE_LEGACY);
-  }
-
-  if (!getToken()) return null;
-  const sessionRaw = localStorage.getItem(STORAGE_SESSION);
-  const sessionParsed = sessionRaw ? safeJsonParse(sessionRaw, null) : null;
-  return sessionParsed?.user ?? null;
 };
-
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => bootstrapUser());
   const [bootstrapped] = useState(true);
@@ -121,28 +118,28 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Developer note: verification currently checks the pending localStorage record.
-  const verifyOtp = async ({ email, otp }) => {
-    const pending = safeJsonParse(localStorage.getItem(STORAGE_PENDING), null);
-    if (!pending || pending.email !== email) throw new Error("No pending registration found for this email.");
-    if (otp !== pending.otp) throw new Error("Invalid OTP. Enter the latest code sent to your email.");
+  // const verifyOtp = async ({ email, otp }) => {
+  //   const pending = safeJsonParse(localStorage.getItem(STORAGE_PENDING), null);
+  //   if (!pending || pending.email !== email) throw new Error("No pending registration found for this email.");
+  //   if (otp !== pending.otp) throw new Error("Invalid OTP. Enter the latest code sent to your email.");
 
-    const users = readUsers();
-    const verifiedUser = {
-      id: pending.id,
-      fullName: pending.fullName,
-      email: pending.email,
-      phone: pending.phone,
-      address: pending.address || "",
-      createdAt: pending.createdAt,
-    };
+  //   const users = readUsers();
+  //   const verifiedUser = {
+  //     id: pending.id,
+  //     fullName: pending.fullName,
+  //     email: pending.email,
+  //     phone: pending.phone,
+  //     address: pending.address || "",
+  //     createdAt: pending.createdAt,
+  //   };
 
-    writeUsers([...users, { ...verifiedUser, password: pending.password }]);
-    localStorage.removeItem(STORAGE_PENDING);
-    saveSession(`frontend_demo_${Date.now()}`, verifiedUser);
-    // saveSession(verifiedUser);
-    setUser(verifiedUser);
-    return verifiedUser;
-  };
+  //   writeUsers([...users, { ...verifiedUser, password: pending.password }]);
+  //   localStorage.removeItem(STORAGE_PENDING);
+  //   saveSession(`frontend_demo_${Date.now()}`, verifiedUser);
+  //   // saveSession(verifiedUser);
+  //   setUser(verifiedUser);
+  //   return verifiedUser;
+  // };
 
   const login = async ({ email, password }) => {
     const response = await apiRequest("/api/auth/login", {
@@ -178,6 +175,7 @@ export const AuthProvider = ({ children }) => {
     return googleUser;
   };
 
+
   const logout = async () => {
     try {
       await apiRequest("/api/auth/logout", { method: "POST", skipAuth: false });
@@ -185,9 +183,9 @@ export const AuthProvider = ({ children }) => {
       // Ignore backend logout errors and clear the local session anyway.
     }
 
-    setToken("");
-    localStorage.removeItem(STORAGE_SESSION);
-    setUser(null);
+    setToken(null);
+localStorage.removeItem(STORAGE_SESSION);
+setUser(null);
   };
 
   const value = useMemo(
@@ -196,9 +194,9 @@ export const AuthProvider = ({ children }) => {
       isAuthenticated: Boolean(user),
       bootstrapped,
       register,
-      verifyOtp,
+      // verifyOtp,
       login,
-      googleLogin,
+      // googleLogin,
       logout,
     }),
     [bootstrapped, user],

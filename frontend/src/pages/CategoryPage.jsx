@@ -12,7 +12,7 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
-import { getCategoryBySlug, getPoliciesByCategory } from "../data/catalog";
+import { getCategoryBySlug } from "../data/catalog";
 import { useAuth } from "../contexts/useAuth";
 import { apiRequest } from "../utils/api";
 
@@ -22,11 +22,25 @@ const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 
 const formatInr = (n) => `₹${Number(n).toLocaleString("en-IN")}`;
 
-const PolicyLogo = ({ brand }) => (
-  <div className={`h-12 w-12 rounded-2xl ${brand?.color || "bg-blue-600"} grid place-items-center text-white font-black`}>
-    {brand?.initials || "AI"}
-  </div>
-);
+const PolicyLogo = ({ brand }) => {
+  if (brand?.logo) {
+    return (
+      <img
+        src={brand.logo}
+        alt={brand.initials}
+        className="h-12 w-12 rounded-2xl object-cover border"
+      />
+    );
+  }
+
+  return (
+    <div
+      className={`h-12 w-12 rounded-2xl ${brand?.color} grid place-items-center text-white font-black`}
+    >
+      {brand?.initials}
+    </div>
+  );
+};
 
 const PolicyListingFooter = ({
   filteredCount,
@@ -312,7 +326,7 @@ const CategoryPage = () => {
   const { isAuthenticated } = useAuth();
   
   const category = getCategoryBySlug(categorySlug);
-  const [allPolicies, setAllPolicies] = useState(() => getPoliciesByCategory(categorySlug));
+  const [allPolicies, setAllPolicies] = useState([]);
   const [loadingPolicies, setLoadingPolicies] = useState(false);
   const [policiesError, setPoliciesError] = useState(null);
 
@@ -330,40 +344,61 @@ const CategoryPage = () => {
   };
 
   // Normalize backend policy object to frontend shape used by this page
-  const normalizePolicy = (p) => {
-    const company = p.companyName || p.company || p.company_brand || "Unknown";
-    const policyName = p.policy_name || p.policyName || p.name || "Policy";
-    const premiumMonthly = p.premium_amount || p.monthlyPremium || 0;
-    const coverageAmount = p.coverage_amount || p.coverageAmount || 0;
-    const rating = p.rating || 4.0;
-    const validityYears = p.validityYears || p.validity_years || 1;
-    const emiAvailable = !!p.emiAvailable;
-    const policyType = p.policyType || p.policy_type || "Standard";
-    const keyBenefits = p.features || p.keyBenefits || [];
+ const normalizePolicy = (p) => {
+  const company = p.companyName || "Unknown";
+  const policyName = p.policyName || "Policy";
 
-    const companyBrand = p.companyLogo
-      ? { initials: company.slice(0, 2).toUpperCase(), color: "bg-blue-600" }
-      : { initials: company.slice(0, 2).toUpperCase(), color: "bg-blue-600" };
+  const premiumMonthly =
+    p.monthlyPremium ??
+    p.premiumAmount ??
+    0;
 
-    return {
-      id: p._id || p.policy_number || `${company}_${policyName}`,
-      company,
-      companyBrand,
-      policyName,
-      premiumMonthly,
-      premiumLabel: formatInr(premiumMonthly),
-      coverageAmount,
-      coverageLabel: formatInr(coverageAmount),
-      claimSettlementRatio: p.claimRatio || p.claim_ratio || 90,
-      validityYears,
-      emiAvailable,
-      familyCoverage: p.familyCoverage || false,
-      policyType,
-      rating,
-      keyBenefits,
-      aiBadge: p.aiBadge || null,
-    };
+  const coverageAmount =
+    p.coverageAmount ?? 0;
+
+  return {
+    id: p._id,
+    company,
+
+    companyBrand: {
+      logo: p.companyLogo || "",
+      initials: company.substring(0, 2).toUpperCase(),
+      color: "bg-blue-600",
+    },
+
+    policyName,
+
+    premiumMonthly,
+    premiumLabel: formatInr(premiumMonthly),
+
+    coverageAmount,
+    coverageLabel: formatInr(coverageAmount),
+
+    claimSettlementRatio: p.claimRatio,
+
+    validityYears: p.validityYears,
+
+    emiAvailable: p.emiAvailable,
+
+    policyType: p.policyType,
+
+    rating: p.rating,
+
+    keyBenefits: p.features || [],
+
+    description: p.description,
+
+    category: p.category,
+
+    status: p.status,
+
+    isActive: p.isActive,
+
+    aiBadge: null,
+
+    familyCoverage: false,
   };
+};
 
   useEffect(() => {
     let mounted = true;
@@ -374,9 +409,12 @@ const CategoryPage = () => {
         const cat = mapSlugToCategory(categorySlug);
         const res = await apiRequest(`/api/policies/category/${encodeURIComponent(cat)}`);
         // backend returns { success, count, total, data: [policies] }
-        const apiPolicies = Array.isArray(res?.data) ? res.data : (Array.isArray(res?.policies) ? res.policies : []);
+        const apiPolicies = res.data || [];
         const normalized = apiPolicies.map(normalizePolicy);
+        // console.log("Normalized:", normalized);
+        
         if (mounted) setAllPolicies(normalized);
+        // console.log("State data:", normalized);
       } catch (err) {
         console.error("Failed to fetch policies for category", categorySlug, err);
         if (mounted) setPoliciesError(err.message || String(err));
@@ -413,8 +451,18 @@ const CategoryPage = () => {
 
   const [search, setSearch] = useState("");
   const [premiumRange, setPremiumRange] = useState([premiumMin, premiumMax]);
-
-
+  useEffect(() => {
+  if (allPolicies.length) {
+    setPremiumRange([premiumMin, premiumMax]);
+    setCoverageRange([coverageMin, coverageMax]);
+  }
+}, [
+  allPolicies,
+  premiumMin,
+  premiumMax,
+  coverageMin,
+  coverageMax,
+]);
   const [coverageRange, setCoverageRange] = useState([coverageMin, coverageMax]);
   const [claimMin, setClaimMin] = useState(90);
   const [policyType, setPolicyType] = useState("All");
@@ -447,24 +495,25 @@ const CategoryPage = () => {
     return ["All", ...Array.from(unique)];
   }, [allPolicies]);
 
-  const filtered = useMemo(() => {
-    const s = search.trim().toLowerCase();
-    let list = allPolicies.filter((p) => {
-      if (s && !`${p.company} ${p.policyName}`.toLowerCase().includes(s)) return false;
-      if (p.premiumMonthly < premiumRange[0] || p.premiumMonthly > premiumRange[1]) return false;
-      if (p.coverageAmount < coverageRange[0] || p.coverageAmount > coverageRange[1]) return false;
-      if (p.claimSettlementRatio < claimMin) return false;
-      if (policyType !== "All" && p.policyType !== policyType) return false;
-      if (emiOnly && !p.emiAvailable) return false;
-      if (familyOnly && !p.familyCoverage) return false;
-      return true;
-    });
+  // const filtered = useMemo(() => {
+  //   const s = search.trim().toLowerCase();
+  //   let list = allPolicies.filter((p) => {
+  //     if (s && !`${p.company} ${p.policyName}`.toLowerCase().includes(s)) return false;
+  //     if (p.premiumMonthly < premiumRange[0] || p.premiumMonthly > premiumRange[1]) return false;
+  //     if (p.coverageAmount < coverageRange[0] || p.coverageAmount > coverageRange[1]) return false;
+  //     if (p.claimSettlementRatio < claimMin) return false;
+  //     if (policyType !== "All" && p.policyType !== policyType) return false;
+  //     if (emiOnly && !p.emiAvailable) return false;
+  //     if (familyOnly && !p.familyCoverage) return false;
+  //     return true;
+  //   });
 
-    if (sortBy === "low-premium") list = [...list].sort((a, b) => a.premiumMonthly - b.premiumMonthly);
-    if (sortBy === "high-coverage") list = [...list].sort((a, b) => b.coverageAmount - a.coverageAmount);
-    if (sortBy === "best-rating") list = [...list].sort((a, b) => b.rating - a.rating);
-    return list;
-  }, [allPolicies, search, premiumRange, coverageRange, claimMin, policyType, sortBy, emiOnly, familyOnly]);
+  //   if (sortBy === "low-premium") list = [...list].sort((a, b) => a.premiumMonthly - b.premiumMonthly);
+  //   if (sortBy === "high-coverage") list = [...list].sort((a, b) => b.coverageAmount - a.coverageAmount);
+  //   if (sortBy === "best-rating") list = [...list].sort((a, b) => b.rating - a.rating);
+  //   return list;
+  // }, [allPolicies, search, premiumRange, coverageRange, claimMin, policyType, sortBy, emiOnly, familyOnly]);
+const filtered = allPolicies;
 
   const activeTags = useMemo(() => {
     const tags = [];
@@ -534,10 +583,10 @@ const CategoryPage = () => {
 
   if (loadingPolicies) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center bg-white px-4 py-16">
+      <div className="min-h-[60vh] flex items-center justify-center bg-white px-4 py-16 dark:bg-[#070B14]">
         <div className="text-center">
-          <div className="text-xl font-black text-slate-900">Loading policies…</div>
-          <div className="mt-2 text-sm text-slate-600">Fetching available plans from the server.</div>
+          <div className="text-xl font-black text-slate-900 dark:text-white">Loading policies…</div>
+          <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">Fetching available plans from the server.</div>
         </div>
       </div>
     );
@@ -545,10 +594,10 @@ const CategoryPage = () => {
 
   if (policiesError) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center bg-white px-4 py-16">
+      <div className="min-h-[60vh] flex items-center justify-center bg-white px-4 py-16 dark:bg-[#070B14]">
         <div className="text-center">
           <div className="text-xl font-black text-red-600">Failed to load policies</div>
-          <div className="mt-2 text-sm text-slate-600">{policiesError}</div>
+          <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">{policiesError}</div>
         </div>
       </div>
     );
@@ -557,7 +606,7 @@ const CategoryPage = () => {
 
 
   return (
-    <div className="bg-slate-50">
+    <div className="insurance-category-page bg-slate-50">
       <div className="relative overflow-hidden border-b border-slate-200 bg-white">
         <div className="pointer-events-none absolute -top-40 right-0 h-[520px] w-[520px] rounded-full bg-blue-600/10 blur-[110px]" />
         <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14">

@@ -8,6 +8,7 @@ const {
   getAllPoliciesAdmin,
   getPoliciesByCategory,
   getPolicyById,
+  deletePolicy,
 } = require("../controllers/policy.controller");
 
 const authenticateAdmin = require("../Middlewares/admin.middleware");
@@ -15,12 +16,14 @@ const authenticateAdmin = require("../Middlewares/admin.middleware");
 // Admin routes (login + admin role required) 
 router.post  ("/admin/create",   authenticateAdmin, createPolicy);
 router.put   ("/admin/:id",      authenticateAdmin, updatePolicy);
-router.delete("/admin/:id",      authenticateAdmin, deactivatePolicy);
+// router.delete("/admin/:id",      authenticateAdmin, deactivatePolicy);
+router.delete("/admin/:id",      authenticateAdmin, deletePolicy);
 router.get   ("/admin/all",      authenticateAdmin, getAllPoliciesAdmin);
 
 // ── User / public routes ─────────────────────────────────────────
 // NOTE: /category/:category must come before /:id
 // otherwise Express reads "category" as a Mongo ObjectId → CastError
+router.get("/", getPoliciesByCategory);
 router.get("/category/:category", getPoliciesByCategory);
 router.get("/:id",                getPolicyById);
 

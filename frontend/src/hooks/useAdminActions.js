@@ -32,7 +32,7 @@ export const useAdminActions = () => {
     };
     dispatch(addLog(entry));
     try {
-      if (localStorage.getItem("agile_insurance_admin_token")) {
+      if (getAdminToken()) {
         apiRequest("/api/admin/audit-logs", {
           useAdminToken: true,
           method: "POST",
@@ -94,7 +94,8 @@ export const useAdminActions = () => {
 
   // Backend data hydration
   const hydrateAllData = async () => {
-    const token = localStorage.getItem("agile_insurance_admin_token");
+    const token = getAdminToken();
+    
     if (!token) return;
 
     try {
@@ -107,6 +108,12 @@ export const useAdminActions = () => {
       ]);
 
       const backendUsers = usersRes?.data?.users || usersRes?.data?.data || usersRes?.data || [];
+      
+      
+      
+      
+      
+      
       dispatch(
   setUsers(
     backendUsers.map((u) => ({
@@ -125,14 +132,50 @@ export const useAdminActions = () => {
       const backendClaims = Array.isArray(claimsRes?.data) ? claimsRes.data : [];
       dispatch(setClaims(backendClaims.map((c) => ({
         id: c.claim_number || c._id,
-        user: c.user?.full_name || "Unknown",
-        policy: c.policy?.policy_name || c.claim_type || "Insurance",
-        amount: c.amount ? `INR ${Number(c.amount).toLocaleString("en-IN")}` : "INR 0",
-        status: c.status || "Pending",
-        officer: c.assignedAdmin?.full_name || selectedProfile.name,
+        user: c.user?.fullName || "Unknown",
+        policy: c.policy?.policyName || c.claim_type || "Insurance",
+        amount: c.claim_amount ? `INR ${Number(c.amount).toLocaleString("en-IN")}` : "INR 0",
+         status: c.status ? (c.status.charAt(0).toUpperCase() + c.status.slice(1)) : "Pending",
+        officer: c.assignedAdmin?.fullName || selectedProfile.name,
       }))));
 
-      const backendTickets = Array.isArray(supportRes?.data) ? supportRes.data : [];
+  
+      const backendTickets = Array.isArray(supportRes?.data)
+  ? supportRes.data
+  : [];
+
+dispatch(
+  setChats(
+    backendTickets.map((ticket) => ({
+      id: ticket._id, // MongoDB id
+
+      userId: ticket.user?._id,
+
+      userName:
+        ticket.user?.full_name ||
+        ticket.user?.name ||
+        "Unknown User",
+
+      userEmail:
+        ticket.user?.email || "",
+
+      subject: ticket.subject,
+
+      status: ticket.status,
+
+      priority: ticket.priority,
+
+      assignedAdmin: ticket.assignedAdmin,
+
+      messages: ticket.messages || [],
+
+      createdAt: ticket.createdAt,
+
+      updatedAt: ticket.updatedAt,
+    }))
+  )
+);
+      
       dispatch(setChats(backendTickets));
     } catch (err) {
       console.warn("Backend sync unavailable, using local data.", err);

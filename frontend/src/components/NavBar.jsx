@@ -128,7 +128,7 @@ const Navbar = () => {
     ];
 
     return (
-        <header className="w-full border-b border-gray-200 bg-white relative z-50">
+        <header className="relative z-50 w-full border-b border-gray-200 bg-white dark:border-white/10 dark:bg-[#070B14]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 min-h-[60px] py-2 flex items-center justify-between gap-3">
 
             {/* Left Side */}
@@ -143,11 +143,11 @@ const Navbar = () => {
                 />
 
                 <div className="min-w-0">
-                <h1 className="truncate text-base sm:text-2xl font-bold text-[#111827] leading-none">
+                <h1 className="truncate text-base sm:text-2xl font-bold text-[#111827] leading-none dark:text-white">
                     {portalName}
                 </h1>
 
-                <p className="hidden sm:block text-[11px] text-gray-500 mt-1 uppercase tracking-widest">
+                <p className="hidden sm:block text-[11px] text-gray-500 mt-1 uppercase tracking-widest dark:text-slate-400">
                     Smart & Secure Protection
                 </p>
                 </div>
@@ -157,7 +157,7 @@ const Navbar = () => {
             <nav className="hidden lg:flex items-center gap-10">
                 <button
                 onClick={() => handleNav("/")}
-                className="text-[15px] font-medium text-gray-700 hover:text-blue-600 transition"
+                className="text-[15px] font-medium text-gray-700 hover:text-blue-600 transition dark:text-slate-200 dark:hover:text-blue-300"
                 >
                 Home
                 </button>
@@ -169,20 +169,20 @@ const Navbar = () => {
                     onMouseEnter={() => setActiveDropdown(index)}
                     onMouseLeave={() => setActiveDropdown(null)}
                 >
-                    <button className="flex items-center gap-1 text-[15px] font-medium text-gray-700 hover:text-blue-600 transition">
+                    <button className="flex items-center gap-1 text-[15px] font-medium text-gray-700 hover:text-blue-600 transition dark:text-slate-200 dark:hover:text-blue-300">
                     {item.name}
                     <ChevronDown size={16} />
                     </button>
 
                     {/* Dropdown */}
                     {activeDropdown === index && (
-                    <div className="absolute left-0 w-[260px] bg-white rounded-2xl shadow-2xl border border-gray-100 p-4">
+                    <div className="absolute left-0 w-[260px] rounded-2xl border border-gray-100 bg-white p-4 shadow-2xl dark:border-white/10 dark:bg-[#0B1020]">
                         <div className="flex flex-col gap-2">
                         {item.dropdown.map((option, i) => (
                             <button
                             key={i}
                             onClick={() => handleNav(resolveRoute(option))}
-                            className="text-left px-4 py-3 rounded-xl text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition"
+                            className="text-left px-4 py-3 rounded-xl text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition dark:text-slate-200 dark:hover:bg-white/10 dark:hover:text-blue-300"
                             >
                             {option}
                             </button>
@@ -202,7 +202,7 @@ const Navbar = () => {
                 type="button"
                 aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
                 onClick={toggleMobileMenu}
-                className="inline-flex lg:hidden items-center justify-center rounded-xl border border-gray-200 p-2 text-gray-700"
+                className="inline-flex lg:hidden items-center justify-center rounded-xl border border-gray-200 p-2 text-gray-700 dark:border-white/10 dark:text-slate-100"
             >
                 {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
@@ -240,18 +240,18 @@ const Navbar = () => {
         </div>
 
         {mobileMenuOpen && (
-            <div className="border-t border-gray-100 bg-white lg:hidden">
+            <div className="border-t border-gray-100 bg-white lg:hidden dark:border-white/10 dark:bg-[#070B14]">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col gap-4">
                 <button
                 onClick={() => handleNav("/")}
-                className="text-left rounded-xl px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-blue-50 hover:text-blue-600"
+                className="text-left rounded-xl px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-blue-50 hover:text-blue-600 dark:text-slate-100 dark:hover:bg-white/10 dark:hover:text-blue-300"
                 >
                 Home
                 </button>
 
                 {navItems.map((item, index) => (
-                <div key={index} className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-gray-500 mb-3">
+                <div key={index} className="rounded-2xl border border-gray-100 bg-gray-50 p-4 dark:border-white/10 dark:bg-white/5">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-gray-500 mb-3 dark:text-slate-400">
                     {item.name}
                     </p>
                     <div className="flex flex-col gap-2">
@@ -259,7 +259,7 @@ const Navbar = () => {
                         <button
                         key={i}
                         onClick={() => handleNav(resolveRoute(option))}
-                        className="text-left rounded-xl px-3 py-2 text-sm text-gray-700 hover:bg-white hover:text-blue-600"
+                        className="text-left rounded-xl px-3 py-2 text-sm text-gray-700 hover:bg-white hover:text-blue-600 dark:text-slate-200 dark:hover:bg-white/10 dark:hover:text-blue-300"
                         >
                         {option}
                         </button>
@@ -291,18 +291,18 @@ const Navbar = () => {
 
         {/* Bottom trust-strip feature labels shown on extra-wide screens. */}
         {/* Bottom Quick Features */}
-        <div className="hidden xl:flex items-center justify-center gap-10 border-t border-gray-100 py-3 bg-[#f8fbff]">
-            <div className="flex items-center gap-2 text-sm text-gray-600">
+        <div className="hidden xl:flex items-center justify-center gap-10 border-t border-gray-100 py-3 bg-[#f8fbff] dark:border-white/10 dark:bg-white/5">
+            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-300">
             <ShieldCheck size={18} className="text-blue-600" />
             Trusted Insurance Protection
             </div>
 
-            <div className="flex items-center gap-2 text-sm text-gray-600">
+            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-300">
             <FileText size={18} className="text-blue-600" />
             Fast Claim Processing
             </div>
 
-            <div className="flex items-center gap-2 text-sm text-gray-600">
+            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-300">
             <Headphones size={18} className="text-blue-600" />
             24/7 Customer Support
             </div>

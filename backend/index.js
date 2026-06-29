@@ -8,7 +8,7 @@ dotenv.config({ path: ".env" });
 
 const appConfig = require("./Config/app.config");
 const connectDB = require("./db/connect");
-const errorHandler = require("./Middlewares/error.middleware");
+// const errorHandler = require("./Middlewares/error.middleware");
 const AppError = require("./Utils/appError");
 
 // Routes
@@ -19,12 +19,12 @@ const kycRoutes = require("./Routes/kyc.route");
 const supportRoutes = require("./Routes/support.route");
 const userProfileRoutes = require("./Routes/userProfile.route");
 const policyRoutes = require("./Routes/policy.routes");
-
+const adminSupportRoutes = require("./Routes/adminSupport.route");
 
 const PORT = appConfig.port;
-
-// Connect Database
-connectDB();
+const documentRoutes = require("./Routes/document.route");
+const claimRoutes = require("./Routes/claim.route");
+const uploadRoutes = require("./Routes/upload.route");
 
 // Middleware
 app.use(
@@ -79,7 +79,17 @@ app.use("/api/kyc", kycRoutes);
 app.use("/api/support", supportRoutes);
 app.use("/api/profile", userProfileRoutes);
 app.use("/api/policies", policyRoutes);
+app.use("/api/admin", adminSupportRoutes);
+app.use("/api/documents", documentRoutes);
 
+app.use("/api/claims", claimRoutes);
+app.use("/api/upload", uploadRoutes);
+const path = require("path");
+
+app.use(
+    "/uploads",
+    express.static(path.join(__dirname, "uploads"))
+);
 //404 handler 
 app.use((req, res) => {
   res.status(404).
@@ -91,13 +101,31 @@ app.use((req, res) => {
 
 // Global error handler
 app.use((err, req, res, next) => {
-  console.error('Server error:', err.stack);
-  res.status(err.status || 500).json({
-    success: false,
-    message: err.message || 'Internal server error',
+  console.error("Server error:", err);
+
+  console.log("err.statusCode =", err.statusCode, typeof err.statusCode);
+  console.log("err.status =", err.status, typeof err.status);
+
+  res.status(err.statusCode || 500).json({
+    status: err.status || "error",
+    message: err.message || "Internal Server Error",
   });
 });
+
 // Start Server
-app.listen(PORT, () => {
-  console.log(`Server is running on ${PORT}`);
-});
+const startServer = async () => {
+  try {
+    await connectDB();
+
+    console.log("MongoDB Connected");
+
+    app.listen(PORT, () => {
+      console.log(`Server is running on ${PORT}`);
+    });
+  } catch (err) {
+    console.error("Database connection failed:", err);
+    process.exit(1);
+  }
+};
+
+startServer();

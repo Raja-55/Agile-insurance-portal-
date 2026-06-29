@@ -77,11 +77,11 @@ const systemSettingsSchema = new mongoose.Schema(
 
 
     // SEO Configuration
-    seo: {
-      metaTitle: { type: String, default: "Agile Insurance Portal" },
-      metaDescription: { type: String, default: "" },
-      keywords: { type: String, default: "" },
-    },
+    // seo: {
+    //   metaTitle: { type: String, default: "Agile Insurance Portal" },
+    //   metaDescription: { type: String, default: "" },
+    //   keywords: { type: String, default: "" },
+    // },
 
     // Manage Frontend
     frontend: {
