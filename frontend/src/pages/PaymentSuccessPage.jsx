@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { BadgeCheck, Download, FileText, Home, Sparkles } from "lucide-react";
-import { load } from "../utils/storage";
-import { getPolicyById } from "../data/catalog";
+import { BadgeCheck, Download, FileText, Home, Sparkles, Loader2 } from "lucide-react";
+import { apiRequest } from "../utils/api";
 
 const formatInr = (n) => `₹${Number(n).toLocaleString("en-IN")}`;
 
@@ -86,13 +85,32 @@ const PaymentSuccessPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [countdown, setCountdown] = useState(5);
+  const [purchase, setPurchase] = useState(null);
+  const [policy, setPolicy] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const purchaseId = useMemo(() => new URLSearchParams(location.search).get("purchaseId") || "", [location.search]);
-  const purchase = useMemo(() => {
-    const purchases = load("purchases", []);
-    return purchases.find((p) => p.id === purchaseId) || null;
-  }, [purchaseId]);
-  const policy = useMemo(() => (purchase ? getPolicyById(purchase.policyId) : null), [purchase]);
+  const purchaseNumber = useMemo(
+    () => new URLSearchParams(location.search).get("purchaseNumber") || "",
+    [location.search],
+  );
+
+  useEffect(() => {
+    const fetchPurchase = async () => {
+      try {
+        const res = await apiRequest("/api/purchases/my");
+        const purchases = res?.data || [];
+        const match = purchases.find((p) => p.purchase_number === purchaseNumber) || purchases[0] || null;
+        setPurchase(match);
+        setPolicy(match?.policy || null);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPurchase();
+  }, [purchaseNumber]);
 
   useEffect(() => {
     if (!purchase) return;
@@ -103,6 +121,14 @@ const PaymentSuccessPage = () => {
       clearTimeout(redirect);
     };
   }, [purchase, navigate]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[70vh] items-center justify-center">
+        <Loader2 className="animate-spin text-blue-600" size={40} />
+      </div>
+    );
+  }
 
   if (!purchase || !policy) {
     return (
@@ -123,10 +149,13 @@ const PaymentSuccessPage = () => {
     );
   }
 
+  const totalPaid = purchase.payment?.final_amount || 0;
+  const invoiceNumber = purchase.payment?.invoice_number || "—";
+
   return (
     <div className="relative min-h-[85vh] overflow-hidden bg-gradient-to-b from-white to-slate-50 px-4 py-10 sm:px-6 sm:py-16">
       <div className="pointer-events-none absolute -top-40 left-1/2 h-[560px] w-[560px] -translate-x-1/2 rounded-full bg-blue-600/10 blur-[120px]" />
-      <Confetti seed={purchaseId || purchase.policyNumber || "agile"} />
+      <Confetti seed={purchaseNumber || purchase.purchase_number || "agile"} />
 
       <div className="mx-auto max-w-5xl">
         <motion.div
@@ -154,15 +183,15 @@ const PaymentSuccessPage = () => {
 
             <div className="w-full max-w-sm rounded-3xl border border-slate-200 bg-slate-50 p-5 sm:rounded-[2.5rem] sm:p-6">
               <div className="text-xs font-bold text-slate-500">Total paid</div>
-              <div className="mt-2 text-3xl font-black text-slate-900">{formatInr(purchase.amount)}</div>
+              <div className="mt-2 text-3xl font-black text-slate-900">{formatInr(totalPaid)}</div>
               <div className="mt-4 grid grid-cols-2 gap-3 text-xs font-semibold text-slate-600">
                 <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
                   <div className="text-[11px] font-bold text-slate-500">Invoice</div>
-                  <div className="mt-1 font-black text-slate-900">{purchase.invoiceNumber}</div>
+                  <div className="mt-1 font-black text-slate-900">{invoiceNumber}</div>
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
                   <div className="text-[11px] font-bold text-slate-500">Policy No.</div>
-                  <div className="mt-1 font-black text-slate-900">{purchase.policyNumber}</div>
+                  <div className="mt-1 font-black text-slate-900">{purchase.purchase_number}</div>
                 </div>
               </div>
             </div>
@@ -171,8 +200,8 @@ const PaymentSuccessPage = () => {
           <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
             {[
               { label: "Plan", value: policy.policyName },
-              { label: "Company", value: policy.company },
-              { label: "Coverage", value: policy.coverageLabel },
+              { label: "Company", value: policy.companyName },
+              { label: "Coverage", value: formatInr(policy.coverageAmount) },
             ].map((x) => (
               <div key={x.label} className="rounded-3xl border border-slate-200 bg-slate-50 p-5 sm:rounded-[2.2rem] sm:p-6">
                 <div className="text-xs font-bold text-slate-500">{x.label}</div>

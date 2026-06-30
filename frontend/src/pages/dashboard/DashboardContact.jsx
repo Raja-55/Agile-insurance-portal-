@@ -4,30 +4,7 @@ import { Clock3, Mail, MapPin, MessageCircle, PhoneCall, Send, ShieldCheck } fro
 import { FaWhatsapp } from "react-icons/fa";
 import { useAuth } from "../../contexts/useAuth";
 import { apiRequest } from "../../utils/api";
-// Support chat storage key in localStorage for persistence
-// const SUPPORT_CHAT_KEY = "agile_insurance_support_chats_v1";
 
-// Utility to safely parse JSON from localStorage
-// const safeJsonParse = (value, fallback) => {
-//   try {
-//     return JSON.parse(value);
-//   } catch {
-//     return fallback;
-//   }
-// };
-
-// // Load all support chats from localStorage
-// const readChats = () => {
-//   const chats = safeJsonParse(localStorage.getItem(SUPPORT_CHAT_KEY), []);
-//   return Array.isArray(chats) ? chats : [];
-// };
-
-// // Save all support chats to localStorage
-// const saveChats = (chats) => {
-//   localStorage.setItem(SUPPORT_CHAT_KEY, JSON.stringify(chats));
-// };
-
-// Contact information displayed on the contact page
 // Edit these details to update phone, email, and support information across the app
 const contactDetails = [
   {

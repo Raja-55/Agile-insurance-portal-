@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const authenticateAdmin = require("../Middlewares/admin.middleware");
+const authorizeAdmin = require("../Middlewares/authorizeAdmin");
 
 const {
   getDashboard,
@@ -35,10 +36,11 @@ const {
 } = require("../Controllers/admin.controller");
 const { getAllPurchases } = require("../Controllers/purchase.controller");
 
-const {registerAdmin, loginAdmin} = require("../Controllers/authAdmin.controller")
+const { createAdmin, getAllAdmins, updateAdminStatus, loginAdmin, getPublicRoster } = require("../Controllers/authAdmin.controller");
 
-
-router.post("/auth/register", registerAdmin);
+// Public: login only. Admin self-registration has been removed — new admin
+// accounts can only be created by a Super Admin from System Settings.
+router.get("/auth/public-roster", getPublicRoster);
 router.post("/auth/login", loginAdmin);
 router.get("/settings", getSystemSettings);
 router.use(authenticateAdmin);
@@ -50,6 +52,11 @@ router.patch("/profile/password", changeAdminPassword);
 
 
 router.patch("/settings", updateSystemSettings);
+
+// Admin Registration (System Settings > Admin Registration) — Super Admin only.
+router.get("/admins", authorizeAdmin("Super Admin"), getAllAdmins);
+router.post("/admins", authorizeAdmin("Super Admin"), createAdmin);
+router.patch("/admins/:id", authorizeAdmin("Super Admin"), updateAdminStatus);
 
 router.get("/dashboard", getDashboard);
 router.get("/users", getUsers);

@@ -297,7 +297,7 @@ gdprCookie: {
       default: true,
     },
 
-
+    
 
     // // Custom CSS
     // customCss: {

@@ -118,7 +118,7 @@ export const useAdminActions = () => {
   setUsers(
     backendUsers.map((u) => ({
       id: u._id || u.id,
-      name: u.full_name || u.fullName || u.name || "No Name",
+      name: u.fullName || u.fullName || u.name || "No Name",
       email: u.email || "",
       phone: u.phone || "Not Added",
       address: u.address || "Not Added",
@@ -152,7 +152,7 @@ dispatch(
       userId: ticket.user?._id,
 
       userName:
-        ticket.user?.full_name ||
+        ticket.user?.fullName ||
         ticket.user?.name ||
         "Unknown User",
 

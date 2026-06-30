@@ -1,11 +1,30 @@
-import { useMemo } from "react";
-import { Bell, ShieldCheck, Sparkles } from "lucide-react";
-import { load } from "../../utils/storage";
+import { useEffect, useMemo, useState } from "react";
+import { Bell, Loader2, ShieldCheck, Sparkles } from "lucide-react";
+import { apiRequest } from "../../utils/api";
 
 // Notification titles, alert body text, and empty/default notification copy are generated here.
 const DashboardNotifications = () => {
-  const purchases = useMemo(() => load("purchases", []), []);
-  const claims = useMemo(() => load("claims", []), []);
+  const [purchases, setPurchases] = useState([]);
+  const [claims, setClaims] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [purchasesRes, claimsRes] = await Promise.all([
+          apiRequest("/api/purchases/my"),
+          apiRequest("/api/claims/my"),
+        ]);
+        setPurchases(purchasesRes?.data || []);
+        setClaims(claimsRes?.data || []);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   const items = useMemo(() => {
     const list = [];
@@ -16,14 +35,14 @@ const DashboardNotifications = () => {
       list.push({
         type: "renewal",
         title: "Policy active",
-        body: `Your policy ${p.policyNumber} is active. Documents are available in Documents Center.`,
+        body: `Your policy ${p.purchase_number} is active. Documents are available in Documents Center.`,
       });
     });
     claims.slice(0, 3).forEach((c) => {
       list.push({
         type: "claim",
         title: "Claim update",
-        body: `Claim ${c.id} status: ${c.status}. Verification: ${c.aiStatus || "Pending"}.`,
+        body: `Claim ${c.claim_number} status: ${c.claim_status}. Verification: ${c.ai_status || "Pending"}.`,
       });
     });
     list.push({
@@ -33,6 +52,14 @@ const DashboardNotifications = () => {
     });
     return list;
   }, [purchases, claims]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <Loader2 className="animate-spin text-blue-600" size={40} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">

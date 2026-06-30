@@ -9,7 +9,6 @@ dotenv.config({ path: ".env" });
 const appConfig = require("./Config/app.config");
 const connectDB = require("./db/connect");
 // const errorHandler = require("./Middlewares/error.middleware");
-const AppError = require("./Utils/appError");
 
 // Routes
 const authRoutes = require("./Routes/auth.route");
@@ -25,6 +24,7 @@ const PORT = appConfig.port;
 const documentRoutes = require("./Routes/document.route");
 const claimRoutes = require("./Routes/claim.route");
 const uploadRoutes = require("./Routes/upload.route");
+const purchaseRoutes = require("./Routes/purchase.route");
 
 // Middleware
 app.use(
@@ -37,12 +37,6 @@ app.use(
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-
-
-// Body parsing
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
-
 // Rate limiting (100 req / 15 min per IP)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -50,18 +44,6 @@ const limiter = rateLimit({
   message: { success: false, message: 'Too many requests, please slow down.' },
 });
 app.use('/api/', limiter);
-// Request Logger Middleware
-// app.use((req, res, next) => {
-//   console.log("\n========== REQUEST ==========");
-//   console.log("Method:", req.method);
-//   console.log("URL:", req.originalUrl);
-//   console.log("Body:", req.body);
-//   console.log("Params:", req.params);
-//   console.log("Query:", req.query);
-//   console.log("=============================\n");
-
-//   next();
-// });
 
 // Health Check Route
 app.get("/health", (req, res) => {
@@ -84,6 +66,7 @@ app.use("/api/documents", documentRoutes);
 
 app.use("/api/claims", claimRoutes);
 app.use("/api/upload", uploadRoutes);
+app.use("/api/purchases", purchaseRoutes);
 const path = require("path");
 
 app.use(

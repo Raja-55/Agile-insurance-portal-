@@ -50,7 +50,7 @@ const getDashboard = catchAsync(async (req, res) => {
     data: {
       widgets: {
         totalUsers,
-        totalAgents,
+        // totalAgents,
         activePolicies,
         pendingClaims,
         totalRevenue: revenueAgg?.[0]?.total || 0,
@@ -355,7 +355,7 @@ const getSupportTicketsAdmin = catchAsync(async (req, res) => {
     return {
       id: ticket._id,
       userId: user._id || null,
-      userName: user.full_name || "Unknown user",
+      userName: user.fullName || "Unknown user",
       userEmail: user.email || "",
       userPhone: user.phone || "",
       subject: ticket.subject || "Support ticket",
@@ -364,7 +364,7 @@ const getSupportTicketsAdmin = catchAsync(async (req, res) => {
       assignedAdmin: assignedAdmin
         ? {
             _id: assignedAdmin._id || null,
-            full_name: assignedAdmin.full_name || assignedAdmin.name || "Unassigned",
+            fullName: assignedAdmin.fullName || assignedAdmin.name || "Unassigned",
             email: assignedAdmin.email || "",
           }
         : null,
@@ -393,7 +393,7 @@ const updateSupportTicket = catchAsync(async (req, res, next) => {
     req.params.id,
     { status, priority, assignedAdmin },
     { new: true }
-  ).populate("user", "full_name email").populate("assignedAdmin", "full_name email");
+  ).populate("user", "fullName email").populate("assignedAdmin", "fullName email");
 
   if (!ticket) {
     return next(new AppError("Support ticket not found", 404));

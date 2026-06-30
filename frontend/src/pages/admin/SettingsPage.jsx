@@ -1,8 +1,10 @@
 // src/components/pages/SettingsPage.jsx
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   Settings, UserCog, Bell, CreditCard, KeyRound, ClipboardCheck,
   Edit3, AlertTriangle, LineChart, FileText, ShieldCheck, Users, ArrowLeft, Search,
+  UserPlus, Loader2, CheckCircle2, ToggleLeft, ToggleRight,
 } from "lucide-react";
 import { SectionTitle } from "../../components/admin/shared";
 
@@ -11,6 +13,24 @@ import { useAdminActions } from "../../hooks/useAdminActions";
 import { apiRequest } from "../../utils/api";
 
 // ─── Static config ────────────────────────────────────────────────────────────
+
+// Mirrors Admin.PLATFORM_FEATURES on the backend (Models/admin.model.js) — the
+// list of platform areas a SuperAdmin can grant a new admin access to.
+const PLATFORM_FEATURES = [
+  { id: "users", label: "User Management" },
+  { id: "policies", label: "Policy Management" },
+  { id: "claims", label: "Claims Management" },
+  { id: "documents", label: "Document Vault" },
+  { id: "kyc", label: "KYC Requests" },
+  { id: "payments", label: "Payments & Purchases" },
+  { id: "support", label: "Support Tickets" },
+  { id: "audit_logs", label: "Audit Logs" },
+  { id: "settings", label: "System Settings" },
+];
+
+// Built-in roles shown by default in the role dropdown. SuperAdmin can still
+// type a brand-new role name into the same field (see "New Admin Role").
+const BUILT_IN_ROLES = ["Insurance Manager", "Claims Officer", "Support Executive"];
 
 const adminSettingCards = [
   { id: "general",       title: "General Setting",        description: "Configure the fundamental information of the site.",                             icon: Settings },
@@ -26,7 +46,18 @@ const adminSettingCards = [
   { id: "kyc",           title: "KYC Setting",            description: "Configure client information fields.",                                          icon: ShieldCheck },
   { id: "social",        title: "Social Login Setting",   description: "Provide required social login information.",                                    icon: Users },
   { id: "maintenanceMode",   title: "Maintenance Mode",       description: "Enable or disable maintenance mode when required.",                             icon: Settings },
+  // Only visible to Super Admin — rendered conditionally below, not part of
+  // the static grid everyone sees.
 ];
+
+const adminRegistrationCard = {
+  id: "adminRegistration",
+  title: "Admin Registration",
+  description: "Create new admin accounts and assign roles & platform access. Super Admin only.",
+  icon: UserPlus,
+};
+
+
 
 const settingFieldGroups = {
 
@@ -323,15 +354,292 @@ const SettingDetail = ({ card, onBack }) => {
   );
 };
 
+// ─── AdminRegistrationDetail (Super Admin only) ────────────────────────────────
+// Matches the design: "Admin Registration" lives inside System Settings and is
+// only reachable/usable by Super Admin. Replaces the old public registration
+// page. Form fields: Full Name, Email, Phone No., Password, Role, Accessible
+// Platform Features, "Add New Admin" button — plus a list of existing admins.
+
+const emptyAdminForm = { fullName: "", email: "", phone: "", password: "", role: "Support Executive", customRole: "", permissions: [] };
+
+const AdminRegistrationDetail = ({ onBack }) => {
+  const { panel, log } = useAdminActions();
+  const [admins, setAdmins] = useState([]);
+  const [loadingAdmins, setLoadingAdmins] = useState(true);
+  const [form, setForm] = useState(emptyAdminForm);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [updatingId, setUpdatingId] = useState(null);
+
+  const fetchAdmins = async () => {
+    setLoadingAdmins(true);
+    try {
+      const res = await apiRequest("/api/admin/admins", { useAdminToken: true });
+      setAdmins(res?.data || []);
+    } catch (err) {
+      setError(err?.message || "Could not load admin accounts.");
+    } finally {
+      setLoadingAdmins(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAdmins();
+  }, []);
+
+  const togglePermission = (id) => {
+    setForm((p) => ({
+      ...p,
+      permissions: p.permissions.includes(id) ? p.permissions.filter((x) => x !== id) : [...p.permissions, id],
+    }));
+  };
+
+  const resolvedRole = form.role === "__new__" ? form.customRole.trim() : form.role;
+
+  const validate = () => {
+    if (!form.fullName.trim()) return "Full Name is required.";
+    if (!form.email.trim()) return "Email is required.";
+    if (!/^\d{10}$/.test(form.phone.trim())) return "Enter a valid 10-digit phone number.";
+    if (!form.password || form.password.length < 6) return "Password must be at least 6 characters.";
+    if (!resolvedRole) return "Role is required.";
+    return "";
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+    const v = validate();
+    if (v) return setError(v);
+
+    setSubmitting(true);
+    try {
+      const res = await apiRequest("/api/admin/admins", {
+        useAdminToken: true,
+        method: "POST",
+        body: JSON.stringify({
+          fullName: form.fullName,
+          email: form.email,
+          phone: form.phone,
+          password: form.password,
+          role: resolvedRole,
+          permissions: form.permissions,
+        }),
+      });
+
+      if (res?.success) {
+        setSuccess(`${form.fullName} was added as ${resolvedRole}.`);
+        setForm(emptyAdminForm);
+        log(`/api/admin/admins -> created admin (${resolvedRole})`);
+        panel("Admin created", `${form.fullName} can now sign in as ${resolvedRole}.`);
+        fetchAdmins();
+      } else {
+        setError(res?.message || "Could not create admin.");
+      }
+    } catch (err) {
+      setError(err?.message || "Could not create admin.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const toggleActive = async (admin) => {
+    setUpdatingId(admin._id);
+    try {
+      await apiRequest(`/api/admin/admins/${admin._id}`, {
+        useAdminToken: true,
+        method: "PATCH",
+        body: JSON.stringify({ isActive: !admin.isActive }),
+      });
+      log(`/api/admin/admins/${admin._id} -> isActive=${!admin.isActive}`);
+      fetchAdmins();
+    } catch (err) {
+      setError(err?.message || "Could not update admin.");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  return (
+    <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <SectionTitle
+        icon={UserPlus}
+        title="Admin Registration"
+        action={
+          <button onClick={onBack} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-black text-slate-700 hover:bg-slate-50">
+            <ArrowLeft size={16} />Back to Settings
+          </button>
+        }
+      />
+
+      <div className="mt-4 rounded-lg bg-blue-50 px-4 py-3 text-sm font-bold leading-6 text-blue-800">
+        Only Super Admin can create new admin accounts and grant platform access. Admin self-registration has been removed from the login page.
+      </div>
+
+      <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_1.1fr]">
+        {/* Existing admins */}
+        <div>
+          <div className="text-sm font-black text-slate-900">Existing Admins</div>
+          {loadingAdmins ? (
+            <div className="mt-4 flex items-center gap-2 text-sm font-semibold text-slate-500">
+              <Loader2 className="animate-spin" size={18} />Loading…
+            </div>
+          ) : (
+            <div className="mt-3 space-y-3">
+              {admins.map((a) => (
+                <div key={a._id} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-black text-slate-900">{a.fullName}</div>
+                    <div className="truncate text-xs font-semibold text-slate-500">{a.email} • {a.role}</div>
+                    {Array.isArray(a.permissions) && a.permissions.length > 0 && (
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {a.permissions.map((p) => (
+                          <span key={p} className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-black text-blue-700">{p}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => toggleActive(a)}
+                    disabled={updatingId === a._id}
+                    title={a.isActive ? "Deactivate" : "Activate"}
+                    className="shrink-0 text-slate-500 hover:text-blue-700 disabled:opacity-50"
+                  >
+                    {a.isActive ? <ToggleRight size={28} className="text-emerald-600" /> : <ToggleLeft size={28} />}
+                  </button>
+                </div>
+              ))}
+              {!admins.length && <div className="rounded-lg border border-dashed border-slate-200 p-4 text-sm font-semibold text-slate-400">No admin accounts yet.</div>}
+            </div>
+          )}
+        </div>
+
+        {/* Add new admin form */}
+        <form onSubmit={handleSubmit} className="rounded-lg border border-slate-200 bg-white p-5">
+          <div className="text-sm font-black text-slate-900">Add New Admin</div>
+
+          <div className="mt-4 space-y-4">
+            {[
+              ["Full Name", "text", "fullName"],
+              ["Email", "email", "email"],
+              ["Phone No.", "text", "phone"],
+              ["Password", "password", "password"],
+            ].map(([label, type, key]) => (
+              <label key={key} className="block">
+                <span className="text-xs font-black uppercase tracking-wide text-slate-500">{label}</span>
+                <input
+                  type={type}
+                  required
+                  className="mt-2 h-12 w-full rounded-lg border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-blue-500"
+                  value={form[key]}
+                  onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))}
+                />
+              </label>
+            ))}
+
+            <label className="block">
+              <span className="text-xs font-black uppercase tracking-wide text-slate-500">Role</span>
+              <select
+                className="mt-2 h-12 w-full rounded-lg border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-blue-500"
+                value={form.role}
+                onChange={(e) => setForm((p) => ({ ...p, role: e.target.value }))}
+              >
+                {BUILT_IN_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+                <option value="Super Admin">Super Admin</option>
+                <option value="__new__">+ New Admin Role…</option>
+              </select>
+            </label>
+
+            {form.role === "__new__" && (
+              <label className="block">
+                <span className="text-xs font-black uppercase tracking-wide text-slate-500">New Role Name</span>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Underwriting Lead"
+                  className="mt-2 h-12 w-full rounded-lg border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none focus:border-blue-500"
+                  value={form.customRole}
+                  onChange={(e) => setForm((p) => ({ ...p, customRole: e.target.value }))}
+                />
+              </label>
+            )}
+
+            <div>
+              <span className="text-xs font-black uppercase tracking-wide text-slate-500">Accessible Platform Features</span>
+              <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {PLATFORM_FEATURES.map((f) => (
+                  <label key={f.id} className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={form.permissions.includes(f.id)}
+                      onChange={() => togglePermission(f.id)}
+                      className="h-4 w-4 cursor-pointer rounded border-slate-300"
+                    />
+                    {f.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {error && <div className="rounded-lg bg-rose-50 px-3 py-2 text-sm font-bold text-rose-700">{error}</div>}
+            {success && (
+              <div className="flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-700">
+                <CheckCircle2 size={16} />{success}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 text-sm font-black text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+            >
+              {submitting ? <Loader2 className="animate-spin" size={18} /> : <UserPlus size={18} />}
+              Add New Admin
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+  );
+};
+
 // ─── SettingsPage (card grid) ─────────────────────────────────────────────────
 
 const SettingsPage = () => {
   const dispatch = useDispatch();
   const { activePage } = useSelector((s) => s.ui);
   const { selectedSettingId } = useSelector((s) => s.settings);
+  const { selectedProfile } = useSelector((s) => s.auth);
+  const isSuperAdmin = selectedProfile?.role === "Super Admin";
+
+  const visibleCards = isSuperAdmin ? [...adminSettingCards, adminRegistrationCard] : adminSettingCards;
 
   // Show detail view when activePage is "setting-detail"
   if (activePage === "setting-detail") {
+    if (selectedSettingId === "adminRegistration") {
+      // Defense in depth: even if a non-SuperAdmin somehow lands here (e.g. a
+      // stale deep link), don't render the panel — the backend route is
+      // SuperAdmin-gated too, but this avoids exposing the UI at all.
+      if (!isSuperAdmin) {
+        return (
+          <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+            <SectionTitle icon={ShieldCheck} title="Access restricted" />
+            <div className="mt-4 rounded-lg bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">
+              Admin Registration is only accessible to Super Admin.
+            </div>
+            <button
+              onClick={() => dispatch({ type: "ui/setActivePage", payload: "settings" })}
+              className="mt-4 inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-black text-slate-700 hover:bg-slate-50"
+            >
+              <ArrowLeft size={16} />Back to Settings
+            </button>
+          </section>
+        );
+      }
+      return <AdminRegistrationDetail onBack={() => dispatch({ type: "ui/setActivePage", payload: "settings" })} />;
+    }
+
     const card = adminSettingCards.find((c) => c.id === selectedSettingId) || adminSettingCards[0];
     return (
       <SettingDetail
@@ -352,7 +660,7 @@ const SettingsPage = () => {
         </div>
 
         <div className="mt-5 grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-          {adminSettingCards.map((card) => {
+          {visibleCards.map((card) => {
             const Icon = card.icon;
             return (
               <button
