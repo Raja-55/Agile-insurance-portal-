@@ -25,6 +25,13 @@ const Navbar = () => {
     const { isAuthenticated, user } = useAuth();
     const [portalName, setPortalName] = useState("Agile Insurance");
     const [supportPhone, setSupportPhone] = useState("+91 98765 43210");
+    const [policyForms, setPolicyForms] = useState({
+        healthForm: true,
+        motorForm: true,
+        lifeForm: true,
+        travelForm: true,
+        businessForm: true,
+    });
 
     useEffect(() =>{
         const fetchSettings = async () =>{
@@ -38,7 +45,15 @@ const Navbar = () => {
             setSupportPhone(
                 settings?.general?.supportPhone || "+91 98765 43210"
             );
-
+            setPolicyForms(
+                settings?.policyForms || {
+                    healthForm: true,
+                    motorForm: true,
+                    lifeForm: true,
+                    travelForm: true,
+                    businessForm: true,
+                }
+            );
         }
         catch(error){
             console.error(
@@ -82,20 +97,22 @@ const Navbar = () => {
 
         return null;
     };
+  
+
+    const insuranceDropdown = [
+  policyForms.healthForm && "Health Insurance",
+  policyForms.motorForm && "Car Insurance",
+  policyForms.lifeForm && "Life Insurance",
+  policyForms.travelForm && "Travel Insurance",
+  policyForms.businessForm && "Business Insurance",
+].filter(Boolean);
 
     // Desktop and mobile navigation labels/dropdown items are controlled from this array.
     const navItems = [
         {
-        name: "Insurance Products",
-        dropdown: [
-            "Health Insurance",
-            "Car Insurance",
-            "Bike Insurance",
-            "Life Insurance",
-            "Travel Insurance",
-            "Business Insurance",
-        ],
-        },
+    name: "Insurance Products",
+    dropdown: insuranceDropdown,
+  },
         {
         name: "Renew Your Policy",
         dropdown: [

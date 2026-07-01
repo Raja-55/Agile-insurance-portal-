@@ -56,17 +56,6 @@ const policySchema = new mongoose.Schema(
   },
 },
 
-    // policyType: {
-    //   type: String,
-    //   required: true,
-    //   trim: true,
-    // },
-
-
-    // description:{
-    //   type: String,
-    //   require:true,
-    // },
     claim:{
       type: mongoose.Schema.Types.ObjectId,
       ref:"Claim",
@@ -83,7 +72,6 @@ const policySchema = new mongoose.Schema(
       type: String,
       required: [true, 'Policy type is required'],
       trim: true,
-      // e.g. "Comprehensive", "Term", "Floater"
     },
 
   features: {

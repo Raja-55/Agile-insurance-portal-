@@ -14,8 +14,6 @@ import { apiRequest } from "../../utils/api";
 
 // ─── Static config ────────────────────────────────────────────────────────────
 
-// Mirrors Admin.PLATFORM_FEATURES on the backend (Models/admin.model.js) — the
-// list of platform areas a SuperAdmin can grant a new admin access to.
 const PLATFORM_FEATURES = [
   { id: "users", label: "User Management" },
   { id: "policies", label: "Policy Management" },
@@ -28,8 +26,7 @@ const PLATFORM_FEATURES = [
   { id: "settings", label: "System Settings" },
 ];
 
-// Built-in roles shown by default in the role dropdown. SuperAdmin can still
-// type a brand-new role name into the same field (see "New Admin Role").
+
 const BUILT_IN_ROLES = ["Insurance Manager", "Claims Officer", "Support Executive"];
 
 const adminSettingCards = [
@@ -38,16 +35,15 @@ const adminSettingCards = [
   { id: "notifications", title: "Notification Setting",   description: "Control and configure overall notification elements of the system.",             icon: Bell },
   { id: "paymentGateways",       title: "Payment Gateways",       description: "Configure automatic or manual payment gateways to accept payment from users.",   icon: CreditCard },
   { id: "withdrawals",   title: "Withdrawals Methods",    description: "Set up manual withdrawal methods for payout requests.",                         icon: KeyRound },
-  { id: "forms",         title: "Policy Forms",           description: "Generate forms for different policies.",                                        icon: ClipboardCheck },
+{ id: "policyForms", title: "Policy Forms", description: "Generate forms for different policies.", icon: ClipboardCheck },
+
   { id: "features",      title: "Manage Features",        description: "Generate features for different plans.",                                        icon: Edit3 },
   { id: "regulations",   title: "Policy Regulations",     description: "Define what will and will not be covered in plans.",                            icon: AlertTriangle },
-  // { id: "seo",           title: "SEO Configuration",      description: "Configure meta title, description, and keywords.",                              icon: LineChart },
   { id: "pages",         title: "Manage Pages",           description: "Control dynamic and static pages of the system.",                               icon: FileText },
   { id: "kyc",           title: "KYC Setting",            description: "Configure client information fields.",                                          icon: ShieldCheck },
   { id: "social",        title: "Social Login Setting",   description: "Provide required social login information.",                                    icon: Users },
   { id: "maintenanceMode",   title: "Maintenance Mode",       description: "Enable or disable maintenance mode when required.",                             icon: Settings },
-  // Only visible to Super Admin — rendered conditionally below, not part of
-  // the static grid everyone sees.
+  
 ];
 
 const adminRegistrationCard = {
@@ -56,8 +52,6 @@ const adminRegistrationCard = {
   description: "Create new admin accounts and assign roles & platform access. Super Admin only.",
   icon: UserPlus,
 };
-
-
 
 const settingFieldGroups = {
 
@@ -68,13 +62,6 @@ const settingFieldGroups = {
     { name: "serviceTaxRate", label: "Service Tax Rate (%)", type: "number", defaultValue: 18 },
   ],
 
-
-
-  // branding: [
-  //   { name: "logo", label: "Logo", type: "file", accept: "image/*", defaultValue: "" },
-  //   { name: "favicon", label: "Favicon", type: "file", accept: "image/*", defaultValue: "" },
-  //   { name: "brandColor", label: "Brand Color", type: "color", defaultValue: "#2563eb" },
-  // ],
   configuration: [
     { name: "claimsModule", label: "Claims Module", type: "boolean", defaultValue: true },
     { name: "paymentsModule", label: "Payments Module", type: "boolean", defaultValue: true },
@@ -82,16 +69,12 @@ const settingFieldGroups = {
     { name: "supportModule", label: "Support Center", type: "boolean", defaultValue: true },
   ],
 
-
-
   notifications: [
     { name: "emailEnabled", label: "Email Notifications", type: "boolean", defaultValue: true },
     { name: "smsEnabled", label: "SMS Notifications", type: "boolean", defaultValue: true },
     { name: "pushEnabled", label: "Push Notifications", type: "boolean", defaultValue: false },
     { name: "renewalReminderDays", label: "Renewal Reminder Days", type: "number", defaultValue: 15 },
   ],
-
-
 
   paymentGateways: [
     { name: "netBanking", label: "Net Banking", type: "boolean", defaultValue: true },
@@ -101,8 +84,6 @@ const settingFieldGroups = {
     { name: "minimumPayment", label: "Minimum Payment", type: "number", defaultValue: 500 },
   ],
 
-
-
   withdrawals: [
     { name: "bankTransfer", label: "Bank Transfer", type: "boolean", defaultValue: true },
     { name: "upiPayout", label: "UPI Payout", type: "boolean", defaultValue: true },
@@ -111,12 +92,14 @@ const settingFieldGroups = {
   ],
 
 
-
-  forms: [
+  policyForms: [
     { name: "healthForm", label: "Health Policy Form", type: "boolean", defaultValue: true },
     { name: "motorForm", label: "Motor Policy Form", type: "boolean", defaultValue: true },
     { name: "lifeForm", label: "Life Policy Form", type: "boolean", defaultValue: true },
     { name: "requiredFields", label: "Required Fields", type: "textarea", defaultValue: "Full name, phone, email, policy type, ID proof" },
+    { name: "travelForm", label: "Travel Policy Form", type: "boolean", defaultValue: true },
+    { name: "businessForm", label: "Business Policy Form", type: "boolean", defaultValue: true }
+    
   ],
 
 
@@ -134,21 +117,6 @@ const settingFieldGroups = {
     { name: "highValueReviewAmount", label: "High Value Review Amount", type: "number", defaultValue: 100000 },
   ],
 
-
-
-  // seo: [
-  //   { name: "metaTitle", label: "Meta Title", type: "text", defaultValue: "Agile Insurance Portal" },
-  //   { name: "metaDescription", label: "Meta Description", type: "textarea", defaultValue: "Compare, buy, and manage insurance policies online." },
-  //   { name: "keywords", label: "Meta Keywords", type: "textarea", defaultValue: "insurance, claims, policy, health insurance, car insurance" },
-  // ],
-
-
-
-  // frontend: [
-  //   { name: "heroTitle", label: "Home Hero Title", type: "text", defaultValue: "Smart Insurance for Every Need" },
-  //   { name: "primaryCta", label: "Primary CTA", type: "text", defaultValue: "Explore Policies" },
-  //   { name: "showTestimonials", label: "Show Testimonials", type: "boolean", defaultValue: true },
-  // ],
   pages: [
   { name: "aboutPage", label: "About Page", type: "boolean", defaultValue: true },
   { name: "contactPage", label: "Contact Page", type: "boolean", defaultValue: true },
@@ -188,26 +156,12 @@ const settingFieldGroups = {
     { name: "autoRejectIncomplete", label: "Auto Reject Incomplete KYC", type: "boolean", defaultValue: false },
   ],
 
-
-
   social: [
     { name: "googleLogin", label: "Google Login", type: "boolean", defaultValue: true },
     { name: "facebookLogin", label: "Facebook Login", type: "boolean", defaultValue: false },
     { name: "clientId", label: "OAuth Client ID", type: "text", defaultValue: "" },
   ],
-  // language: [
-  //   { name: "defaultLanguage", label: "Default Language", type: "select", defaultValue: "English", options: ["English", "Hindi", "Tamil", "Bengali"] },
-  //   { name: "multiLanguage", label: "Enable Multi Language", type: "boolean", defaultValue: false },
-  // ],
-  // extensions: [
-  //   { name: "analytics", label: "Analytics Extension", type: "boolean", defaultValue: true },
-  //   { name: "chatbot", label: "Chatbot Extension", type: "boolean", defaultValue: true },
-  //   { name: "documentScanner", label: "Document Scanner", type: "boolean", defaultValue: false },
-  // ],
-  // policyPages: [
-  //   { name: "terms", label: "Terms and Conditions", type: "textarea", defaultValue: "Policy terms are subject to verification and approval." },
-  //   { name: "privacy", label: "Privacy Policy", type: "textarea", defaultValue: "Customer data is stored securely for insurance operations." },
-  // ],
+  
   maintenanceMode: [
     {
         name: "enabled",
@@ -224,8 +178,6 @@ const settingFieldGroups = {
 ]
  
 };
-
-// ─── Field value helpers ───────────────────────────────────────────────────────
 
 const getValue = (data, settingId, field) => {
   return data?.modules?.[settingId]?.[field.name]

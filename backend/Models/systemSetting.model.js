@@ -50,14 +50,18 @@ const systemSettingsSchema = new mongoose.Schema(
 
 
     // Policy Forms
-    policyForms: {
-      healthInsurance: { type: Boolean, default: true },
-      vehicleInsurance: { type: Boolean, default: true },
-      lifeInsurance: { type: Boolean, default: true },
-    //   homeInsurance: { type: Boolean, default: false },
-        requiredFields: { type: [String], default: ["full_name", "email", "phone", "dob", "gender", "address"] },
-      },
-
+    // Policy Forms
+policyForms: {
+  healthForm: { type: Boolean, default: true },
+  motorForm: { type: Boolean, default: true },
+  lifeForm: { type: Boolean, default: true },
+  travelForm: { type: Boolean, default: true },
+  businessForm: { type: Boolean, default: true },
+  requiredFields: {
+    type: [String],
+    default: ["fullName", "email", "phone", "dob", "gender", "address"],
+  },
+},
 
     //   Manage Features
     features: {
@@ -76,14 +80,7 @@ const systemSettingsSchema = new mongoose.Schema(
     },  
 
 
-    // SEO Configuration
-    // seo: {
-    //   metaTitle: { type: String, default: "Agile Insurance Portal" },
-    //   metaDescription: { type: String, default: "" },
-    //   keywords: { type: String, default: "" },
-    // },
-
-    // Manage Frontend
+  
     frontend: {
         homeHeroTitle: {
       type: String,
@@ -297,13 +294,7 @@ gdprCookie: {
       default: true,
     },
 
-    
-
-    // // Custom CSS
-    // customCss: {
-    //   type: String,
-    //   default: "",
-    // },
+  
     },
     {
       timestamps: true,
