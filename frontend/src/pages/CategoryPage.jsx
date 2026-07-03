@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BadgeCheck,
@@ -12,7 +12,7 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
-import { getCategoryBySlug } from "../data/catalog";
+import { getCategoryBySlug, getPoliciesByCategory } from "../data/catalog";
 import { useAuth } from "../contexts/useAuth";
 import { apiRequest } from "../utils/api";
 
@@ -95,7 +95,7 @@ const PolicyListingFooter = ({
     className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-4 py-2.5 text-sm font-black text-white transition hover:bg-white/15"
   >
     <Bot size={17} />
-    Ask AI
+    Request support
   </button>
 )}
 
@@ -149,8 +149,8 @@ const FiltersPanel = ({
       {/* Filter labels/placeholders/sort options are visible UI copy. */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="text-sm font-black text-slate-900">Smart Filters</div>
-          <div className="text-xs font-semibold text-slate-500">AI-ready plan discovery</div>
+          <div className="text-sm font-black text-slate-900">Plan Filters</div>
+          <div className="text-xs font-semibold text-slate-500">Compare plans by premium, coverage, and claim ratio</div>
         </div>
         {onClose ? (
           <button onClick={onClose} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700">
@@ -400,35 +400,14 @@ const CategoryPage = () => {
   };
 };
 
-  useEffect(() => {
-    let mounted = true;
-    const fetchPolicies = async () => {
-      setLoadingPolicies(true);
-      setPoliciesError(null);
-      try {
-        const cat = mapSlugToCategory(categorySlug);
-        const res = await apiRequest(`/api/policies/category/${encodeURIComponent(cat)}`);
-        // backend returns { success, count, total, data: [policies] }
-        const apiPolicies = res.data || [];
-        const normalized = apiPolicies.map(normalizePolicy);
-        // console.log("Normalized:", normalized);
-        
-        if (mounted) setAllPolicies(normalized);
-        // console.log("State data:", normalized);
-      } catch (err) {
-        console.error("Failed to fetch policies for category", categorySlug, err);
-        if (mounted) setPoliciesError(err.message || String(err));
-      } finally {
-        if (mounted) setLoadingPolicies(false);
-      }
-    };
-
-    fetchPolicies();
-    return () => (mounted = false);
-  }, [categorySlug]);
-
+  const [searchParams] = useSearchParams();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [compareIds, setCompareIds] = useState([]);
+
+  useEffect(() => {
+    if (!categorySlug) return;
+    setAllPolicies(getPoliciesByCategory(categorySlug));
+  }, [categorySlug]);
 
   const premiumMin = useMemo(() => {
     if (!allPolicies || !allPolicies.length) return 0;
@@ -495,25 +474,36 @@ const CategoryPage = () => {
     return ["All", ...Array.from(unique)];
   }, [allPolicies]);
 
-  // const filtered = useMemo(() => {
-  //   const s = search.trim().toLowerCase();
-  //   let list = allPolicies.filter((p) => {
-  //     if (s && !`${p.company} ${p.policyName}`.toLowerCase().includes(s)) return false;
-  //     if (p.premiumMonthly < premiumRange[0] || p.premiumMonthly > premiumRange[1]) return false;
-  //     if (p.coverageAmount < coverageRange[0] || p.coverageAmount > coverageRange[1]) return false;
-  //     if (p.claimSettlementRatio < claimMin) return false;
-  //     if (policyType !== "All" && p.policyType !== policyType) return false;
-  //     if (emiOnly && !p.emiAvailable) return false;
-  //     if (familyOnly && !p.familyCoverage) return false;
-  //     return true;
-  //   });
+  useEffect(() => {
+    const requestedPolicyType = searchParams.get("policyType");
+    const requestedSortBy = searchParams.get("sortBy");
 
-  //   if (sortBy === "low-premium") list = [...list].sort((a, b) => a.premiumMonthly - b.premiumMonthly);
-  //   if (sortBy === "high-coverage") list = [...list].sort((a, b) => b.coverageAmount - a.coverageAmount);
-  //   if (sortBy === "best-rating") list = [...list].sort((a, b) => b.rating - a.rating);
-  //   return list;
-  // }, [allPolicies, search, premiumRange, coverageRange, claimMin, policyType, sortBy, emiOnly, familyOnly]);
-const filtered = allPolicies;
+    if (requestedPolicyType && policyTypes.includes(requestedPolicyType)) {
+      setPolicyType(requestedPolicyType);
+    }
+    if (requestedSortBy && ["low-premium", "high-coverage", "best-rating"].includes(requestedSortBy)) {
+      setSortBy(requestedSortBy);
+    }
+  }, [policyTypes, searchParams]);
+
+  const filtered = useMemo(() => {
+    const s = search.trim().toLowerCase();
+    let list = allPolicies.filter((p) => {
+      if (s && !`${p.company} ${p.policyName}`.toLowerCase().includes(s)) return false;
+      if (p.premiumMonthly < premiumRange[0] || p.premiumMonthly > premiumRange[1]) return false;
+      if (p.coverageAmount < coverageRange[0] || p.coverageAmount > coverageRange[1]) return false;
+      if (p.claimSettlementRatio < claimMin) return false;
+      if (policyType !== "All" && p.policyType !== policyType) return false;
+      if (emiOnly && !p.emiAvailable) return false;
+      if (familyOnly && !p.familyCoverage) return false;
+      return true;
+    });
+
+    if (sortBy === "low-premium") list = [...list].sort((a, b) => a.premiumMonthly - b.premiumMonthly);
+    if (sortBy === "high-coverage") list = [...list].sort((a, b) => b.coverageAmount - a.coverageAmount);
+    if (sortBy === "best-rating") list = [...list].sort((a, b) => b.rating - a.rating);
+    return list;
+  }, [allPolicies, search, premiumRange, coverageRange, claimMin, policyType, sortBy, emiOnly, familyOnly]);
 
   const activeTags = useMemo(() => {
     const tags = [];
@@ -615,7 +605,7 @@ const filtered = allPolicies;
               {/* Listing hero badge, fallback tip, and action button labels. */}
               <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700">
                 <ShieldCheck size={16} className="text-blue-600" />
-                AI-Powered Listing • Compare & buy in minutes
+                Featured plans • Compare & buy with confidence
               </div>
               <h1 className="mt-6 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">{category.title}</h1>
               <p className="mt-3 text-slate-600">{category.subtitle}</p>
@@ -625,7 +615,7 @@ const filtered = allPolicies;
                   activeTags.map((t) => (
                     <span
                       key={t}
-                      className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-sm"
+                      className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm"
                     >
                       <Sparkles size={14} className="text-blue-600" />
                       {t}

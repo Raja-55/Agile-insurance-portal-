@@ -25,14 +25,14 @@ const GENERIC_EXCLUSIONS = [
 ];
 
 const GENERIC_CLAIM_PROCESS = [
-  "Initiate claim via Agile AI Assistant",
+  "Initiate claim via Agile Assistant",
   "Upload documents + smart verification",
   "Survey & review by claim team",
   "Approval with instant payout tracking",
 ];
 
 const GENERIC_REVIEWS = [
-  { name: "Riya Mehta", rating: 5, text: "Smooth checkout and super premium UI. Love the AI recommendations." },
+  { name: "Riya Mehta", rating: 5, text: "Smooth checkout and super premium UI. Love the recommendations." },
   { name: "Aman Verma", rating: 4, text: "Claim timeline is clear. Filter + compare is very helpful." },
   { name: "Neha Kapoor", rating: 5, text: "Looks like a real enterprise portal. Feels trustworthy." },
 ];
@@ -188,7 +188,7 @@ const PolicyDetailsPage = () => {
                 </span>
                 <span className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 shadow-sm">
                   <Sparkles size={14} className="text-blue-600" />
-                  AI Health Score: {Math.round(78 + policy.rating * 4)}/100
+                  Plan score: {Math.round(78 + policy.rating * 4)}/100
                 </span>
                 <span className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 shadow-sm">
                   <Timer size={14} className="text-blue-600" />
@@ -431,7 +431,7 @@ const PolicyDetailsPage = () => {
                   }
                   className="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-black text-slate-800 shadow-sm hover:bg-slate-50"
                 >
-                  Ask AI
+                  Ask support
                 </button>
               </div>
             </div>

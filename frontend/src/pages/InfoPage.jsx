@@ -184,6 +184,12 @@ const InfoPage = () => {
     content: "Sorry, we couldn't find the page you're looking for.",
   };
 
+  const isBuyableCategory = pathname === "health-insurance" || pathname === "life-insurance";
+  const buyPolicyLink = isBuyableCategory
+    ? `/category/${pathname}?policyType=${encodeURIComponent(pathname === "health-insurance" ? "Individual" : "Level Term")}&sortBy=best-rating`
+    : "/";
+  const buyPolicyLabel = pathname === "health-insurance" ? "Buy Health Policy" : "Buy Life Policy";
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-[#070B14] dark:to-[#070B14]">
       <div className="max-w-4xl mx-auto px-4 py-12">
@@ -242,16 +248,23 @@ const InfoPage = () => {
             </div>
 
             <div className="rounded-lg border border-slate-200 bg-white p-6 dark:border-white/10 dark:bg-white/5">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Quick Comparison</h3>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">{isBuyableCategory ? `${currentPage.title} Plans` : "Quick Comparison"}</h3>
               <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                Compare our plans with competitors and find the best coverage at the best price.
+                {isBuyableCategory
+                  ? `Browse individual ${currentPage.title.toLowerCase()} plans that match the coverage and premium criteria for personal protection.`
+                  : "Compare our plans with competitors and find the best coverage at the best price."}
               </p>
               <Link
-                to="/"
-                className="mt-4 inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:text-slate-100 dark:hover:bg-white/10"
+                to={isBuyableCategory ? buyPolicyLink : "/"}
+                className={
+                  `mt-4 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold transition ` +
+                  (isBuyableCategory
+                    ? "bg-blue-600 text-white hover:bg-blue-700"
+                    : "border border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:text-slate-100 dark:hover:bg-white/10")
+                }
               >
-                <ChevronLeft size={16} />
-                Explore Plans
+                {isBuyableCategory ? <ChevronLeft size={16} /> : <ChevronLeft size={16} />}
+                {isBuyableCategory ? buyPolicyLabel : "Explore Plans"}
               </Link>
             </div>
           </div>

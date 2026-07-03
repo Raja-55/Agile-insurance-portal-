@@ -192,7 +192,7 @@ const makePolicy = (categorySlug, company, index) => {
     coverageAmount,
     coverageLabel: inr(coverageAmount),
     premiumLabel: inr(monthlyPremium),
-    aiBadge: index === 1 ? "AI Recommended" : index === 3 ? "Best Value (AI)" : index === 4 ? "Low Premium (AI)" : null,
+    aiBadge: index === 1 ? "Recommended" : index === 3 ? "Best Value" : index === 4 ? "Low Premium" : null,
     keyBenefits,
     exclusions: [
       "Fraudulent or pre-disclosed false claims",
@@ -219,7 +219,7 @@ const makePolicy = (categorySlug, company, index) => {
 };
 
 export const policies = categories.flatMap((c) =>
-  c.companies.flatMap((company, idx) => [1, 2, 3].map((n) => makePolicy(c.slug, company, idx + n))),
+  c.companies.slice(0, 2).map((company, idx) => makePolicy(c.slug, company, idx + 1)),
 );
 
 export const getCategoryBySlug = (slug) => categories.find((c) => c.slug === slug);
