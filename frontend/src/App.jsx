@@ -30,6 +30,7 @@ import { Routes, useLocation } from "react-router-dom";
 import useSettings from "./hooks/useSettings";
 import MaintenancePage from "./pages/admin/MaintenancePage";
 import ClaimProcessKnow from "./pages/ClaimProcessKnow.jsx";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 // Routes are organized by layout type: public, auth-only, admin, and protected dashboard
 const App = () => {
@@ -40,11 +41,11 @@ const App = () => {
 
   if (settings?.maintenanceMode?.enabled && !isAdmin) {
     return (
-        <MaintenancePage
-            message={settings.maintenanceMode.message}
-        />
+      <MaintenancePage
+        message={settings.maintenanceMode.message}
+      />
     );
-}
+  }
   return (
     <Routes>
       {/* Public routes - includes navbar, footer, and floating AI assistant */}
@@ -92,18 +93,19 @@ const App = () => {
       {/* Auth routes - minimal layout (no navbar/footer) for focused authentication experience */}
       <Route element={<AuthLayout />}>
         <Route path="/auth" element={<AuthPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
       </Route>
 
       {/* Admin routes - specialized admin interface with role-based access */}
 
-<Route
-  path="/admin/*"
-  element={
-    <Provider store={store}>
-      <AdminPage />
-    </Provider>
-  }
-/>
+      <Route
+        path="/admin/*"
+        element={
+          <Provider store={store}>
+            <AdminPage />
+          </Provider>
+        }
+      />
       {/* Protected dashboard routes - requires authentication */}
       <Route
         path="/dashboard"

@@ -32,16 +32,28 @@ const {
   rejectDocument,
   sendDocumentCorrection,
   getDocumentFile,
-  
+
 } = require("../Controllers/admin.controller");
 const { getAllPurchases } = require("../Controllers/purchase.controller");
 
-const { createAdmin, getAllAdmins, updateAdminStatus, loginAdmin, getPublicRoster } = require("../Controllers/authAdmin.controller");
+const {
+  createAdmin,
+  getAllAdmins,
+  updateAdminStatus,
+  loginAdmin,
+  getPublicRoster,
+  forgotPasswordAdmin,
+  resetPasswordAdmin,
+  verify2FAAdmin,
+} = require("../Controllers/authAdmin.controller");
 
 // Public: login only. Admin self-registration has been removed — new admin
 // accounts can only be created by a Super Admin from System Settings.
 router.get("/auth/public-roster", getPublicRoster);
 router.post("/auth/login", loginAdmin);
+router.post("/auth/verify-2fa", verify2FAAdmin);
+router.post("/auth/forgot-password", forgotPasswordAdmin);
+router.post("/auth/reset-password", resetPasswordAdmin);
 router.get("/settings", getSystemSettings);
 router.use(authenticateAdmin);
 

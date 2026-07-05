@@ -64,19 +64,19 @@ const getDashboard = catchAsync(async (req, res) => {
 
 
 const getUsers = catchAsync(async (req, res) => {
-  try{
+  try {
     const users = await User.find()
-    .select(
-      "_id fullName email phone address is_verified created_at"
-    );
+      .select(
+        "_id fullName email phone address is_verified created_at"
+      );
     const formattedUsers = users.map((user) => ({
       id: user._id,
       name: user.fullName,
-      email:user.email,
+      email: user.email,
       phone: user.phone,
       address: user.address,
-      status: user.is_verified? "Active": "Inactive",
-      joinedAt:user.created_at,
+      status: user.is_verified ? "Active" : "Inactive",
+      joinedAt: user.created_at,
     }));
     res.status(200).json({
       success: true,
@@ -84,7 +84,7 @@ const getUsers = catchAsync(async (req, res) => {
     });
 
   }
-  catch(error){
+  catch (error) {
     res.status(500).json({
       sucess: false,
       message: error.message
@@ -266,7 +266,12 @@ const getSystemSettings = catchAsync(async (req, res) => {
   res.status(200).json({ success: true, data: settings });
 });
 
-const updateSystemSettings = catchAsync(async (req, res) => {
+const updateSystemSettings = catchAsync(async (req, res, next) => {
+  // Check if trying to update email verification setting and verify role
+  if (req.body.forceEmailVerification !== undefined && req.admin.role !== "Super Admin") {
+    return next(new AppError("Only Super Admin is authorized to toggle email verification settings.", 403));
+  }
+
   const flattened = flattenObject(req.body);
   const settings = await SystemSetting.findOneAndUpdate(
     {},
@@ -363,10 +368,10 @@ const getSupportTicketsAdmin = catchAsync(async (req, res) => {
       priority: ticket.priority || "Medium",
       assignedAdmin: assignedAdmin
         ? {
-            _id: assignedAdmin._id || null,
-            fullName: assignedAdmin.fullName || assignedAdmin.name || "Unassigned",
-            email: assignedAdmin.email || "",
-          }
+          _id: assignedAdmin._id || null,
+          fullName: assignedAdmin.fullName || assignedAdmin.name || "Unassigned",
+          email: assignedAdmin.email || "",
+        }
         : null,
       messages: Array.isArray(ticket.messages) ? ticket.messages : [],
       createdAt: ticket.createdAt,
@@ -429,7 +434,7 @@ const replyToSupportTicket = catchAsync(async (req, res, next) => {
   await ticket.save();
 
   const updatedTicket = await SupportTicket.findById(ticket._id)
-     .populate("user", "fullName email phone")
+    .populate("user", "fullName email phone")
     .populate("assignedAdmin", "fullName email")
     .populate("messages.sender", "fullName email");
 
@@ -440,10 +445,10 @@ const replyToSupportTicket = catchAsync(async (req, res, next) => {
   });
 });
 
-const getAdminProfile = catchAsync(async(req, res) => {
-  try{
+const getAdminProfile = catchAsync(async (req, res) => {
+  try {
     const admin = await Admin.findById(req.admin.id)
-    .select("-password");
+      .select("-password");
 
     res.json({
       success: true,
@@ -451,67 +456,72 @@ const getAdminProfile = catchAsync(async(req, res) => {
     });
   }
   catch (err) {
-        res.status(500).json({
-            success: false,
-            message: err.message
-        });
-    }
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
 });
 
 const updateAdminProfile = catchAsync(async (req, res, next) => {
-    const { fullName, phone, email, profilePhoto } = req.body;
+  const { fullName, phone, email, profilePhoto, twoFactorEnabled } = req.body;
 
-    const existing = await Admin.findOne({
-        _id: { $ne: req.admin._id },
-        $or: [{ email }, { phone }]
-    });
+  const existing = await Admin.findOne({
+    _id: { $ne: req.admin._id },
+    $or: [
+      ...(email ? [{ email }] : []),
+      ...(phone ? [{ phone }] : [])
+    ]
+  });
 
-    if (existing) {
-        return next(new AppError("Email or phone already exists.", 400));
+  if (existing) {
+    return next(new AppError("Email or phone already exists.", 400));
+  }
+
+  const updateFields = {};
+  if (fullName !== undefined) updateFields.fullName = fullName;
+  if (email !== undefined) updateFields.email = email;
+  if (phone !== undefined) updateFields.phone = phone;
+  if (profilePhoto !== undefined) updateFields.profilePhoto = profilePhoto;
+  if (twoFactorEnabled !== undefined) updateFields.twoFactorEnabled = twoFactorEnabled;
+
+  const admin = await Admin.findByIdAndUpdate(
+    req.admin._id,
+    updateFields,
+    {
+      new: true,
+      runValidators: true,
     }
+  ).select("-password");
 
-    const admin = await Admin.findByIdAndUpdate(
-        req.admin._id,
-        {
-            fullName,
-            email,
-            phone,
-            profilePhoto,
-        },
-        {
-            new: true,
-            runValidators: true,
-        }
-    ).select("-password");
-
-    res.json({
-        success: true,
-        data: admin,
-    });
+  res.json({
+    success: true,
+    data: admin,
+  });
 });
 
 const changeAdminPassword = catchAsync(async (req, res) => {
 
-    const { oldPassword, newPassword } = req.body;
+  const { oldPassword, newPassword } = req.body;
 
-    const admin = await Admin.findById(req.admin.id);
+  const admin = await Admin.findById(req.admin.id);
 
-    const isMatch = await admin.comparePassword(oldPassword);
+  const isMatch = await admin.comparePassword(oldPassword);
 
-    if (!isMatch) {
-        return res.status(400).json({
-            message: "Old password incorrect"
-        });
-    }
-
-    admin.password = newPassword;
-
-    await admin.save();
-
-    res.json({
-        success: true,
-        message: "Password updated"
+  if (!isMatch) {
+    return res.status(400).json({
+      message: "Old password incorrect"
     });
+  }
+
+  admin.password = newPassword;
+
+  await admin.save();
+
+  res.json({
+    success: true,
+    message: "Password updated"
+  });
 
 });
 
@@ -657,7 +667,7 @@ module.exports = {
   getAdminProfile,
   updateAdminProfile,
   changeAdminPassword,
-  
+
   getDocuments,
   approveDocument,
   rejectDocument,
