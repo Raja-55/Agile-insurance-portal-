@@ -396,7 +396,7 @@ const AuthPage = () => {
                 <span className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">or</span>
                 <div className="h-px flex-1 bg-slate-200" />
               </div>
-              {GOOGLE_CLIENT_ID ? (
+              {/* {GOOGLE_CLIENT_ID ? (
                 <button
                   type="button"
                   onClick={onGoogleLogin}
@@ -410,7 +410,9 @@ const AuthPage = () => {
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
                   Google sign-in needs VITE_GOOGLE_CLIENT_ID before users can select a Google account.
                 </div>
-              )}
+              )
+              
+              } */}
             </div>
 
             <div className="text-center text-sm font-medium text-slate-600">

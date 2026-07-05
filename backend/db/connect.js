@@ -1,9 +1,24 @@
 const mongoose = require("mongoose");
 const dns = require("dns");
-
 const Admin = require("../Models/admin.model");
 
-dns.setServers(["8.8.8.8", "8.8.4.4"]);
+const configureDns = () => {
+  try {
+    const servers = (process.env.DNS_SERVERS || "8.8.8.8,8.8.4.4")
+      .split(",")
+      .map((server) => server.trim())
+      .filter(Boolean);
+
+    if (servers.length) {
+      dns.setServers(servers);
+      console.log(`Using DNS servers: ${servers.join(", ")}`);
+    }
+  } catch (error) {
+    console.warn("Could not configure custom DNS servers:", error.message);
+  }
+};
+
+configureDns();
 
 const seedAdmins = async () => {
   try {
@@ -57,18 +72,21 @@ const seedAdmins = async () => {
 
 const connectDB = async () => {
   try {
+    const uri = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/agile-insurance";
     console.log("Connecting to MongoDB...");
 
-    const conn = await mongoose.connect(process.env.MONGO_URI);
+    const conn = await mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 10000,
+      socketTimeoutMS: 45000,
+      retryWrites: true,
+      w: "majority",
+    });
+
     if (conn) {
       console.log("MongoDB Connected");
       await seedAdmins();
+      return true;
     }
-    // mongoose.connection.on("connected", () => {
-    //   console.log(
-    //     `MongoDB Connected: ${mongoose.connection.host}`
-    //   );
-    // });
 
     mongoose.connection.on("error", (err) => {
       console.error("MongoDB Error:", err.message);
@@ -77,9 +95,13 @@ const connectDB = async () => {
     mongoose.connection.on("disconnected", () => {
       console.log("MongoDB Disconnected");
     });
+
+    return true;
   } catch (error) {
     console.error("Database connection failed:", error.message);
-    process.exit(1);
+    console.error(error);
+    console.warn("Continuing without MongoDB. API routes that need the database will fail until MongoDB is available.");
+    return false;
   }
 };
 

@@ -12,7 +12,9 @@ const validateRegisterBody = (body) => {
   if (!body.fullName?.trim()) errors.push("fullName is required");
   if (!isEmail(body.email)) errors.push("email must be valid");
   if (!isPhone(body.phone)) errors.push("phone must be valid");
-  if (!body.password || String(body.password).length < 8) errors.push("password must be at least 8 characters");
+  if (!body.password || String(body.password).trim().length < 4) {
+    errors.push("password must be at least 4 characters");
+  }
   if (body.gender && !["male", "female", "other"].includes(body.gender)) errors.push("gender is invalid");
   if (body.role && !["user", "admin"].includes(body.role)) errors.push("role is invalid");
   return errors;
@@ -37,7 +39,9 @@ const validateUpdateProfileBody = (body) => {
 const validateChangePasswordBody = (body) => {
   const errors = [];
   if (!body.current_password) errors.push("current_password is required");
-  if (!body.new_password || String(body.new_password).length < 8) errors.push("new_password must be at least 8 characters");
+  if (!body.new_password || String(body.new_password).trim().length < 4) {
+    errors.push("new_password must be at least 4 characters");
+  }
   return errors;
 };
 

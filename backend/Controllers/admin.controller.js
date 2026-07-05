@@ -9,6 +9,7 @@ const catchAsync = require("../Utils/catchAsync");
 const AppError = require("../Utils/appError");
 const Admin = require("../Models/admin.model");
 
+const { notifyUser } = require("../services/notification.service");
 
 const Document = require("../Models/document.model");
 const path = require("path");
@@ -218,6 +219,23 @@ const updateClaim = catchAsync(async (req, res, next) => {
 
   if (!claim) return next(new AppError("Claim not found", 404));
 
+  // Notify the user (in-app + SMS) whenever the admin actually changed the status.
+  if (status && claim.user) {
+    await notifyUser({
+      userId: claim.user._id,
+      type: "claim",
+      title:
+        status === "approved"
+          ? "Claim Approved"
+          : status === "rejected"
+          ? "Claim Rejected"
+          : "Claim Update",
+      body: `Your claim ${claim.claim_number} status changed to ${status}.`,
+      smsText: `Agile Insurance: Claim ${claim.claim_number} is now ${status}.`,
+      meta: { claimId: claim._id, status },
+    });
+  }
+
   res.status(200).json({ success: true, data: claim });
 });
 
@@ -332,6 +350,32 @@ const reviewKyc = catchAsync(async (req, res, next) => {
     is_verified: status === "verified",
   });
 
+  if (requestDoc.user) {
+    await notifyUser({
+      userId: requestDoc.user,
+      type: "system",
+      title:
+        status === "verified"
+          ? "KYC Verified"
+          : status === "rejected"
+          ? "KYC Rejected"
+          : "KYC Update",
+      body:
+        status === "verified"
+          ? "Your KYC verification has been completed successfully."
+          : status === "rejected"
+          ? "Your KYC verification was rejected. Please review the notes and resubmit."
+          : "Your KYC request status was updated.",
+      smsText:
+        status === "verified"
+          ? "Agile Insurance: Your KYC has been verified."
+          : status === "rejected"
+          ? "Agile Insurance: Your KYC was rejected. Please check the app."
+          : "Agile Insurance: Your KYC status has been updated.",
+      meta: { kycId: requestDoc._id, status },
+    });
+  }
+
   res.status(200).json({
     success: true,
     message: "KYC request updated",
@@ -399,6 +443,18 @@ const updateSupportTicket = catchAsync(async (req, res, next) => {
     return next(new AppError("Support ticket not found", 404));
   }
 
+  // Notify the user when the admin resolves their ticket.
+  if (status === "Resolved" && ticket.user) {
+    await notifyUser({
+      userId: ticket.user._id,
+      type: "support",
+      title: "Ticket resolved",
+      body: `Your support ticket "${ticket.subject}" was marked as resolved.`,
+      smsText: `Agile Insurance: Your ticket "${ticket.subject}" was resolved.`,
+      meta: { ticketId: ticket._id, status: "Resolved" },
+    });
+  }
+
   res.status(200).json({
     success: true,
     message: "Support ticket updated",
@@ -427,6 +483,19 @@ const replyToSupportTicket = catchAsync(async (req, res, next) => {
   });
 
   await ticket.save();
+
+  // Notify the user that support replied. ticket.user is still the raw
+  // ObjectId here (this document was fetched without population).
+  if (ticket.user) {
+    await notifyUser({
+      userId: ticket.user,
+      type: "support",
+      title: "New reply from support",
+      body: `Support replied to your ticket "${ticket.subject}".`,
+      smsText: `Agile Insurance: Support replied to your ticket "${ticket.subject}".`,
+      meta: { ticketId: ticket._id },
+    });
+  }
 
   const updatedTicket = await SupportTicket.findById(ticket._id)
      .populate("user", "fullName email phone")
@@ -559,6 +628,17 @@ const approveDocument = async (req, res) => {
 
     if (!doc) return res.status(404).json({ success: false, message: "Document not found" });
 
+    if (doc.user) {
+      await notifyUser({
+        userId: doc.user._id,
+        type: "document",
+        title: "Document Approved",
+        body: `Your ${doc.type || doc.documentType} has been approved by Agile Insurance.`,
+        smsText: `Agile Insurance: Your ${doc.type || doc.documentType} was approved.`,
+        meta: { documentId: doc._id, status: "Approved" },
+      });
+    }
+
     res.json({ success: true, message: "Document approved", data: doc });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -575,6 +655,17 @@ const rejectDocument = async (req, res) => {
     ).populate("user", "fullName email");
 
     if (!doc) return res.status(404).json({ success: false, message: "Document not found" });
+
+    if (doc.user) {
+      await notifyUser({
+        userId: doc.user._id,
+        type: "document",
+        title: "Document Rejected",
+        body: `Your ${doc.type || doc.documentType} was rejected. ${doc.note || ""}`.trim(),
+        smsText: `Agile Insurance: Your ${doc.type || doc.documentType} was rejected. Check the app for details.`,
+        meta: { documentId: doc._id, status: "Rejected" },
+      });
+    }
 
     res.json({ success: true, message: "Document rejected", data: doc });
   } catch (err) {
@@ -599,6 +690,17 @@ const sendDocumentCorrection = async (req, res) => {
     ).populate("user", "fullName email");
 
     if (!doc) return res.status(404).json({ success: false, message: "Document not found" });
+
+    if (doc.user) {
+      await notifyUser({
+        userId: doc.user._id,
+        type: "document",
+        title: "Correction Requested",
+        body: `Admin marked corrections on your ${doc.type || doc.documentType}. Please re-upload the corrected document.`,
+        smsText: `Agile Insurance: Corrections needed on your ${doc.type || doc.documentType}. Please re-upload.`,
+        meta: { documentId: doc._id, status: "Re-upload Requested" },
+      });
+    }
 
     res.json({ success: true, message: "Correction sent", data: doc });
   } catch (err) {
