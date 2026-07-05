@@ -198,7 +198,7 @@ const sendMessage = async () => {
             <select
               value={subject}
               onChange={(event) => setSubject(event.target.value)}
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:border-white/10 dark:bg-white/5 dark:text-white transition"
+              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:border-slate-700 dark:bg-slate-900/95 dark:text-slate-100"
             >
               {["Policy support", "Claim issue", "Payment issue", "Document verification", "Complaint"].map((item) => (
                 <option key={item}>{item}</option>
@@ -214,7 +214,7 @@ const sendMessage = async () => {
                   sendMessage();
                 }
               }}
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 placeholder:text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-slate-500 transition"
+              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200 placeholder:text-slate-400 dark:border-slate-700 dark:bg-slate-900/95 dark:text-slate-100 dark:placeholder:text-slate-500"
               placeholder="Type your query and press Enter to send..."
             />
             {/* Send button - submit your message to admin */}
@@ -251,7 +251,7 @@ const sendMessage = async () => {
               tickets.map((ticket) => (
                 <article
                   key={ticket._id || ticket.id}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm dark:border-white/10 dark:bg-white/5"
+                  className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm dark:border-slate-700 dark:bg-slate-900/80"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div>
@@ -268,8 +268,8 @@ const sendMessage = async () => {
                         key={item._id || item.id || `${ticket._id || ticket.id}-${item.createdAt}`}
                         className={`rounded-2xl px-4 py-3 text-sm font-semibold ${
                           item.senderRole === "admin" || item.from === "admin"
-                            ? "bg-blue-50 text-blue-900 border-l-4 border-blue-600 dark:bg-blue-500/10 dark:text-blue-100 dark:border-blue-400"
-                            : "bg-white text-slate-700 border-l-4 border-slate-400 dark:bg-white/10 dark:text-slate-100 dark:border-slate-500"
+                            ? "bg-blue-50 text-blue-900 border-l-4 border-blue-600 dark:bg-blue-500/15 dark:text-blue-50 dark:border-blue-400"
+                            : "bg-white text-slate-700 border-l-4 border-slate-400 dark:bg-slate-800/90 dark:text-slate-100 dark:border-slate-500"
                         }`}
                       >
                         <div className="mb-1 text-[11px] font-black uppercase tracking-wide opacity-75">

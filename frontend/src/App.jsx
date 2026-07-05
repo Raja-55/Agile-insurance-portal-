@@ -53,6 +53,7 @@ const App = () => {
         <Route path="/calculator" element={<CalculatorPage />} />
         <Route path="/claim-process-know" element={<ClaimProcessKnow />} />
         <Route path="/why-choose/:featureSlug" element={<WhyChoosePage />} />
+        <Route path="/category/:categorySlug" element={<CategoryPage />} />
         <Route path="/:categorySlug" element={<CategoryPage />} />
         <Route path="/policies/:policyId" element={<PolicyDetailsPage />} />
         <Route
