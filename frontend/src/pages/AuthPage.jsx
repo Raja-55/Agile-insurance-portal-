@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { KeyRound, Lock, Mail, MapPin, Phone, ShieldCheck, User } from "lucide-react";
 import { useAuth } from "../contexts/useAuth";
+import { apiRequest } from "../utils/api";
 // import {registerUser, loginUser, logoutUser, getCurrentUser, updateProfile} from "../utils/api";
 
 // Authentication screen copy, field labels, validation messages, and auth CTAs live in this file.
@@ -16,8 +17,8 @@ const getSafeReturnTo = (value) => {
   return value;
 };
 
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-const GOOGLE_SCRIPT_ID = "google-identity-services";
+// const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+// const GOOGLE_SCRIPT_ID = "google-identity-services";
 
 const GoogleLogo = () => (
   <svg viewBox="0 0 48 48" className="h-5 w-5" aria-hidden="true">
@@ -27,23 +28,36 @@ const GoogleLogo = () => (
     <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.4-2.3 4.3-4.1 5.6l6.2 5.2C36.9 39.3 44 34 44 24c0-1.2-.1-2.3-.4-3.5z" />
   </svg>
 );
+const FacebookLogo = () => (
+  <svg
+    viewBox="0 0 24 24"
+    className="h-5 w-5"
+    aria-hidden="true"
+    fill="#1877F2"
+  >
+    <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073c0 6.019 4.388 11.01 10.125 11.927v-8.437H7.078v-3.49h3.047V9.413c0-3.007 1.792-4.669 4.533-4.669 1.313 0 2.686.235 2.686.235v2.953h-1.514c-1.492 0-1.956.926-1.956 1.875v2.25h3.328l-.532 3.49h-2.796V24C19.612 23.083 24 18.092 24 12.073z" />
+  </svg>
+);
+
 
 const AuthPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { register, login } = useAuth();
-  const googleTokenClientRef = useRef(null);
+  const { register, verifyOtp, verify2FA, login, loginWithGoogle, loginWithFacebook, isAuthenticated } = useAuth();
 
   const returnTo = useMemo(() => {
     const params = new URLSearchParams(location.search);
     return getSafeReturnTo(params.get("returnTo"));
   }, [location.search]);
 
-  // useEffect(() => {
-  //   if (bootstrapped && isAuthenticated) {
-  //     navigate(returnTo, { replace: true });
-  //   }
-  // }, [bootstrapped, isAuthenticated, navigate, returnTo]);
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate(returnTo, { replace: true });
+    }
+  }, [isAuthenticated, navigate, returnTo]);
+
+  const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID;
 
   const [mode, setMode] = useState("register");
   const [busy, setBusy] = useState(false);
@@ -62,9 +76,207 @@ const AuthPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [dashboardData, setDashboardData] = useState(null);
+
+  const [require2FAEmail, setRequire2FAEmail] = useState("");
+  const [forgotView, setForgotView] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotNotice, setForgotNotice] = useState("");
+
+  const handleVerify2FA = async (e) => {
+    e.preventDefault();
+    if (!otp.trim()) return setError("Please enter the 2FA OTP code.");
+    setBusy(true);
+    resetMessaging();
+    try {
+      await verify2FA({ email: require2FAEmail, otp: otp.trim() });
+      navigate(returnTo, { replace: true });
+    } catch (err) {
+      setError(err?.message || "2FA verification failed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    if (!validateEmail(forgotEmail.trim())) return setError("Enter a valid email address.");
+    setBusy(true);
+    resetMessaging();
+    try {
+      const { apiRequest } = await import("../utils/api");
+      const res = await apiRequest("/api/auth/forgot-password", {
+        method: "POST",
+        body: JSON.stringify({ email: forgotEmail.trim().toLowerCase() }),
+      });
+      if (res?.success) {
+        setForgotNotice("A password reset link has been sent to your email.");
+      } else {
+        setError(res?.message || "Failed to send reset link.");
+      }
+    } catch (err) {
+      setError(err?.message || "Failed to send reset link.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const getPasswordStrength = (pass) => {
+    if (!pass) return { score: 0, text: "", color: "bg-slate-200" };
+    let score = 0;
+    if (pass.length >= 8) score++;
+    if (/[A-Z]/.test(pass)) score++;
+    if (/[0-9]/.test(pass)) score++;
+    if (/[^A-Za-z0-9]/.test(pass)) score++;
+
+    if (score <= 1) return { score, text: "Weak", color: "bg-rose-500", textClass: "text-rose-500" };
+    if (score === 2 || score === 3) return { score, text: "Medium", color: "bg-amber-500", textClass: "text-amber-500" };
+    return { score, text: "Strong", color: "bg-emerald-500", textClass: "text-emerald-500" };
+  };
+
   const resetMessaging = () => {
     setError("");
     setNotice("");
+    setForgotNotice("");
+  };
+
+  const switchMode = (m) => {
+    setMode(m);
+    setOtpStep(false);
+    setForgotView(false);
+    setRequire2FAEmail("");
+    resetMessaging();
+  };
+
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID) return;
+
+    const initializeGoogleBtn = () => {
+      if (window.google) {
+        window.google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: async (response) => {
+            if (response.credential) {
+              setBusy(true);
+              setError("");
+              try {
+                await loginWithGoogle({ idToken: response.credential });
+                navigate(returnTo, { replace: true });
+              } catch (err) {
+                setError(err.message || "Google Authentication failed");
+              } finally {
+                setBusy(false);
+              }
+            }
+          },
+        });
+        const container = document.getElementById("google-signin-btn");
+        if (container) {
+          window.google.accounts.id.renderButton(container, {
+            theme: "outline",
+            size: "large",
+            width: "250",
+            text: "signin_with",
+            shape: "pill",
+          });
+        }
+      }
+    };
+
+    if (window.google) {
+      const timer = setTimeout(initializeGoogleBtn, 100);
+      return () => clearTimeout(timer);
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      setTimeout(initializeGoogleBtn, 100);
+    };
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, [GOOGLE_CLIENT_ID, mode, navigate, returnTo]);
+
+  useEffect(() => {
+    if (!FACEBOOK_APP_ID) return;
+
+    // If FB SDK already loaded, ensure it's initialized with the current app id
+    if (window.FB && window.FB.init) {
+      try {
+        window.FB.init({ appId: FACEBOOK_APP_ID, cookie: true, xfbml: false, version: "v16.0" });
+      } catch (e) {
+        // ignore
+      }
+      return;
+    }
+
+    const fbScript = document.createElement("script");
+    fbScript.src = "https://connect.facebook.net/en_US/sdk.js";
+    fbScript.async = true;
+    fbScript.defer = true;
+    fbScript.onload = () => {
+      try {
+        if (window.FB && window.FB.init) {
+          window.FB.init({ appId: FACEBOOK_APP_ID, cookie: true, xfbml: false, version: "v16.0" });
+        }
+      } catch (err) {
+        // initialization failed
+      }
+    };
+    document.body.appendChild(fbScript);
+
+    return () => {
+      try {
+        document.body.removeChild(fbScript);
+      } catch (e) {
+        // ignore
+      }
+    };
+  }, [FACEBOOK_APP_ID]);
+
+  const handleGoogleClick = () => {
+    resetMessaging();
+    if (!GOOGLE_CLIENT_ID) return setError("Google authentication is not configured in the application environment.");
+    if (!window.google || !window.google.accounts || !window.google.accounts.id) {
+      return setError("Google SDK not loaded. Refresh or check your network.");
+    }
+    try {
+      // Ask Google Identity Services to show the One Tap / prompt flow.
+      window.google.accounts.id.prompt();
+    } catch (err) {
+      setError("Google sign-in failed: " + (err?.message || "unknown error"));
+    }
+  };
+
+  const handleFacebookClick = () => {
+    resetMessaging();
+    if (FACEBOOK_APP_ID) {
+      try {
+        if (!window.FB) {
+          setError("Facebook SDK not loaded. Please use simulation mode.");
+          return;
+        }
+        window.FB.login((response) => {
+          if (response.authResponse) {
+            setBusy(true);
+            loginWithFacebook({ accessToken: response.authResponse.accessToken })
+              .then(() => navigate(returnTo, { replace: true }))
+              .catch((err) => setError(err.message || "Facebook Authentication failed"))
+              .finally(() => setBusy(false));
+          } else {
+            setError("Facebook login was cancelled.");
+          }
+        }, { scope: 'email,public_profile' });
+      } catch (err) {
+        setError("Facebook login error: " + err.message);
+      }
+    } else {
+      setError("Facebook authentication is not configured in the application environment.");
+    }
   };
 
   const onSubmit = async (e) => {
@@ -77,6 +289,27 @@ const AuthPage = () => {
     const trimmedAddress = address.trim();
 
     if (mode === "register") {
+      if (otpStep) {
+        if (!otp.trim()) return setError("Please enter the verification OTP.");
+        setBusy(true);
+        try {
+          await verifyOtp({
+            email: trimmedEmail,
+            otp: otp.trim(),
+            fullName: trimmedName,
+            phone: trimmedPhone,
+            address: trimmedAddress,
+            password: password
+          });
+          navigate(returnTo, { replace: true });
+        } catch (err) {
+          setError(err?.message || "Verification failed.");
+        } finally {
+          setBusy(false);
+        }
+        return;
+      }
+
       // Developer note: add validation for any future registration fields in this block.
       if (!trimmedName) return setError("Full Name is required.");
       if (!validateEmail(trimmedEmail)) return setError("Enter a valid email address.");
@@ -88,11 +321,20 @@ const AuthPage = () => {
       try {
         const response = await register(
           {
-             fullName: trimmedName,
-             email: trimmedEmail, 
-             phone: trimmedPhone, 
-             address: trimmedAddress, 
-             password });
+            fullName: trimmedName,
+            email: trimmedEmail,
+            phone: trimmedPhone,
+            address: trimmedAddress,
+            password
+          });
+
+        if (response?.requireVerification) {
+          setOtpStep(true);
+          setOtp("");
+          setNotice(response.message || "OTP sent to your email. Please verify.");
+          return;
+        }
+
         setNotice(response?.message || "Account created successfully.");
         navigate(returnTo, { replace: true });
       } catch (err) {
@@ -107,7 +349,13 @@ const AuthPage = () => {
     if (!password) return setError("Password is required.");
     setBusy(true);
     try {
-      await login({ email: trimmedEmail, password });
+      const response = await login({ email: trimmedEmail, password });
+      if (response?.require2FA) {
+        setRequire2FAEmail(response.email);
+        setOtpStep(true);
+        setOtp("");
+        return;
+      }
       navigate(returnTo, { replace: true });
     } catch (err) {
       setError(err?.message || "Login failed.");
@@ -115,82 +363,6 @@ const AuthPage = () => {
       setBusy(false);
     }
   };
-
-  // const onGoogleAccessToken = async (response) => {
-  //   resetMessaging();
-  //   const accessToken = response?.access_token;
-  //   if (!accessToken) {
-  //     setError("Select a Google account to continue.");
-  //     return;
-  //   }
-  //   setBusy(true);
-  //   try {
-  //     await googleLogin({ accessToken });
-  //     navigate(returnTo, { replace: true });
-  //   } catch (err) {
-  //     setError(err?.message || "Google sign-in failed.");
-  //   } finally {
-  //     setBusy(false);
-  //   }
-  // };
-
-  // useEffect(() => {
-  //   if (!GOOGLE_CLIENT_ID) return;
-
-  //   const initializeGoogleTokenClient = () => {
-  //     if (!window.google?.accounts?.oauth2) return;
-  //     googleTokenClientRef.current = window.google.accounts.oauth2.initTokenClient({
-  //       client_id: GOOGLE_CLIENT_ID,
-  //       scope: "openid email profile",
-  //       prompt: "select_account",
-  //       callback: onGoogleAccessToken,
-  //     });
-  //   };
-
-  //   const existing = document.getElementById(GOOGLE_SCRIPT_ID);
-  //   if (existing) {
-  //     initializeGoogleTokenClient();
-  //     return;
-  //   }
-
-  //   const script = document.createElement("script");
-  //   script.id = GOOGLE_SCRIPT_ID;
-  //   script.src = "https://accounts.google.com/gsi/client";
-  //   script.async = true;
-  //   script.defer = true;
-  //   script.onload = initializeGoogleTokenClient;
-  //   script.onerror = () => setError("Could not load Google sign-in. Check your connection and try again.");
-  //   document.head.appendChild(script);
-  // }, []);
-
-  // const onGoogleLogin = () => {
-  //   resetMessaging();
-  //   if (!googleTokenClientRef.current) {
-  //     setError("Google sign-in is still loading. Please try again in a moment.");
-  //     return;
-  //   }
-  //   googleTokenClientRef.current.requestAccessToken({ prompt: "select_account" });
-  // };
-
-  const switchMode = (nextMode) => {
-    setMode(nextMode);
-    setOtpStep(false);
-    setOtp("");
-    resetMessaging();
-  };
-
-  
-  // if (bootstrapped && isAuthenticated) {
-  //   return (
-  //     <div className="grid min-h-[60vh] place-items-center bg-white px-4">
-  //       <div className="w-full max-w-sm rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-  //         <div className="h-2 w-28 animate-pulse rounded-full bg-slate-200" />
-  //         <div className="mt-4 h-10 w-full animate-pulse rounded-2xl bg-slate-100" />
-  //         <div className="mt-3 h-10 w-full animate-pulse rounded-2xl bg-slate-100" />
-  //       </div>
-  //     </div>
-  //   );
-  // }
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-white to-slate-50 px-4 py-8 sm:px-6 sm:py-12">
@@ -213,226 +385,383 @@ const AuthPage = () => {
                 Secure access - OTP verified
               </div>
               <h1 className="mt-5 text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">
-                {mode === "register" ? (otpStep ? "Verify your email" : "Create your account") : "Welcome back"}
+                {forgotView
+                  ? "Reset your password"
+                  : require2FAEmail
+                    ? "2-Factor Authentication"
+                    : mode === "register"
+                      ? (otpStep ? "Verify your email" : "Create your account")
+                      : "Welcome back"}
               </h1>
               <p className="mt-2 text-sm text-slate-600 sm:text-base">
-                {otpStep
-                  ? "Enter the 6-digit OTP sent to your email address to finish account verification."
-                  : "Secure account creation and login connected to the backend API, with dashboard state and session restoration."}
+                {forgotView
+                  ? "Enter your email address below and we will send you a secure link to reset your password."
+                  : require2FAEmail
+                    ? `Please enter the 6-digit verification code sent to ${require2FAEmail}.`
+                    : otpStep
+                      ? "Enter the 6-digit OTP sent to your email address to finish account verification."
+                      : "Secure account creation and login connected to the backend API, with dashboard state and session restoration."}
               </p>
             </div>
 
           </div>
 
-          <form onSubmit={onSubmit} className="mt-8 space-y-4">
-            {/* Developer note: add future account-create fields near this section and pass them to register(). */}
-            {mode === "register" && !otpStep && (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <label className="space-y-2">
-                  <span className="text-xs font-semibold text-slate-700">Full Name</span>
-                  <div className="relative">
-                    <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                    <input
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className="w-full rounded-2xl border border-slate-200 bg-white px-12 py-4 text-sm font-medium text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-blue-500"
-                      placeholder="e.g. Aarav Sharma"
-                    />
-                  </div>
-                </label>
-
-                <label className="space-y-2">
-                  <span className="text-xs font-semibold text-slate-700">Phone Number</span>
-                  <div className="relative">
-                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                    <input
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value.replace(/[^\d]/g, "").slice(0, 10))}
-                      className="w-full rounded-2xl border border-slate-200 bg-white px-12 py-4 text-sm font-medium text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-blue-500"
-                      placeholder="10-digit number"
-                      inputMode="numeric"
-                    />
-                  </div>
-                </label>
-              </div>
-            )}
-
-            {mode === "register" && !otpStep && (
+          {forgotView ? (
+            <form onSubmit={handleForgotPassword} className="mt-8 space-y-4">
               <label className="block space-y-2">
-                <span className="text-xs font-semibold text-slate-700">Address</span>
-                <div className="relative">
-                  <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <input
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-12 py-4 text-sm font-medium text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-blue-500"
-                    placeholder="House / street / city"
-                  />
-                </div>
-              </label>
-            )}
-
-            {!otpStep && (
-              <label className="block space-y-2">
-                <span className="text-xs font-semibold text-slate-700">Email</span>
+                <span className="text-xs font-semibold text-slate-700">Email Address</span>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                   <input
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    type="email"
+                    required
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
                     className="w-full rounded-2xl border border-slate-200 bg-white px-12 py-4 text-sm font-medium text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-blue-500"
                     placeholder="you@company.com"
                   />
                 </div>
               </label>
-            )}
 
-            {!otpStep && (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <label className="space-y-2">
-                  <span className="text-xs font-semibold text-slate-700">Password</span>
-                  <div className="relative">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                    <input
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      type={showPassword ? "text" : "password"}
-                      className="w-full rounded-2xl border border-slate-200 bg-white py-4 pl-12 pr-20 text-sm font-medium text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-blue-500"
-                      placeholder="Password"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((value) => !value)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-xs font-bold text-blue-600 hover:bg-blue-50"
-                    >
-                      {showPassword ? "Hide" : "Show"}
-                    </button>
-                  </div>
-                </label>
-
-                {mode === "register" ? (
-                  <label className="space-y-2">
-                    <span className="text-xs font-semibold text-slate-700">Confirm Password</span>
-                    <div className="relative">
-                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                      <input
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        type={showConfirmPassword ? "text" : "password"}
-                        className="w-full rounded-2xl border border-slate-200 bg-white py-4 pl-12 pr-20 text-sm font-medium text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-blue-500"
-                        placeholder="Confirm password"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword((value) => !value)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-xs font-bold text-blue-600 hover:bg-blue-50"
-                      >
-                        {showConfirmPassword ? "Hide" : "Show"}
-                      </button>
-                    </div>
-                  </label>
-                ) : (
-                  <div className="flex items-end justify-end">
-                    <Link to="/" className="text-sm font-semibold text-blue-600 hover:text-blue-700">
-                      Forgot password?
-                    </Link>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {mode === "register" && otpStep && (
-              <label className="block space-y-2">
-                <span className="text-xs font-semibold text-slate-700">Email verification OTP</span>
-                <div className="relative">
-                  <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <input
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value.replace(/[^\d]/g, "").slice(0, 6))}
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-12 py-4 text-sm font-medium text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-blue-500"
-                    placeholder="6-digit code"
-                    inputMode="numeric"
-                  />
+              {forgotNotice && (
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+                  {forgotNotice}
                 </div>
-              </label>
-            )}
+              )}
 
-            {notice && (
-              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
-                {notice}
-              </div>
-            )}
+              {error && (
+                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+                  {error}
+                </div>
+              )}
 
-            {error && (
-              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
-                {error}
-              </div>
-            )}
+              <button
+                disabled={busy}
+                type="submit"
+                className="w-full py-4 text-sm font-bold text-white rounded-2xl transition shadow-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-95 disabled:opacity-70"
+              >
+                {busy ? "Sending..." : "Send Reset Link"}
+              </button>
 
-            <button
-              disabled={busy}
-              className="relative w-full overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 text-sm font-bold text-white shadow-sm transition hover:opacity-95 disabled:opacity-70"
-            >
-              {busy ? "Securing your portal..." : mode === "register" ? (otpStep ? "Verify OTP" : "Create Account") : "Login"}
-            </button>
-
-            {mode === "register" && otpStep && (
               <button
                 type="button"
                 onClick={() => {
-                  setOtpStep(false);
-                  setOtp("");
+                  setForgotView(false);
                   resetMessaging();
                 }}
-                className="w-full rounded-2xl border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"
+                className="w-full py-3.5 text-sm font-bold text-slate-700 rounded-2xl transition border border-slate-200 bg-white hover:bg-slate-50"
               >
-                Edit registration details
+                Back to Login
               </button>
-            )}
+            </form>
+          ) : require2FAEmail ? (
+            <form onSubmit={handleVerify2FA} className="mt-8 space-y-4">
+              <label className="block space-y-2">
+                <span className="text-xs font-semibold text-slate-700">6-Digit 2FA Code</span>
+                <div className="relative">
+                  <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <input
+                    type="text"
+                    required
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/[^\d]/g, "").slice(0, 6))}
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-12 py-4 text-sm font-medium text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-blue-500 tracking-[0.4em] text-center"
+                    placeholder="••••••"
+                    maxLength={6}
+                  />
+                </div>
+              </label>
 
-            <div className="border-t border-slate-200 pt-4">
-              <div className="mb-3 flex items-center gap-3">
-                <div className="h-px flex-1 bg-slate-200" />
-                <span className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">or</span>
-                <div className="h-px flex-1 bg-slate-200" />
-              </div>
-              {/* {GOOGLE_CLIENT_ID ? (
+              {error && (
+                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+                  {error}
+                </div>
+              )}
+
+              <button
+                disabled={busy}
+                type="submit"
+                className="w-full py-4 text-sm font-bold text-white rounded-2xl transition shadow-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-95 disabled:opacity-70"
+              >
+                {busy ? "Verifying..." : "Verify Code"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setRequire2FAEmail("");
+                  setOtpStep(false);
+                  resetMessaging();
+                }}
+                className="w-full py-3.5 text-sm font-bold text-slate-700 rounded-2xl transition border border-slate-200 bg-white hover:bg-slate-50"
+              >
+                Back to Login
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={onSubmit} className="mt-8 space-y-4">
+              {/* Developer note: add future account-create fields near this section and pass them to register(). */}
+              {mode === "register" && !otpStep && (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <label className="space-y-2">
+                    <span className="text-xs font-semibold text-slate-700">Full Name</span>
+                    <div className="relative">
+                      <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                      <input
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-12 py-4 text-sm font-medium text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-blue-500"
+                        placeholder="e.g. Aarav Sharma"
+                      />
+                    </div>
+                  </label>
+
+                  <label className="space-y-2">
+                    <span className="text-xs font-semibold text-slate-700">Phone Number</span>
+                    <div className="relative">
+                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                      <input
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value.replace(/[^\d]/g, "").slice(0, 10))}
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-12 py-4 text-sm font-medium text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-blue-500"
+                        placeholder="10-digit number"
+                        inputMode="numeric"
+                      />
+                    </div>
+                  </label>
+                </div>
+              )}
+
+              {mode === "register" && !otpStep && (
+                <label className="block space-y-2">
+                  <span className="text-xs font-semibold text-slate-700">Address</span>
+                  <div className="relative">
+                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <input
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-12 py-4 text-sm font-medium text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-blue-500"
+                      placeholder="House / street / city"
+                    />
+                  </div>
+                </label>
+              )}
+
+              {!otpStep && (
+                <label className="block space-y-2">
+                  <span className="text-xs font-semibold text-slate-700">Email</span>
+                  <div className="relative">
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <input
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-12 py-4 text-sm font-medium text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-blue-500"
+                      placeholder="you@company.com"
+                    />
+                  </div>
+                </label>
+              )}
+
+              {!otpStep && (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <label className="space-y-2">
+                    <span className="text-xs font-semibold text-slate-700">Password</span>
+                    <div className="relative">
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                      <input
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        type={showPassword ? "text" : "password"}
+                        className="w-full rounded-2xl border border-slate-200 bg-white py-4 pl-12 pr-20 text-sm font-medium text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-blue-500"
+                        placeholder="Password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((value) => !value)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-xs font-bold text-blue-600 hover:bg-blue-50"
+                      >
+                        {showPassword ? "Hide" : "Show"}
+                      </button>
+                    </div>
+                  </label>
+
+                  {mode === "register" ? (
+                    <label className="space-y-2">
+                      <span className="text-xs font-semibold text-slate-700">Confirm Password</span>
+                      <div className="relative">
+                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                        <input
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          type={showConfirmPassword ? "text" : "password"}
+                          className="w-full rounded-2xl border border-slate-200 bg-white py-4 pl-12 pr-20 text-sm font-medium text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-blue-500"
+                          placeholder="Confirm password"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword((value) => !value)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-xs font-bold text-blue-600 hover:bg-blue-50"
+                        >
+                          {showConfirmPassword ? "Hide" : "Show"}
+                        </button>
+                      </div>
+                    </label>
+                  ) : (
+                    <div className="flex items-end justify-end">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setForgotView(true);
+                          setError("");
+                          setForgotNotice("");
+                          setForgotEmail(email);
+                        }}
+                        className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition"
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
+                  )}
+
+                  {mode === "register" && password && (
+                    <div className="col-span-1 sm:col-span-2 space-y-1 px-1">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-slate-400">Password Strength:</span>
+                        <span className={`font-black ${getPasswordStrength(password).textClass}`}>{getPasswordStrength(password).text}</span>
+                      </div>
+                      <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-300 ${getPasswordStrength(password).color}`}
+                          style={{ width: `${(getPasswordStrength(password).score / 4) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {mode === "register" && otpStep && (
+                <label className="block space-y-2">
+                  <span className="text-xs font-semibold text-slate-700">Email verification OTP</span>
+                  <div className="relative">
+                    <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <input
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value.replace(/[^\d]/g, "").slice(0, 6))}
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-12 py-4 text-sm font-medium text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-blue-500"
+                      placeholder="6-digit code"
+                      inputMode="numeric"
+                    />
+                  </div>
+                </label>
+              )}
+
+              {notice && (
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+                  {notice}
+                </div>
+              )}
+
+              {error && (
+                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+                  {error}
+                </div>
+              )}
+
+              <button
+                disabled={busy}
+                className="relative w-full overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 text-sm font-bold text-white shadow-sm transition hover:opacity-95 disabled:opacity-70"
+              >
+                {busy ? "Securing your portal..." : mode === "register" ? (otpStep ? "Verify OTP" : "Create Account") : "Login"}
+              </button>
+
+              {mode === "register" && otpStep && (
                 <button
                   type="button"
-                  onClick={onGoogleLogin}
-                  disabled={busy}
-                  className="inline-flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-bold text-slate-800 shadow-sm hover:bg-slate-50 disabled:opacity-70"
+                  onClick={() => {
+                    setOtpStep(false);
+                    setOtp("");
+                    resetMessaging();
+                  }}
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"
                 >
-                  <GoogleLogo />
-                  Continue with Google
+                  Edit registration details
                 </button>
-              ) : (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
-                  Google sign-in needs VITE_GOOGLE_CLIENT_ID before users can select a Google account.
-                </div>
-              )
-              
-              } */}
-            </div>
-
-            <div className="text-center text-sm font-medium text-slate-600">
-              {mode === "register" ? (
-                <>
-                  Already have an account?{" "}
-                  <button type="button" onClick={() => switchMode("login")} className="font-bold text-blue-600">
-                    Login
-                  </button>
-                </>
-              ) : (
-                <>
-                  New to Agile Insurance?{" "}
-                  <button type="button" onClick={() => switchMode("register")} className="font-bold text-blue-600">
-                    Create Account
-                  </button>
-                </>
               )}
-            </div>
-          </form>
+
+
+
+
+
+
+
+
+
+
+
+              <div className="pt-2">
+                <div className="mb-4 flex items-center gap-3">
+                  <div className="h-px flex-1 bg-slate-100" />
+                  <span className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">or continue with</span>
+                  <div className="h-px flex-1 bg-slate-100" />
+                </div>
+                <div className="grid grid-cols-2 gap-3 items-center">
+                  <div id="google-signin-btn" className="w-full flex justify-center">
+                    <button
+                      type="button"
+                      onClick={handleGoogleClick}
+                      className="flex items-center cursor-pointer justify-center gap-2.5 rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-semibold text-slate-700 shadow-sm transition-all duration-200 hover:bg-slate-50 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 active:scale-[0.98]"
+                    >
+                      <GoogleLogo />
+                      <span>Google</span>
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleFacebookClick}
+                    className="flex items-center cursor-pointer justify-center gap-2.5 rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-semibold text-slate-700 shadow-sm transition-all duration-200 hover:bg-slate-50 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 active:scale-[0.98]"
+                  >
+                    <FacebookLogo />
+                    <span>Facebook</span>
+                  </button>
+                </div>
+              </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              <div className="text-center text-sm font-medium text-slate-600">
+                {mode === "register" ? (
+                  <>
+                    Already have an account?{" "}
+                    <button type="button" onClick={() => switchMode("login")} className="font-bold text-blue-600">
+                      Login
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    New to Agile Insurance?{" "}
+                    <button type="button" onClick={() => switchMode("register")} className="font-bold text-blue-600">
+                      Create Account
+                    </button>
+                  </>
+                )}
+              </div>
+            </form>
+          )}
         </motion.div>
 
         {/* Benefits and Features Card - Right Side */}
@@ -506,6 +835,7 @@ const AuthPage = () => {
           </div>
         </motion.div>
       </div>
+
     </div>
   );
 };

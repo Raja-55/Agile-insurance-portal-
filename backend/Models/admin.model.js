@@ -45,14 +45,32 @@ const adminSchema = new mongoose.Schema(
       default: true,
     },
     lastLoginAt: {
-  type: Date,
-  default: null,
-},
-createdBy: {
-  type: mongoose.Schema.Types.ObjectId,
-  ref: "Admin",        
-  default: null,
-},
+          type: Date,
+          default: null,
+    },
+    createdBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Admin",        
+        default: null,
+    },
+    reset_password_token: {
+      type: String,
+    },
+    reset_password_expiry: {
+      type: Date,
+    },
+    twoFactorEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    two_factor_code: {
+      type: String,
+    },
+    two_factor_expiry: {
+      type: Date,
+    },
+
+
   },
   { timestamps: true }
 );

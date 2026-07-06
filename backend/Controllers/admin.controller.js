@@ -64,20 +64,22 @@ const getDashboard = catchAsync(async (req, res) => {
 });
 
 
+
+
 const getUsers = catchAsync(async (req, res) => {
   try{
     const users = await User.find()
     .select(
-      "_id fullName email phone address is_verified created_at"
-    );
+        "_id fullName email phone address is_verified created_at"
+      );
     const formattedUsers = users.map((user) => ({
       id: user._id,
       name: user.fullName,
       email:user.email,
       phone: user.phone,
       address: user.address,
-      status: user.is_verified? "Active": "Inactive",
-      joinedAt:user.created_at,
+      status: user.is_verified ? "Active" : "Inactive",
+      joinedAt: user.created_at,
     }));
     res.status(200).json({
       success: true,
@@ -92,6 +94,8 @@ const getUsers = catchAsync(async (req, res) => {
     });
   }
 });
+
+
 
 
 
@@ -284,10 +288,19 @@ const getSystemSettings = catchAsync(async (req, res) => {
   res.status(200).json({ success: true, data: settings });
 });
 
-const updateSystemSettings = catchAsync(async (req, res) => {
+
+
+const updateSystemSettings = catchAsync(async (req, res,next) => {
+  
+  if (req.body.forceEmailVerification !== undefined && req.admin.role !== "Super Admin")
+  {
+    return next(new AppError("Only Super Admin is authorized to toggle email verification settings.", 403));
+  }
+  
   const flattened = flattenObject(req.body);
   const settings = await SystemSetting.findOneAndUpdate(
     {},
+
     { $set: flattened },
     {
       new: true,
@@ -299,6 +312,9 @@ const updateSystemSettings = catchAsync(async (req, res) => {
 
   res.status(200).json({ success: true, message: "Admin settings updated", data: settings });
 });
+
+
+
 
 const createAuditLog = catchAsync(async (req, res, next) => {
   const { action, module = "admin", description = "" } = req.body;
@@ -509,23 +525,49 @@ const replyToSupportTicket = catchAsync(async (req, res, next) => {
   });
 });
 
-const getAdminProfile = catchAsync(async(req, res) => {
+const getAdminProfile = catchAsync(async(req, res,next) => {
   try{
-    const admin = await Admin.findById(req.admin.id)
-    .select("-password");
+    const { fullName, phone, email, profilePhoto, twoFactorEnabled } = req.body;
 
-    res.json({
-      success: true,
-      data: admin
-    });
+
+  const existing = await Admin.findOne({
+    _id: { $ne: req.admin._id },
+    $or: [
+      ...(email ? [{ email }] : []),
+      ...(phone ? [{ phone }] : [])
+    ]
+  });
+
+  if (existing) {
+    return next(new AppError("Email or phone already exists.", 400));
   }
-  catch (err) {
-        res.status(500).json({
-            success: false,
-            message: err.message
-        });
+
+  const updateFields = {};
+  if (fullName !== undefined) updateFields.fullName = fullName;
+  if (email !== undefined) updateFields.email = email;
+  if (phone !== undefined) updateFields.phone = phone;
+  if (profilePhoto !== undefined) updateFields.profilePhoto = profilePhoto;
+  if (twoFactorEnabled !== undefined) updateFields.twoFactorEnabled = twoFactorEnabled;
+
+  const admin = await Admin.findByIdAndUpdate(
+    req.admin._id,
+    updateFields,
+    {
+      new: true,
+      runValidators: true,
     }
+  ).select("-password");
+
+  res.json({
+    success: true,
+    data: admin,
+  });
+
+  } catch (error) {
+    next(new AppError("Failed to fetch admin profile.", 500));
+  }
 });
+
 
 const updateAdminProfile = catchAsync(async (req, res, next) => {
     const { fullName, phone, email, profilePhoto } = req.body;

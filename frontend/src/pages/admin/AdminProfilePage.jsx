@@ -4,6 +4,18 @@ import { SectionTitle } from "../../components/admin/shared";
 import { fileToDataUrl } from "../../utils/helpers";
 import { apiRequest } from "../../utils/api";
 
+// const getPasswordStrength = (pass) => {
+//   if (!pass) return { score: 0, text: "", color: "bg-slate-200" };
+//   let score = 0;
+//   if (pass.length >= 8) score++;
+//   if (/[A-Z]/.test(pass)) score++;
+//   if (/[0-9]/.test(pass)) score++;
+//   if (/[^A-Za-z0-9]/.test(pass)) score++;
+
+//   if (score <= 1) return { score, text: "Weak", color: "bg-rose-500", textClass: "text-rose-500" };
+//   if (score === 2 || score === 3) return { score, text: "Medium", color: "bg-amber-500", textClass: "text-amber-500" };
+//   return { score, text: "Strong", color: "bg-emerald-500", textClass: "text-emerald-500" };
+// };
 
 
 const AdminProfilePage = () => {

@@ -20,10 +20,11 @@ const userSchema = new mongoose.Schema(
       required: true,
       unique: true,
       trim: true,
+      sparse: true,
     },
     password: {
       type: String,
-      required: true,
+      // required: true,
     },
     dob: {
       type: Date,
@@ -49,9 +50,31 @@ const userSchema = new mongoose.Schema(
       enum: ["user", "admin"],
       default: "user",
     },
-    is_verified: {
+     is_verified: {
       type: Boolean,
       default: false,
+    },
+    verification_otp: {
+      type: String,
+    },
+    verification_otp_expiry: {
+      type: Date,
+    },
+    reset_password_token: {
+      type: String,
+    },
+    reset_password_expiry: {
+      type: Date,
+    },
+    twoFactorEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    two_factor_code: {
+      type: String,
+    },
+    two_factor_expiry: {
+      type: Date,
     },
   },
   {

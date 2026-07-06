@@ -31,6 +31,8 @@ import useSettings from "./hooks/useSettings";
 import MaintenancePage from "./pages/admin/MaintenancePage";
 import ClaimProcessKnow from "./pages/ClaimProcessKnow.jsx";
 
+import ResetPasswordPage from "./pages/ResetPasswordPage";
+
 // Routes are organized by layout type: public, auth-only, admin, and protected dashboard
 const App = () => {
   const settings = useSettings();
@@ -93,6 +95,8 @@ const App = () => {
       {/* Auth routes - minimal layout (no navbar/footer) for focused authentication experience */}
       <Route element={<AuthLayout />}>
         <Route path="/auth" element={<AuthPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          
       </Route>
 
       {/* Admin routes - specialized admin interface with role-based access */}

@@ -102,7 +102,9 @@ export const AuthProvider = ({ children }) => {
         role: "user",
       }),
     });
-
+    if (response?.requireVerification) {
+      return response;
+    }
     const token = response?.data?.token;
     const rawUser = response?.data?.user;
 
@@ -117,36 +119,64 @@ export const AuthProvider = ({ children }) => {
     return { message: response?.message || "Account created successfully. You are now signed in.", user: nextUser };
   };
 
-  // Developer note: verification currently checks the pending localStorage record.
-  // const verifyOtp = async ({ email, otp }) => {
-  //   const pending = safeJsonParse(localStorage.getItem(STORAGE_PENDING), null);
-  //   if (!pending || pending.email !== email) throw new Error("No pending registration found for this email.");
-  //   if (otp !== pending.otp) throw new Error("Invalid OTP. Enter the latest code sent to your email.");
+  const verifyOtp = async ({ email, otp, fullName, phone, address, password }) => {
+    const response = await apiRequest("/api/auth/verify-register-otp", {
+      method: "POST",
+      body: JSON.stringify({
+        email,
+        otp,
+        fullName,
+        phone,
+        address,
+        password,
+      }),
+    });
 
-  //   const users = readUsers();
-  //   const verifiedUser = {
-  //     id: pending.id,
-  //     fullName: pending.fullName,
-  //     email: pending.email,
-  //     phone: pending.phone,
-  //     address: pending.address || "",
-  //     createdAt: pending.createdAt,
-  //   };
+    const token = response?.data?.token;
+    const rawUser = response?.data?.user;
 
-  //   writeUsers([...users, { ...verifiedUser, password: pending.password }]);
-  //   localStorage.removeItem(STORAGE_PENDING);
-  //   saveSession(`frontend_demo_${Date.now()}`, verifiedUser);
-  //   // saveSession(verifiedUser);
-  //   setUser(verifiedUser);
-  //   return verifiedUser;
-  // };
+    if (!token || !rawUser) {
+      throw new Error(response?.message || "Verification failed.");
+    }
+
+    const nextUser = normalizeUser(rawUser);
+    saveSession(token, nextUser);
+    setUser(nextUser);
+
+    return nextUser;
+  };
+
+  const verify2FA = async ({ email, otp }) => {
+    const response = await apiRequest("/api/auth/verify-2fa", {
+      method: "POST",
+      body: JSON.stringify({
+        email,
+        otp,
+      }),
+    });
+
+    const token = response?.data?.token;
+    const rawUser = response?.data?.user;
+
+    if (!token || !rawUser) {
+      throw new Error(response?.message || "2FA Verification failed.");
+    }
+
+    const nextUser = normalizeUser(rawUser);
+    saveSession(token, nextUser);
+    setUser(nextUser);
+
+    return nextUser;
+  };
 
   const login = async ({ email, password }) => {
     const response = await apiRequest("/api/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     });
-
+     if (response?.require2FA) {
+      return response;
+    }
     const token = response?.data?.token;
     const rawUser = response?.data?.user;
 
@@ -161,20 +191,45 @@ export const AuthProvider = ({ children }) => {
     return loggedInUser;
   };
 
-  const googleLogin = async () => {
-    const googleUser = {
-      id: `google_${Date.now()}`,
-      fullName: "Google User",
-      email: "google-user@agileclaim.demo",
-      phone: "",
-      address: "",
-      createdAt: new Date().toISOString(),
-    };
-    saveSession(`frontend_demo_${Date.now()}`, googleUser);
-    setUser(googleUser);
-    return googleUser;
+  const loginWithGoogle = async ({ idToken, profile } = {}) => {
+    const response = await apiRequest("/api/auth/google", {
+      method: "POST",
+      body: JSON.stringify({ idToken, profile }),
+    });
+
+    const token = response?.data?.token;
+    const rawUser = response?.data?.user;
+
+    if (!token || !rawUser) {
+      throw new Error(response?.message || "Google sign-in failed.");
+    }
+
+    const nextUser = normalizeUser(rawUser);
+    saveSession(token, nextUser);
+    setUser(nextUser);
+
+    return nextUser;
   };
 
+  const loginWithFacebook = async ({ accessToken, profile } = {}) => {
+    const response = await apiRequest("/api/auth/facebook", {
+      method: "POST",
+      body: JSON.stringify({ accessToken, profile }),
+    });
+
+    const token = response?.data?.token;
+    const rawUser = response?.data?.user;
+
+    if (!token || !rawUser) {
+      throw new Error(response?.message || "Facebook sign-in failed.");
+    }
+
+    const nextUser = normalizeUser(rawUser);
+    saveSession(token, nextUser);
+    setUser(nextUser);
+
+    return nextUser;
+  };
 
   const logout = async () => {
     try {
@@ -194,9 +249,11 @@ setUser(null);
       isAuthenticated: Boolean(user),
       bootstrapped,
       register,
-      // verifyOtp,
+      verifyOtp,
+      verify2FA,
       login,
-      // googleLogin,
+      loginWithGoogle,
+      loginWithFacebook,
       logout,
     }),
     [bootstrapped, user],
