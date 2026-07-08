@@ -30,6 +30,7 @@ import { Routes, useLocation } from "react-router-dom";
 import useSettings from "./hooks/useSettings";
 import MaintenancePage from "./pages/admin/MaintenancePage";
 import ClaimProcessKnow from "./pages/ClaimProcessKnow.jsx";
+import IconPreview from "./components/IconPreview";
 
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 
@@ -58,6 +59,7 @@ const App = () => {
         <Route path="/category/:categorySlug" element={<CategoryPage />} />
         <Route path="/:categorySlug" element={<CategoryPage />} />
         <Route path="/policies/:policyId" element={<PolicyDetailsPage />} />
+        <Route path="/icon-preview" element={<IconPreview />} />
         <Route
           path="/checkout/:policyId"
           element={

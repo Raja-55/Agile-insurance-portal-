@@ -9,65 +9,23 @@ import {
     User,
     Menu,
     X,
+    HeartPulse,
+    Car,
+    UsersRound,
+    Plane,
+    BriefcaseBusiness,
 } from "lucide-react";
 import { useAuth } from "../contexts/useAuth";
 import { apiRequest } from "../utils/api";
 
-// Custom Insurance Category Icons
-const HealthIcon = ({ className }) => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    <path d="M8 12h8" />
-    <path d="M12 8v8" />
-  </svg>
-);
-
-const CarIcon = ({ className }) => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" />
-    <circle cx="7" cy="17" r="2" />
-    <circle cx="17" cy="17" r="2" />
-    <path d="M5 17h7" />
-  </svg>
-);
-
-const LifeIcon = ({ className }) => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    <path d="M8 11c0-2.2 1.8-4 4-4s4 1.8 4 4" />
-    <circle cx="12" cy="11" r="2" />
-  </svg>
-);
-
-const TravelIcon = ({ className }) => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    {/* Travel bag/suitcase */}
-    <rect x="3" y="8" width="14" height="12" rx="2" />
-    <path d="M6 8V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-    <path d="M10 14h4" />
-    {/* Little airplane visible on the bag */}
-    <path d="M6 12l2 1" />
-    <path d="M6 13l2-1" />
-    <path d="M8 12.5h2" />
-    <path d="M7 11.5l1-1" />
-  </svg>
-);
-
-const BusinessIcon = ({ className }) => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-  </svg>
-);
-
 // Icon mapping for insurance categories
 const getCategoryIcon = (categoryName) => {
   const name = categoryName?.toLowerCase() || "";
-  if (name.includes("health")) return HealthIcon;
-  if (name.includes("car") || name.includes("vehicle")) return CarIcon;
-  if (name.includes("life")) return LifeIcon;
-  if (name.includes("travel")) return TravelIcon;
-  if (name.includes("business")) return BusinessIcon;
+  if (name.includes("health")) return HeartPulse;
+  if (name.includes("car") || name.includes("vehicle")) return Car;
+  if (name.includes("life")) return UsersRound;
+  if (name.includes("travel")) return Plane;
+  if (name.includes("business")) return BriefcaseBusiness;
   return null;
 };
 
@@ -254,15 +212,17 @@ const Navbar = () => {
                     <div className="absolute left-0 w-[260px] rounded-2xl border border-gray-100 bg-white p-4 shadow-2xl dark:border-white/10 dark:bg-[#0B1020]">
                         <div className="flex flex-col gap-2">
                         {item.dropdown.map((option, i) => {
-                            const IconComponent = getCategoryIcon(option);
+                            const Icon = item.name === "Insurance Products" ? getCategoryIcon(option) : null;
                             return (
                             <button
                             key={i}
                             onClick={() => handleNav(resolveRoute(option))}
                             className="flex items-center gap-3 text-left px-4 py-3 rounded-xl text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition dark:text-slate-200 dark:hover:bg-white/10 dark:hover:text-blue-300 group"
                             >
-                            {IconComponent && (
-                                <IconComponent className="w-5 h-5 text-blue-500 group-hover:text-blue-600 dark:text-blue-400 dark:group-hover:text-blue-300 flex-shrink-0" />
+                            {Icon && (
+                                <span className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-lg bg-blue-50 text-blue-600 ring-1 ring-blue-100 transition group-hover:bg-blue-100 group-hover:text-blue-700 dark:bg-blue-500/10 dark:text-blue-300 dark:ring-blue-400/20 dark:group-hover:bg-blue-500/15">
+                                <Icon className="h-6 w-6" />
+                                </span>
                             )}
                             <span>{option}</span>
                             </button>
@@ -337,15 +297,17 @@ const Navbar = () => {
                     </p>
                     <div className="flex flex-col gap-2">
                     {item.dropdown.map((option, i) => {
-                        const IconComponent = getCategoryIcon(option);
+                        const Icon = item.name === "Insurance Products" ? getCategoryIcon(option) : null;
                         return (
                         <button
                         key={i}
                         onClick={() => handleNav(resolveRoute(option))}
                         className="flex items-center gap-3 text-left rounded-xl px-3 py-2 text-sm text-gray-700 hover:bg-white hover:text-blue-600 dark:text-slate-200 dark:hover:bg-white/10 dark:hover:text-blue-300 group"
                         >
-                        {IconComponent && (
-                            <IconComponent className="w-5 h-5 text-blue-500 group-hover:text-blue-600 dark:text-blue-400 dark:group-hover:text-blue-300 flex-shrink-0" />
+                        {Icon && (
+                            <span className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-lg bg-blue-50 text-blue-600 ring-1 ring-blue-100 transition group-hover:bg-blue-100 group-hover:text-blue-700 dark:bg-blue-500/10 dark:text-blue-300 dark:ring-blue-400/20 dark:group-hover:bg-blue-500/15">
+                            <Icon className="h-6 w-6" />
+                            </span>
                         )}
                         <span>{option}</span>
                         </button>

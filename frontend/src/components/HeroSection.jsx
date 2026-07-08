@@ -94,16 +94,46 @@ useEffect(() => {
 
   // Update this list to change the scrolling partner logo/text strip.
   const trustedPartners = [
-    "SOLERA",
-    "SBI",
-    "PolicyBazer",
-    "HDFC",
-    "Bajaj Allianz",
-    "ICICI Lombard",
-    "TATA AIG",
-    "New India Assurance",
-    "Reliance General",
-    "Bharat Financial"
+    {
+      name: "Solera",
+      logo: "https://commons.wikimedia.org/wiki/Special:Redirect/file/Solera_Logo_CMYK-master.svg",
+    },
+    {
+      name: "SBI",
+      logo: "https://commons.wikimedia.org/wiki/Special:Redirect/file/State%20Bank%20of%20India.svg",
+    },
+    {
+      name: "Policybazaar",
+      logo: "https://commons.wikimedia.org/wiki/Special:Redirect/file/Policybazaar%20Logo.gif",
+    },
+    {
+      name: "HDFC ERGO",
+      logo: "https://commons.wikimedia.org/wiki/Special:Redirect/file/HDFC%20ERGO%20Logo%202025.png",
+    },
+    {
+      name: "Bajaj Allianz",
+      logo: "https://www.bajajallianz.com/content/dam/bagic/index/logo.png",
+    },
+    {
+      name: "ICICI Lombard",
+      logo: "https://commons.wikimedia.org/wiki/Special:Redirect/file/ICICI%20Lombard.svg",
+    },
+    {
+      name: "Tata AIG",
+      logo: "https://commons.wikimedia.org/wiki/Special:Redirect/file/TATA_AIG_logo.png",
+    },
+    {
+      name: "New India Assurance",
+      logo: "https://commons.wikimedia.org/wiki/Special:Redirect/file/New%20India%20Assurance.svg",
+    },
+    {
+      name: "Reliance General",
+      logo: "https://www.reliancegeneral.co.in/siteassets/rgiclassets/images/logo.png",
+    },
+    {
+      name: "Bharat Financial",
+      logo: "https://www.bfil.co.in/images/bfil-logo.png",
+    }
   ];
 
   return (
@@ -152,10 +182,25 @@ useEffect(() => {
                 <div className="partner-strip flex w-max items-center gap-8 py-2">
                   {[...trustedPartners, ...trustedPartners].map((partner, index) => (
                     <span
-                      key={`${partner}-${index}`}
-                      className="inline-flex items-center rounded-full border border-slate-200 bg-white/90 px-5 py-2 text-sm font-black tracking-[0.2em] text-slate-700 shadow-sm opacity-70 grayscale transition-all duration-500 hover:opacity-100 hover:grayscale-0 hover:-translate-y-0.5 hover:shadow-lg"
+                      key={`${partner.name}-${index}`}
+                      className="inline-flex h-14 items-center gap-3 rounded-full border border-blue-200 bg-blue-50 px-5 py-2 text-sm font-black text-blue-950 shadow-sm transition-all duration-500 hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-100 hover:shadow-lg"
                     >
-                      {partner}
+                      <span className="grid h-9 w-28 shrink-0 place-items-center overflow-hidden rounded-full bg-white px-2 ring-1 ring-blue-100">
+                        <img
+                          src={partner.logo}
+                          alt={`${partner.name} logo`}
+                          className="max-h-9 max-w-28 object-contain"
+                          loading="lazy"
+                          onError={(event) => {
+                            event.currentTarget.style.display = "none";
+                            event.currentTarget.nextElementSibling?.classList.remove("hidden");
+                          }}
+                        />
+                        <span className="hidden text-xs font-black text-slate-700">
+                          {partner.name}
+                        </span>
+                      </span>
+                      <span className="whitespace-nowrap tracking-normal">{partner.name}</span>
                     </span>
                   ))}
                 </div>

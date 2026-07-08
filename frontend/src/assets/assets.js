@@ -11,6 +11,11 @@ import InsuranceLife from "./InsuranceImages/InsuranceCar.png";
 import InsuranceTravel from "./InsuranceImages/InsuranceTravel.png";
 import InsuranceHome from "./InsuranceImages/InsuranceHome.png";
 import InsuranceBusiness from "./InsuranceImages/InsuranceBusiness.png";
+import HealthSymbol from "./Images/healthsymbol.png";
+import CarSymbol from "./Images/carsymbol.png";
+import LifeSymbol from "./Images/lifesymbol.png";
+import TravelSymbol from "./Images/travelsymbol.png";
+import BusinessSymbol from "./Images/buisnesssymbol.png";
 
 
 export const assets = {
@@ -26,4 +31,9 @@ export const assets = {
   InsuranceTravel,
   InsuranceHome,
   InsuranceBusiness,
+  HealthSymbol,
+  CarSymbol,
+  LifeSymbol,
+  TravelSymbol,
+  BusinessSymbol,
 };

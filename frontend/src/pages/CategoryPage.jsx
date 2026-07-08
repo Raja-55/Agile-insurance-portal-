@@ -22,63 +22,6 @@ import CarInsuranceImage from "../assets/Images/carinsurance.png";
 import TravelInsuranceImage from "../assets/Images/travelinsurance.png";
 import BusinessInsuranceImage from "../assets/Images/buisnessinsurance.png";
 
-// Custom Insurance Category Icons
-const HealthIcon = ({ className }) => (
-  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    <path d="M8 12h8" />
-    <path d="M12 8v8" />
-  </svg>
-);
-
-const CarIcon = ({ className }) => (
-  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" />
-    <circle cx="7" cy="17" r="2" />
-    <circle cx="17" cy="17" r="2" />
-    <path d="M5 17h7" />
-  </svg>
-);
-
-const LifeIcon = ({ className }) => (
-  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    <path d="M8 11c0-2.2 1.8-4 4-4s4 1.8 4 4" />
-    <circle cx="12" cy="11" r="2" />
-  </svg>
-);
-
-const TravelIcon = ({ className }) => (
-  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    {/* Travel bag/suitcase */}
-    <rect x="3" y="8" width="14" height="12" rx="2" />
-    <path d="M6 8V6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-    <path d="M10 14h4" />
-    {/* Little airplane visible on the bag */}
-    <path d="M6 12l2 1" />
-    <path d="M6 13l2-1" />
-    <path d="M8 12.5h2" />
-    <path d="M7 11.5l1-1" />
-  </svg>
-);
-
-const BusinessIcon = ({ className }) => (
-  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-  </svg>
-);
-
-// Icon mapping for insurance categories
-const getCategoryIcon = (categorySlug) => {
-  if (categorySlug === "health-insurance") return HealthIcon;
-  if (categorySlug === "car-insurance") return CarIcon;
-  if (categorySlug === "life-insurance") return LifeIcon;
-  if (categorySlug === "travel-insurance") return TravelIcon;
-  if (categorySlug === "business-insurance") return BusinessIcon;
-  return null;
-};
-
 // Listing page copy is mixed with catalog data; change product/category text in src/data/catalog.js first.
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 
@@ -1234,7 +1177,7 @@ const CategoryPage = () => {
           <div className="flex h-full flex-col justify-center">
             {/* Left Content - Text */}
             <motion.div 
-              className="max-w-2xl"
+              className="w-full max-w-[31rem] sm:max-w-[34rem] lg:max-w-[36rem]"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: "easeOut" }}
@@ -1249,20 +1192,14 @@ const CategoryPage = () => {
               </motion.div>
 
               {/* Main Title - Strong Contrast with Icon */}
-              <div className="flex items-center gap-3 mt-4">
-                {(() => {
-                  const IconComponent = getCategoryIcon(categorySlug);
-                  return IconComponent ? (
-                    <IconComponent className="w-8 h-8 sm:w-10 sm:h-10 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-                  ) : null;
-                })()}
+              <div className="mt-4">
                 <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-900 dark:text-white leading-[1.2] drop-shadow-sm">
                   {category.title}
                 </h1>
               </div>
 
               {/* Subtitle - Readable */}
-              <p className="mt-2 text-sm sm:text-base lg:text-lg text-slate-800 dark:text-slate-100 max-w-xl leading-relaxed font-semibold line-clamp-2">
+              <p className="mt-2 max-w-full break-words text-sm sm:text-base lg:text-lg text-slate-800 dark:text-slate-100 leading-relaxed font-semibold">
                 {category.subtitle}
               </p>
 
