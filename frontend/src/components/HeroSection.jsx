@@ -92,14 +92,14 @@ useEffect(() => {
 
 
 
-  // Update this list to change the scrolling partner logo/text strip.
+  // Update this list to change the scrolling partner logo strip.
   const trustedPartners = [
     {
       name: "Solera",
       logo: "https://commons.wikimedia.org/wiki/Special:Redirect/file/Solera_Logo_CMYK-master.svg",
     },
     {
-      name: "SBI",
+      name: "SBI General Insurance",
       logo: "https://commons.wikimedia.org/wiki/Special:Redirect/file/State%20Bank%20of%20India.svg",
     },
     {
@@ -108,15 +108,16 @@ useEffect(() => {
     },
     {
       name: "HDFC ERGO",
-      logo: "https://commons.wikimedia.org/wiki/Special:Redirect/file/HDFC%20ERGO%20Logo%202025.png",
+      logo: "https://upload.wikimedia.org/wikipedia/en/thumb/5/56/HDFC_ERGO_Logo_2025.png/250px-HDFC_ERGO_Logo_2025.png",
     },
     {
       name: "Bajaj Allianz",
-      logo: "https://www.bajajallianz.com/content/dam/bagic/index/logo.png",
+      logo: "https://pnghdpro.com/wp-content/themes/pnghdpro/download/social-media-and-brands/bajaj-allianz-logo.png",
+      logoClass: "h-14 w-38",
     },
     {
       name: "ICICI Lombard",
-      logo: "https://commons.wikimedia.org/wiki/Special:Redirect/file/ICICI%20Lombard.svg",
+      logo: "https://upload.wikimedia.org/wikipedia/en/thumb/0/05/ICICI_Lombard.svg/250px-ICICI_Lombard.svg.png",
     },
     {
       name: "Tata AIG",
@@ -132,7 +133,8 @@ useEffect(() => {
     },
     {
       name: "Bharat Financial",
-      logo: "https://www.bfil.co.in/images/bfil-logo.png",
+      logo: "https://media.fortuneindia.com/fortune-india/import/company/logos/Bharat%20Financial%20Inclusion%20Ltd.png?w=260&q=90",
+      logoClass: "h-14 w-38",
     }
   ];
 
@@ -183,24 +185,16 @@ useEffect(() => {
                   {[...trustedPartners, ...trustedPartners].map((partner, index) => (
                     <span
                       key={`${partner.name}-${index}`}
-                      className="inline-flex h-14 items-center gap-3 rounded-full border border-blue-200 bg-blue-50 px-5 py-2 text-sm font-black text-blue-950 shadow-sm transition-all duration-500 hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-100 hover:shadow-lg"
+                      className="inline-flex h-16 w-40 items-center justify-center rounded-full border border-blue-200 bg-white px-2 py-1 shadow-sm transition-all duration-500 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-lg"
+                      title={partner.name}
+                      aria-label={`${partner.name} logo`}
                     >
-                      <span className="grid h-9 w-28 shrink-0 place-items-center overflow-hidden rounded-full bg-white px-2 ring-1 ring-blue-100">
-                        <img
-                          src={partner.logo}
-                          alt={`${partner.name} logo`}
-                          className="max-h-9 max-w-28 object-contain"
-                          loading="lazy"
-                          onError={(event) => {
-                            event.currentTarget.style.display = "none";
-                            event.currentTarget.nextElementSibling?.classList.remove("hidden");
-                          }}
-                        />
-                        <span className="hidden text-xs font-black text-slate-700">
-                          {partner.name}
-                        </span>
-                      </span>
-                      <span className="whitespace-nowrap tracking-normal">{partner.name}</span>
+                      <img
+                        src={partner.logo}
+                        alt={`${partner.name} logo`}
+                        className={`${partner.logoClass || "h-10 w-28"} object-contain`}
+                        loading="lazy"
+                      />
                     </span>
                   ))}
                 </div>
