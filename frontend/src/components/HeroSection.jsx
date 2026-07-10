@@ -92,18 +92,50 @@ useEffect(() => {
 
 
 
-  // Update this list to change the scrolling partner logo/text strip.
+  // Update this list to change the scrolling partner logo strip.
   const trustedPartners = [
-    "SOLERA",
-    "SBI",
-    "PolicyBazer",
-    "HDFC",
-    "Bajaj Allianz",
-    "ICICI Lombard",
-    "TATA AIG",
-    "New India Assurance",
-    "Reliance General",
-    "Bharat Financial"
+    {
+      name: "Solera",
+      logo: "https://commons.wikimedia.org/wiki/Special:Redirect/file/Solera_Logo_CMYK-master.svg",
+    },
+    {
+      name: "SBI General Insurance",
+      logo: "https://commons.wikimedia.org/wiki/Special:Redirect/file/State%20Bank%20of%20India.svg",
+    },
+    {
+      name: "Policybazaar",
+      logo: "https://commons.wikimedia.org/wiki/Special:Redirect/file/Policybazaar%20Logo.gif",
+    },
+    {
+      name: "HDFC ERGO",
+      logo: "https://upload.wikimedia.org/wikipedia/en/thumb/5/56/HDFC_ERGO_Logo_2025.png/250px-HDFC_ERGO_Logo_2025.png",
+    },
+    {
+      name: "Bajaj Allianz",
+      logo: "https://pnghdpro.com/wp-content/themes/pnghdpro/download/social-media-and-brands/bajaj-allianz-logo.png",
+      logoClass: "h-14 w-38",
+    },
+    {
+      name: "ICICI Lombard",
+      logo: "https://upload.wikimedia.org/wikipedia/en/thumb/0/05/ICICI_Lombard.svg/250px-ICICI_Lombard.svg.png",
+    },
+    {
+      name: "Tata AIG",
+      logo: "https://commons.wikimedia.org/wiki/Special:Redirect/file/TATA_AIG_logo.png",
+    },
+    {
+      name: "New India Assurance",
+      logo: "https://commons.wikimedia.org/wiki/Special:Redirect/file/New%20India%20Assurance.svg",
+    },
+    {
+      name: "Reliance General",
+      logo: "https://www.reliancegeneral.co.in/siteassets/rgiclassets/images/logo.png",
+    },
+    {
+      name: "Bharat Financial",
+      logo: "https://media.fortuneindia.com/fortune-india/import/company/logos/Bharat%20Financial%20Inclusion%20Ltd.png?w=260&q=90",
+      logoClass: "h-14 w-38",
+    }
   ];
 
   return (
@@ -152,10 +184,17 @@ useEffect(() => {
                 <div className="partner-strip flex w-max items-center gap-8 py-2">
                   {[...trustedPartners, ...trustedPartners].map((partner, index) => (
                     <span
-                      key={`${partner}-${index}`}
-                      className="inline-flex items-center rounded-full border border-slate-200 bg-white/90 px-5 py-2 text-sm font-black tracking-[0.2em] text-slate-700 shadow-sm opacity-70 grayscale transition-all duration-500 hover:opacity-100 hover:grayscale-0 hover:-translate-y-0.5 hover:shadow-lg"
+                      key={`${partner.name}-${index}`}
+                      className="inline-flex h-16 w-40 items-center justify-center rounded-full border border-blue-200 bg-white px-2 py-1 shadow-sm transition-all duration-500 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-lg"
+                      title={partner.name}
+                      aria-label={`${partner.name} logo`}
                     >
-                      {partner}
+                      <img
+                        src={partner.logo}
+                        alt={`${partner.name} logo`}
+                        className={`${partner.logoClass || "h-10 w-28"} object-contain`}
+                        loading="lazy"
+                      />
                     </span>
                   ))}
                 </div>
