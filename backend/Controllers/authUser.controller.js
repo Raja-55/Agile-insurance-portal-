@@ -247,68 +247,87 @@ const register = catchAsync(async (req, res, next) => {
 
 const verifyRegisterOtp = catchAsync(async (req, res, next) => {
   try {
-    const { email, otp, fullName, phone, password, address, dob, gender, profile_image } = req.body;
+    const { email, otp } = req.body;
 
     if (!email || !otp) {
       return next(new AppError("Email and OTP are required", 400));
     }
 
-    // Verify OTP
-    const tempRecord = await TempOtp.findOne({ email: email.toLowerCase() });
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Find OTP record
+    const tempRecord = await TempOtp.findOne({
+      email: normalizedEmail,
+    });
+
     if (!tempRecord) {
-      return next(new AppError("OTP not found or expired. Please register again.", 400));
+      return next(
+        new AppError(
+          "OTP not found or expired. Please register again.",
+          400
+        )
+      );
     }
 
+    // Verify OTP
     if (tempRecord.otp !== otp) {
       return next(new AppError("Invalid OTP code", 400));
     }
 
     if (tempRecord.expiresAt < new Date()) {
+      await TempOtp.deleteOne({ _id: tempRecord._id });
+
       return next(new AppError("OTP code has expired", 400));
     }
 
-    // Check if email or phone already exists just in case
-    const existing = await User.findOne({
-      $or: [{ email }, ...(phone ? [{ phone }] : [])],
+    // Find the already-created user
+    const user = await User.findOne({
+      email: normalizedEmail,
     });
 
-    if (existing) {
-      return next(new AppError("Email or phone already exists", 409));
+    if (!user) {
+      return next(new AppError("User not found", 404));
     }
 
-    // Clean up OTP record
-    await TempOtp.deleteOne({ _id: tempRecord._id });
+    // Already verified?
+    if (user.is_verified) {
+      return next(new AppError("User is already verified", 400));
+    }
 
-    // Now, create the user in the database with is_verified: true!
-    const user = await User.create({
-      fullName,
-      email,
-      phone,
-      password,
-      dob,
-      gender,
-      address,
-      profile_image,
-      is_verified: true, // Verification is true in the database!
-      kyc_status: "pending",
+    // Mark verified
+    user.is_verified = true;
+    await user.save();
+
+    // Delete OTP record
+    await TempOtp.deleteOne({
+      _id: tempRecord._id,
     });
 
     const auth = buildAuthResponse(user);
-    res.cookie('token', auth.token, {
+
+    res.cookie("token", auth.token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'none',
+      secure: process.env.NODE_ENV === "production",
+      sameSite:
+        process.env.NODE_ENV === "production"
+          ? "strict"
+          : "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     return res.status(200).json({
       success: true,
-      message: "Verification and registration successful",
+      message: "Verification successful",
       data: auth,
     });
   } catch (error) {
-    console.log(error);
-    return next(new AppError("Verification failed", 500));
+    console.error("Verify Register OTP Error:", error);
+    return next(
+      new AppError(
+        error.message || "Verification failed",
+        500
+      )
+    );
   }
 });
 
