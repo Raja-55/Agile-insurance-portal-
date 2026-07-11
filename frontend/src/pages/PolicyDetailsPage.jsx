@@ -43,30 +43,87 @@ const buildFaqs = (policy) => [
   { q: "What affects the policy health score?", a: "Premium consistency, claim history, risk score, and coverage utilization." },
 ];
 
-// Normalize a raw backend Policy document into the shape this page renders.
 const normalizePolicy = (p) => {
   if (!p) return null;
-  const premiumYearly = p.premiumAmount || 0;
-  const premiumMonthly = Math.round(premiumYearly / 12);
+  const premiumYearly = p.premiumAmount || p.premiumYearly || p.premium || 0;
+  const premiumMonthly = p.premiumMonthly || Math.round(premiumYearly / 12);
+  const coverageAmount = p.coverageAmount || p.coverage || 0;
   return {
-    id: p._id,
-    company: p.companyName,
+    id: p._id || p.id,
+    company: p.companyName || p.company,
     companyBrand: { color: "bg-blue-600" },
-    policyName: p.policyName,
+    policyName: p.policyName || p.name,
     premiumMonthly,
     premiumYearly,
-    coverageAmount: p.coverageAmount,
-    coverageLabel: formatInr(p.coverageAmount),
-    claimSettlementRatio: p.claimRatio,
-    validityYears: p.validityYears,
+    coverageAmount,
+    coverageLabel: formatInr(coverageAmount),
+    claimSettlementRatio: p.claimRatio || p.claimSettlementRatio || 95,
+    validityYears: p.validityYears || 1,
     emiAvailable: !!p.emiAvailable,
     rating: p.rating || 4.2,
     policyType: p.policyType,
-    categorySlug: `${p.category}-insurance`,
+    categorySlug: p.categorySlug || `${(p.category || "health").toLowerCase()}-insurance`,
     keyBenefits: p.features && p.features.length ? p.features : ["Comprehensive coverage", "Fast digital claims", "24/7 support"],
     exclusions: GENERIC_EXCLUSIONS,
     claimProcess: GENERIC_CLAIM_PROCESS,
     reviews: GENERIC_REVIEWS,
+  };
+};
+
+const resolvePolicyInput = async (id) => {
+  if (!id) return null;
+
+  if (/^[a-f\d]{24}$/i.test(id)) {
+    try {
+      const res = await apiRequest(`/api/policies/${id}`);
+      return normalizePolicy(res?.data || res?.policy || null);
+    } catch {
+      return null;
+    }
+  }
+
+  const syntheticId = String(id);
+  const [categorySlug, companySlug, indexPart] = syntheticId.split("_");
+  const category = categorySlug?.replace(/-insurance$/i, "") || "health";
+  const companyName = companySlug
+    ? companySlug.replace(/-/g, " ").replace(/\b\w/g, (m) => m.toUpperCase())
+    : "Demo Provider";
+  const premiumAmount = category === "car"
+    ? 499 + Number(indexPart || 1) * 140
+    : category === "travel"
+      ? 349 + Number(indexPart || 1) * 110
+      : category === "business"
+        ? 1299 + Number(indexPart || 1) * 220
+        : category === "home"
+          ? 599 + Number(indexPart || 1) * 130
+          : category === "term"
+            ? 799 + Number(indexPart || 1) * 120
+            : 899 + Number(indexPart || 1) * 160;
+
+  return {
+    id: syntheticId,
+    _id: syntheticId,
+    companyName,
+    policyName: `${companyName} ${categorySlug.replace(/-/g, " ").replace(/\b\w/g, (m) => m.toUpperCase())} Plan ${indexPart || 1}`,
+    premiumAmount,
+    premiumMonthly: Math.round(premiumAmount / 12),
+    premiumYearly: Math.round(premiumAmount * 12 * 0.92),
+    coverageAmount: category === "term"
+      ? 5000000 + Number(indexPart || 1) * 2500000
+      : category === "car"
+        ? 300000 + Number(indexPart || 1) * 200000
+        : category === "travel"
+          ? 500000 + Number(indexPart || 1) * 300000
+          : category === "business"
+            ? 2500000 + Number(indexPart || 1) * 2000000
+            : 700000 + Number(indexPart || 1) * 600000,
+    claimRatio: 92 + (Number(indexPart || 1) * 3) % 7,
+    validityYears: 1 + (Number(indexPart || 1) % 3),
+    features: ["Comprehensive coverage", "Fast digital claims", "24/7 support"],
+    emiAvailable: Number(indexPart || 1) % 2 === 0,
+    rating: 4.2 + ((Number(indexPart || 1) % 3) * 0.2),
+    category: category,
+    categorySlug: `${categorySlug}`,
   };
 };
 
@@ -110,11 +167,13 @@ const PolicyDetailsPage = () => {
       setLoading(true);
       try {
         const results = await Promise.all(
-          compareIds.map((id) =>
-            apiRequest(`/api/policies/${id}`)
-              .then((res) => normalizePolicy(res?.data))
-              .catch(() => null),
-          ),
+          compareIds.map(async (id) => {
+            try {
+              return await resolvePolicyInput(id);
+            } catch {
+              return null;
+            }
+          }),
         );
         if (!mounted) return;
         const valid = results.filter(Boolean);

@@ -57,10 +57,59 @@ const normalizePolicy = (p) => ({
 useEffect(() => {
   const fetchPolicy = async () => {
     try {
-      const res = await apiRequest(`/api/policies/${policyId}`);
+      let resolvedPolicy = null;
+      if (/^[a-f\d]{24}$/i.test(policyId || "")) {
+        const res = await apiRequest(`/api/policies/${policyId}`);
+        resolvedPolicy = normalizePolicy(res?.data || res?.policy || null);
+      } else {
+        const syntheticId = String(policyId || "");
+        const [categorySlug, companySlug, indexPart] = syntheticId.split("_");
+        const category = categorySlug?.replace(/-insurance$/i, "") || "health";
+        const companyName = companySlug
+          ? companySlug.replace(/-/g, " ").replace(/\b\w/g, (m) => m.toUpperCase())
+          : "Demo Provider";
+        const premiumAmount = category === "car"
+          ? 499 + Number(indexPart || 1) * 140
+          : category === "travel"
+            ? 349 + Number(indexPart || 1) * 110
+            : category === "business"
+              ? 1299 + Number(indexPart || 1) * 220
+              : category === "home"
+                ? 599 + Number(indexPart || 1) * 130
+                : category === "term"
+                  ? 799 + Number(indexPart || 1) * 120
+                  : 899 + Number(indexPart || 1) * 160;
 
-      // depending on your controller
-      setPolicy(normalizePolicy(res.data));
+        resolvedPolicy = {
+          id: syntheticId,
+          company: companyName,
+          policyName: `${companyName} ${categorySlug.replace(/-/g, " ").replace(/\b\w/g, (m) => m.toUpperCase())} Plan ${indexPart || 1}`,
+          premiumYearly: premiumAmount * 12 * 0.92,
+          coverageAmount: category === "term"
+            ? 5000000 + Number(indexPart || 1) * 2500000
+            : category === "car"
+              ? 300000 + Number(indexPart || 1) * 200000
+              : category === "travel"
+                ? 500000 + Number(indexPart || 1) * 300000
+                : category === "business"
+                  ? 2500000 + Number(indexPart || 1) * 2000000
+                  : 700000 + Number(indexPart || 1) * 600000,
+          coverageLabel: formatInr(category === "term"
+            ? 5000000 + Number(indexPart || 1) * 2500000
+            : category === "car"
+              ? 300000 + Number(indexPart || 1) * 200000
+              : category === "travel"
+                ? 500000 + Number(indexPart || 1) * 300000
+                : category === "business"
+                  ? 2500000 + Number(indexPart || 1) * 2000000
+                  : 700000 + Number(indexPart || 1) * 600000),
+          claimRatio: 92 + (Number(indexPart || 1) * 3) % 7,
+          validityYears: 1 + (Number(indexPart || 1) % 3),
+          features: ["Comprehensive coverage", "Fast digital claims", "24/7 support"],
+          disaster: false,
+        };
+      }
+      setPolicy(resolvedPolicy);
     } catch (err) {
       console.error(err);
     } finally {
@@ -137,6 +186,19 @@ useEffect(() => {
         method: "POST",
         body: JSON.stringify({
           policyId: policy.id,
+          policyDetails: {
+            companyName: policy.company,
+            policyName: policy.policyName,
+            premiumAmount: policy.premiumYearly || policy.premiumAmount || 0,
+            coverageAmount: policy.coverageAmount || 0,
+            policyType: policy.policyType || "Standard",
+            description: `${policy.policyName} demo policy`,
+            features: policy.features || [],
+            emiAvailable: Boolean(policy.emiAvailable),
+            validityYears: policy.validityYears || 1,
+            rating: policy.rating || 4.5,
+            claimRatio: policy.claimRatio || 95,
+          },
           paymentMethod,
           billingCycle: "yearly",
           nominee: {
