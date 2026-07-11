@@ -32,7 +32,14 @@ app.use(
   cors({
     origin: (origin, callback) => {
       const allowedOrigins = Array.isArray(appConfig.clientUrl) ? appConfig.clientUrl : [appConfig.clientUrl];
-      const isAllowed = !origin || allowedOrigins.includes(origin) || /https?:\/\/localhost(:\d+)?/.test(origin) || /https:\/\/.*\.onrender\.com/.test(origin);
+      
+      
+      const isAllowed =
+  !origin ||
+  allowedOrigins.includes(origin) ||
+  /https?:\/\/localhost(:\d+)?/.test(origin) ||
+  /https:\/\/.*\.onrender\.com/.test(origin) ||
+  /https:\/\/.*\.vercel\.app/.test(origin);
 
       if (isAllowed) {
         callback(null, true);
