@@ -30,8 +30,19 @@ const notificationRoutes = require("./Routes/notification.route");
 // Middleware
 app.use(
   cors({
-    origin: appConfig.clientUrl,
+    origin: (origin, callback) => {
+      const allowedOrigins = Array.isArray(appConfig.clientUrl) ? appConfig.clientUrl : [appConfig.clientUrl];
+      const isAllowed = !origin || allowedOrigins.includes(origin) || /https?:\/\/localhost(:\d+)?/.test(origin) || /https:\/\/.*\.onrender\.com/.test(origin);
+
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        callback(new Error(`Origin not allowed by CORS: ${origin}`));
+      }
+    },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
