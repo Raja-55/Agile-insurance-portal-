@@ -58,6 +58,7 @@ const AuthPage = () => {
 
   const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID;
+  const googleInitRef = useRef(false);
 
   const [mode, setMode] = useState("register");
   const [busy, setBusy] = useState(false);
@@ -149,36 +150,37 @@ const AuthPage = () => {
 
   useEffect(() => {
     if (!GOOGLE_CLIENT_ID) return;
+    if (googleInitRef.current) return;
 
     const initializeGoogleBtn = () => {
-      if (window.google) {
-        window.google.accounts.id.initialize({
-          client_id: GOOGLE_CLIENT_ID,
-          callback: async (response) => {
-            if (response.credential) {
-              setBusy(true);
-              setError("");
-              try {
-                await loginWithGoogle({ idToken: response.credential });
-                navigate(returnTo, { replace: true });
-              } catch (err) {
-                setError(err.message || "Google Authentication failed");
-              } finally {
-                setBusy(false);
-              }
+      if (!window.google?.accounts?.id) return;
+      googleInitRef.current = true;
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: async (response) => {
+          if (response.credential) {
+            setBusy(true);
+            setError("");
+            try {
+              await loginWithGoogle({ idToken: response.credential });
+              navigate(returnTo, { replace: true });
+            } catch (err) {
+              setError(err.message || "Google Authentication failed");
+            } finally {
+              setBusy(false);
             }
-          },
+          }
+        },
+      });
+      const container = document.getElementById("google-signin-btn");
+      if (container) {
+        window.google.accounts.id.renderButton(container, {
+          theme: "outline",
+          size: "large",
+          width: "250",
+          text: "signin_with",
+          shape: "pill",
         });
-        const container = document.getElementById("google-signin-btn");
-        if (container) {
-          window.google.accounts.id.renderButton(container, {
-            theme: "outline",
-            size: "large",
-            width: "250",
-            text: "signin_with",
-            shape: "pill",
-          });
-        }
       }
     };
 
@@ -199,7 +201,7 @@ const AuthPage = () => {
     return () => {
       document.body.removeChild(script);
     };
-  }, [GOOGLE_CLIENT_ID, mode, navigate, returnTo]);
+  }, [GOOGLE_CLIENT_ID, navigate, returnTo]);
 
   useEffect(() => {
     if (!FACEBOOK_APP_ID) return;
