@@ -525,44 +525,18 @@ const replyToSupportTicket = catchAsync(async (req, res, next) => {
   });
 });
 
-const getAdminProfile = catchAsync(async(req, res,next) => {
-  try{
-    const { fullName, phone, email, profilePhoto, twoFactorEnabled } = req.body;
+const getAdminProfile = catchAsync(async (req, res, next) => {
+  try {
+    const admin = await Admin.findById(req.admin._id).select("-password");
 
-
-  const existing = await Admin.findOne({
-    _id: { $ne: req.admin._id },
-    $or: [
-      ...(email ? [{ email }] : []),
-      ...(phone ? [{ phone }] : [])
-    ]
-  });
-
-  if (existing) {
-    return next(new AppError("Email or phone already exists.", 400));
-  }
-
-  const updateFields = {};
-  if (fullName !== undefined) updateFields.fullName = fullName;
-  if (email !== undefined) updateFields.email = email;
-  if (phone !== undefined) updateFields.phone = phone;
-  if (profilePhoto !== undefined) updateFields.profilePhoto = profilePhoto;
-  if (twoFactorEnabled !== undefined) updateFields.twoFactorEnabled = twoFactorEnabled;
-
-  const admin = await Admin.findByIdAndUpdate(
-    req.admin._id,
-    updateFields,
-    {
-      new: true,
-      runValidators: true,
+    if (!admin) {
+      return next(new AppError("Admin not found", 404));
     }
-  ).select("-password");
 
-  res.json({
-    success: true,
-    data: admin,
-  });
-
+    res.json({
+      success: true,
+      data: admin,
+    });
   } catch (error) {
     next(new AppError("Failed to fetch admin profile.", 500));
   }
@@ -571,7 +545,6 @@ const getAdminProfile = catchAsync(async(req, res,next) => {
 
 const updateAdminProfile = catchAsync(async (req, res, next) => {
     const { fullName, phone, email, profilePhoto } = req.body;
-
     const existing = await Admin.findOne({
         _id: { $ne: req.admin._id },
         $or: [{ email }, { phone }]

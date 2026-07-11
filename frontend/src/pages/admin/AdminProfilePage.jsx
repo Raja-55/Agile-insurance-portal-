@@ -102,31 +102,25 @@ const savePassword = async () => {
 
 };
 
-const onPhotoUpload = (file) => {
-
-  fileToDataUrl(file, async (profilePhoto) => {
-
-    try {
-
-      await apiRequest("/api/admin/profile", {
-        method: "PATCH",
-        useAdminToken:true,
-        body: JSON.stringify({
-          fullName: profile.fullName,
-          phone: profile.phone,
-          profilePhoto,
-        }),
-      });
-
-      fetchProfile();
-
-    } catch (err) {
-      console.log(err);
-    }
-
-  });
-
+const onPhotoUpload = async (file) => {
+  try {
+    const profilePhoto = await fileToDataUrl(file);
+    await apiRequest("/api/admin/profile", {
+      method: "PATCH",
+      useAdminToken: true,
+      body: JSON.stringify({
+        fullName: profile?.fullName || nameDraft,
+        phone: profile?.phone,
+        email: profile?.email,
+        profilePhoto,
+      }),
+    });
+    await fetchProfile();
+  } catch (err) {
+    console.log(err);
+  }
 };
+
 const removePhoto = async () => {
 
   try {
