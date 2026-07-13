@@ -146,7 +146,7 @@ const DashboardProfile = () => {
               <div className="text-sm font-black text-slate-900 dark:text-white">{profile?.fullName || user?.fullName || "Member"}</div>
               <div className="mt-1 truncate text-xs font-semibold text-slate-500 dark:text-slate-400">{profile?.email || user?.email}</div>
             </div>
-            <label className="inline-flex cursor-pointer items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-800 shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100">
+            <label className="inline-flex cursor-pointer items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-800 shadow-sm transition hover:bg-slate-50 hover:text-slate-900 active:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/90 dark:text-white dark:hover:bg-slate-700 dark:hover:text-white dark:active:bg-slate-600">
               Upload Photo
               <input type="file" accept="image/*" className="hidden" onChange={(event) => uploadPhoto(event.target.files?.[0])} />
             </label>
@@ -180,13 +180,13 @@ const DashboardProfile = () => {
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none focus:border-blue-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
+              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900/95 dark:text-slate-100 dark:placeholder:text-slate-400 dark:focus:border-blue-400"
               placeholder="Member name"
             />
             <select
               value={relation}
               onChange={(e) => setRelation(e.target.value)}
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none focus:border-blue-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
+              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900/95 dark:text-slate-100 dark:focus:border-blue-400"
             >
               {["Spouse", "Parent", "Child", "Sibling", "Other"].map((r) => (
                 <option key={r} value={r}>
@@ -227,7 +227,7 @@ const DashboardProfile = () => {
                   </div>
                   <button
                     onClick={() => remove(m._id || m.id)}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-800 shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 sm:w-auto"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-800 shadow-sm transition hover:bg-rose-50 hover:text-rose-700 active:bg-rose-100 dark:border-slate-700 dark:bg-slate-800/90 dark:text-white dark:hover:bg-rose-600/80 dark:hover:text-white dark:active:bg-rose-500/80 sm:w-auto"
                   >
                     <Trash2 size={16} />
                     Remove

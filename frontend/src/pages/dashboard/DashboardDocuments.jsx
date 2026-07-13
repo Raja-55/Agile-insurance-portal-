@@ -5,7 +5,10 @@ import {
 } from "lucide-react";
 import { apiRequest, getToken } from "../../utils/api";
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const BASE_URL = (() => {
+  const raw = String(import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "http://localhost:5000").trim();
+  return raw.replace(/\/$/, "").replace(/\/api(?:\/)?$/i, "");
+})();
 
 const DOCUMENT_TYPES = [
   "Aadhar", "PAN", "Driving License", "Passport", "Policy", "Claim", "Other",

@@ -1,7 +1,17 @@
 const TOKEN_KEY = "agile_insurance_api_token_v1";
 const ADMIN_TOKEN_KEY = "agile_insurance_admin_token_v1";
 const ADMIN_PROFILE_KEY = "agile_insurance_admin_profile_v1";
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:5000").replace(/\/$/, "");
+const API_BASE_URL = (() => {
+  const raw = String(import.meta.env.VITE_API_BASE_URL || "http://localhost:5000").trim();
+  if (!raw) return "http://localhost:5000";
+  return raw.replace(/\/$/, "").replace(/\/api(?:\/)?$/i, "");
+})();
+
+const buildApiUrl = (path) => {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const absolutePath = /^https?:\/\//i.test(normalizedPath) ? normalizedPath : `${API_BASE_URL}${normalizedPath.startsWith("/api") ? normalizedPath : `/api${normalizedPath}`}`;
+  return absolutePath;
+};
 
 const initialsFromName = (name = "") => {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -72,7 +82,7 @@ export const apiRequest = async (path, options = {}) => {
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(`${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`, {
+  const response = await fetch(buildApiUrl(path), {
     credentials: "include",
     ...fetchOptions,
     headers,

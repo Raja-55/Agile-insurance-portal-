@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BadgeCheck,
@@ -12,10 +12,15 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
-import { getCategoryBySlug } from "../data/catalog";
+import { getCategoryBySlug, getPoliciesByCategory } from "../data/catalog";
 import { useAuth } from "../contexts/useAuth";
 import { apiRequest } from "../utils/api";
-
+import { assets } from "../assets/assets";
+import HealthcareImage from "../assets/Images/Healthcare.png";
+import LifeInsuranceImage from "../assets/Images/lifeinsurance.png";
+import CarInsuranceImage from "../assets/Images/carinsurance.png";
+import TravelInsuranceImage from "../assets/Images/travelinsurance.png";
+import BusinessInsuranceImage from "../assets/Images/buisnessinsurance.png";
 
 // Listing page copy is mixed with catalog data; change product/category text in src/data/catalog.js first.
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
@@ -95,7 +100,7 @@ const PolicyListingFooter = ({
     className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-4 py-2.5 text-sm font-black text-white transition hover:bg-white/15"
   >
     <Bot size={17} />
-    Ask AI
+    Request support
   </button>
 )}
 
@@ -149,8 +154,8 @@ const FiltersPanel = ({
       {/* Filter labels/placeholders/sort options are visible UI copy. */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="text-sm font-black text-slate-900">Smart Filters</div>
-          <div className="text-xs font-semibold text-slate-500">AI-ready plan discovery</div>
+          <div className="text-sm font-black text-slate-900">Plan Filters</div>
+          <div className="text-xs font-semibold text-slate-500">Compare plans by premium, coverage, and claim ratio</div>
         </div>
         {onClose ? (
           <button onClick={onClose} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700">
@@ -400,35 +405,14 @@ const CategoryPage = () => {
   };
 };
 
-  useEffect(() => {
-    let mounted = true;
-    const fetchPolicies = async () => {
-      setLoadingPolicies(true);
-      setPoliciesError(null);
-      try {
-        const cat = mapSlugToCategory(categorySlug);
-        const res = await apiRequest(`/api/policies/category/${encodeURIComponent(cat)}`);
-        // backend returns { success, count, total, data: [policies] }
-        const apiPolicies = res.data || [];
-        const normalized = apiPolicies.map(normalizePolicy);
-        // console.log("Normalized:", normalized);
-        
-        if (mounted) setAllPolicies(normalized);
-        // console.log("State data:", normalized);
-      } catch (err) {
-        console.error("Failed to fetch policies for category", categorySlug, err);
-        if (mounted) setPoliciesError(err.message || String(err));
-      } finally {
-        if (mounted) setLoadingPolicies(false);
-      }
-    };
-
-    fetchPolicies();
-    return () => (mounted = false);
-  }, [categorySlug]);
-
+  const [searchParams] = useSearchParams();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [compareIds, setCompareIds] = useState([]);
+
+  useEffect(() => {
+    if (!categorySlug) return;
+    setAllPolicies(getPoliciesByCategory(categorySlug));
+  }, [categorySlug]);
 
   const premiumMin = useMemo(() => {
     if (!allPolicies || !allPolicies.length) return 0;
@@ -495,25 +479,36 @@ const CategoryPage = () => {
     return ["All", ...Array.from(unique)];
   }, [allPolicies]);
 
-  // const filtered = useMemo(() => {
-  //   const s = search.trim().toLowerCase();
-  //   let list = allPolicies.filter((p) => {
-  //     if (s && !`${p.company} ${p.policyName}`.toLowerCase().includes(s)) return false;
-  //     if (p.premiumMonthly < premiumRange[0] || p.premiumMonthly > premiumRange[1]) return false;
-  //     if (p.coverageAmount < coverageRange[0] || p.coverageAmount > coverageRange[1]) return false;
-  //     if (p.claimSettlementRatio < claimMin) return false;
-  //     if (policyType !== "All" && p.policyType !== policyType) return false;
-  //     if (emiOnly && !p.emiAvailable) return false;
-  //     if (familyOnly && !p.familyCoverage) return false;
-  //     return true;
-  //   });
+  useEffect(() => {
+    const requestedPolicyType = searchParams.get("policyType");
+    const requestedSortBy = searchParams.get("sortBy");
 
-  //   if (sortBy === "low-premium") list = [...list].sort((a, b) => a.premiumMonthly - b.premiumMonthly);
-  //   if (sortBy === "high-coverage") list = [...list].sort((a, b) => b.coverageAmount - a.coverageAmount);
-  //   if (sortBy === "best-rating") list = [...list].sort((a, b) => b.rating - a.rating);
-  //   return list;
-  // }, [allPolicies, search, premiumRange, coverageRange, claimMin, policyType, sortBy, emiOnly, familyOnly]);
-const filtered = allPolicies;
+    if (requestedPolicyType && policyTypes.includes(requestedPolicyType)) {
+      setPolicyType(requestedPolicyType);
+    }
+    if (requestedSortBy && ["low-premium", "high-coverage", "best-rating"].includes(requestedSortBy)) {
+      setSortBy(requestedSortBy);
+    }
+  }, [policyTypes, searchParams]);
+
+  const filtered = useMemo(() => {
+    const s = search.trim().toLowerCase();
+    let list = allPolicies.filter((p) => {
+      if (s && !`${p.company} ${p.policyName}`.toLowerCase().includes(s)) return false;
+      if (p.premiumMonthly < premiumRange[0] || p.premiumMonthly > premiumRange[1]) return false;
+      if (p.coverageAmount < coverageRange[0] || p.coverageAmount > coverageRange[1]) return false;
+      if (p.claimSettlementRatio < claimMin) return false;
+      if (policyType !== "All" && p.policyType !== policyType) return false;
+      if (emiOnly && !p.emiAvailable) return false;
+      if (familyOnly && !p.familyCoverage) return false;
+      return true;
+    });
+
+    if (sortBy === "low-premium") list = [...list].sort((a, b) => a.premiumMonthly - b.premiumMonthly);
+    if (sortBy === "high-coverage") list = [...list].sort((a, b) => b.coverageAmount - a.coverageAmount);
+    if (sortBy === "best-rating") list = [...list].sort((a, b) => b.rating - a.rating);
+    return list;
+  }, [allPolicies, search, premiumRange, coverageRange, claimMin, policyType, sortBy, emiOnly, familyOnly]);
 
   const activeTags = useMemo(() => {
     const tags = [];
@@ -607,58 +602,648 @@ const filtered = allPolicies;
 
   return (
     <div className="insurance-category-page bg-slate-50">
-      <div className="relative overflow-hidden border-b border-slate-200 bg-white">
-        <div className="pointer-events-none absolute -top-40 right-0 h-[520px] w-[520px] rounded-full bg-blue-600/10 blur-[110px]" />
-        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14">
-          <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-2xl">
-              {/* Listing hero badge, fallback tip, and action button labels. */}
-              <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700">
-                <ShieldCheck size={16} className="text-blue-600" />
-                AI-Powered Listing • Compare & buy in minutes
-              </div>
-              <h1 className="mt-6 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">{category.title}</h1>
-              <p className="mt-3 text-slate-600">{category.subtitle}</p>
+      {/* Hero Section - JioHotstar Cinematic Banner */}
+      <div className="relative h-[320px] sm:h-[380px] lg:h-[460px] overflow-hidden">
+        {/* Light Mode - Subtle cinematic base */}
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-100/80 via-slate-50/60 to-slate-200/70 dark:hidden pointer-events-none" />
 
-              <div className="mt-6 flex flex-wrap items-center gap-2">
-                {activeTags.length ? (
-                  activeTags.map((t) => (
-                    <span
-                      key={t}
-                      className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-sm"
-                    >
-                      <Sparkles size={14} className="text-blue-600" />
-                      {t}
-                    </span>
-                  ))
-                ) : (
-                  <span className="text-sm font-semibold text-slate-500">
-                    Tip: Use filters for premium, coverage and claim ratio.
-                  </span>
-                )}
-              </div>
-            </div>
+        {/* Dark Mode - Deep cinematic base */}
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 hidden dark:block pointer-events-none" />
 
-            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
-              <button
-                onClick={() => setMobileFiltersOpen(true)}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-bold text-slate-800 shadow-sm hover:bg-slate-50 lg:hidden"
+        {/* Subtle Cinematic Background - Image Color Extension */}
+        <div className="absolute inset-0 pointer-events-none">
+          {/* Health Insurance - Soft Blue Medical Tones */}
+          {categorySlug === "health-insurance" && (
+            <>
+              {/* Subtle radial glow from image area */}
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_120%_100%_at_75%_50%,_rgba(59,130,246,0.15)_0%,_rgba(6,182,212,0.10)_30%,_rgba(59,130,246,0.05)_60%,_transparent_100%)] dark:bg-[radial-gradient(ellipse_120%_100%_at_75%_50%,_rgba(37,99,235,0.20)_0%,_rgba(8,145,178,0.15)_30%,_rgba(37,99,235,0.08)_60%,_transparent_100%)]" />
+              
+              {/* Soft linear gradient extending left */}
+              <div className="absolute inset-0 bg-gradient-to-l from-blue-400/20 via-blue-300/12 via-blue-200/8 to-transparent dark:from-blue-500/25 dark:via-blue-400/15 dark:via-blue-300/10" />
+              
+              {/* Subtle top fade */}
+              <div className="absolute inset-0 bg-gradient-to-b from-blue-300/12 via-blue-200/8 to-transparent dark:from-blue-400/15 dark:via-blue-300/10" />
+              
+              {/* Subtle bottom fade */}
+              <div className="absolute inset-0 bg-gradient-to-t from-cyan-300/12 via-cyan-200/8 to-transparent dark:from-cyan-400/15 dark:via-cyan-300/10" />
+              
+              {/* Soft ambient glow */}
+              <div className="absolute top-1/2 right-[-100px] -translate-y-1/2 w-[800px] h-[800px] bg-blue-400/12 rounded-full blur-[200px] dark:bg-blue-500/18" />
+            </>
+          )}
+
+          {/* Life Insurance - Warm Family Sunset Tones */}
+          {categorySlug === "life-insurance" && (
+            <>
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_120%_100%_at_75%_50%,_rgba(251,146,60,0.15)_0%,_rgba(244,63,94,0.10)_30%,_rgba(251,146,60,0.05)_60%,_transparent_100%)] dark:bg-[radial-gradient(ellipse_120%_100%_at_75%_50%,_rgba(249,115,22,0.20)_0%,_rgba(225,29,72,0.15)_30%,_rgba(249,115,22,0.08)_60%,_transparent_100%)]" />
+              
+              <div className="absolute inset-0 bg-gradient-to-l from-orange-400/20 via-amber-300/12 via-orange-200/8 to-transparent dark:from-orange-500/25 dark:via-amber-400/15 dark:via-orange-300/10" />
+              
+              <div className="absolute inset-0 bg-gradient-to-b from-orange-300/12 via-orange-200/8 to-transparent dark:from-orange-400/15 dark:via-orange-300/10" />
+              
+              <div className="absolute inset-0 bg-gradient-to-t from-rose-300/12 via-rose-200/8 to-transparent dark:from-rose-400/15 dark:via-rose-300/10" />
+              
+              <div className="absolute top-1/2 right-[-100px] -translate-y-1/2 w-[800px] h-[800px] bg-orange-400/12 rounded-full blur-[200px] dark:bg-orange-500/18" />
+            </>
+          )}
+
+          {/* Car Insurance - Neon Blue + Road Reflections */}
+          {categorySlug === "car-insurance" && (
+            <>
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_120%_100%_at_75%_50%,_rgba(59,130,246,0.16)_0%,_rgba(99,102,241,0.11)_30%,_rgba(59,130,246,0.06)_60%,_transparent_100%)] dark:bg-[radial-gradient(ellipse_120%_100%_at_75%_50%,_rgba(37,99,235,0.21)_0%,_rgba(79,70,229,0.16)_30%,_rgba(37,99,235,0.09)_60%,_transparent_100%)]" />
+              
+              <div className="absolute inset-0 bg-gradient-to-l from-blue-500/22 via-indigo-400/14 via-blue-300/10 to-transparent dark:from-blue-600/28 dark:via-indigo-500/18 dark:via-blue-400/12" />
+              
+              <div className="absolute inset-0 bg-gradient-to-b from-blue-400/14 via-blue-300/10 to-transparent dark:from-blue-500/18 dark:via-blue-400/12" />
+              
+              <div className="absolute inset-0 bg-gradient-to-t from-indigo-300/14 via-indigo-200/10 to-transparent dark:from-indigo-400/18 dark:via-indigo-300/12" />
+              
+              <div className="absolute top-1/2 right-[-100px] -translate-y-1/2 w-[800px] h-[800px] bg-blue-500/14 rounded-full blur-[200px] dark:bg-blue-600/20" />
+            </>
+          )}
+
+          {/* Travel Insurance - Sunset + Sky Blue Gradients */}
+          {categorySlug === "travel-insurance" && (
+            <>
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_120%_100%_at_75%_50%,_rgba(14,165,233,0.15)_0%,_rgba(139,92,246,0.10)_30%,_rgba(14,165,233,0.05)_60%,_transparent_100%)] dark:bg-[radial-gradient(ellipse_120%_100%_at_75%_50%,_rgba(2,132,199,0.20)_0%,_rgba(124,58,237,0.15)_30%,_rgba(2,132,199,0.08)_60%,_transparent_100%)]" />
+              
+              <div className="absolute inset-0 bg-gradient-to-l from-sky-400/20 via-violet-300/12 via-sky-200/8 to-transparent dark:from-sky-500/25 dark:via-violet-400/15 dark:via-sky-300/10" />
+              
+              <div className="absolute inset-0 bg-gradient-to-b from-sky-300/12 via-sky-200/8 to-transparent dark:from-sky-400/15 dark:via-sky-300/10" />
+              
+              <div className="absolute inset-0 bg-gradient-to-t from-pink-300/12 via-pink-200/8 to-transparent dark:from-pink-400/15 dark:via-pink-300/10" />
+              
+              <div className="absolute top-1/2 right-[-100px] -translate-y-1/2 w-[800px] h-[800px] bg-sky-400/12 rounded-full blur-[200px] dark:bg-sky-500/18" />
+            </>
+          )}
+
+          {/* Business Insurance - Dark Corporate Blue + Golden Glow */}
+          {categorySlug === "business-insurance" && (
+            <>
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_120%_100%_at_75%_50%,_rgba(37,99,235,0.14)_0%,_rgba(99,102,241,0.10)_30%,_rgba(37,99,235,0.05)_60%,_transparent_100%)] dark:bg-[radial-gradient(ellipse_120%_100%_at_75%_50%,_rgba(30,58,138,0.19)_0%,_rgba(67,56,202,0.14)_30%,_rgba(30,58,138,0.08)_60%,_transparent_100%)]" />
+              
+              <div className="absolute inset-0 bg-gradient-to-l from-blue-600/20 via-indigo-500/14 via-blue-400/10 to-transparent dark:from-blue-700/26 dark:via-indigo-600/18 dark:via-blue-500/12" />
+              
+              <div className="absolute inset-0 bg-gradient-to-b from-blue-500/14 via-blue-400/10 to-transparent dark:from-blue-600/18 dark:via-blue-500/12" />
+              
+              <div className="absolute inset-0 bg-gradient-to-t from-orange-400/14 via-orange-300/10 to-transparent dark:from-orange-500/18 dark:via-orange-400/12" />
+              
+              <div className="absolute top-1/2 right-[-100px] -translate-y-1/2 w-[800px] h-[800px] bg-blue-500/12 rounded-full blur-[200px] dark:bg-blue-600/18" />
+            </>
+          )}
+        </div>
+
+        {/* JioHotstar Style Left-to-Right Dark Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-900/85 via-slate-900/60 via-slate-900/30 to-transparent dark:from-slate-950/90 dark:via-slate-950/70 dark:via-slate-950/40 pointer-events-none" />
+
+        {/* Cinematic Shadow Overlay - Top */}
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-900/40 via-transparent to-transparent dark:from-slate-950/60 pointer-events-none" />
+
+        {/* Cinematic Shadow Overlay - Bottom */}
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 via-transparent to-transparent dark:from-slate-950/70 pointer-events-none" />
+
+        {/* Soft Vignette Effect */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_70%_at_50%_50%,_transparent_0%,_rgba(15,23,42,0.3)_100%)] dark:bg-[radial-gradient(ellipse_70%_70%_at_50%_50%,_transparent_0%,_rgba(2,6,23,0.5)_100%)] pointer-events-none" />
+
+        {/* Image Layer - Right Side with Cinematic Blending */}
+        {categorySlug === "health-insurance" && (
+          <div className="absolute top-0 right-0 bottom-0 w-full sm:w-4/5 lg:w-3/5 pointer-events-none overflow-hidden">
+            <img 
+              src={HealthcareImage}
+              alt="Healthcare Insurance"
+              className="h-full w-full object-contain object-center"
+              style={{
+                maskImage: `
+                  linear-gradient(to left, 
+                    rgba(0,0,0,1) 0%, 
+                    rgba(0,0,0,0.98) 5%,
+                    rgba(0,0,0,0.92) 12%,
+                    rgba(0,0,0,0.78) 22%,
+                    rgba(0,0,0,0.55) 38%,
+                    rgba(0,0,0,0.30) 55%,
+                    rgba(0,0,0,0.12) 72%,
+                    rgba(0,0,0,0.03) 88%,
+                    rgba(0,0,0,0) 100%
+                  ),
+                  linear-gradient(to top,
+                    rgba(0,0,0,1) 0%,
+                    rgba(0,0,0,0.96) 8%,
+                    rgba(0,0,0,0.85) 20%,
+                    rgba(0,0,0,0.60) 40%,
+                    rgba(0,0,0,0.30) 65%,
+                    rgba(0,0,0,0.08) 85%,
+                    rgba(0,0,0,0) 100%
+                  ),
+                  linear-gradient(to bottom,
+                    rgba(0,0,0,1) 0%,
+                    rgba(0,0,0,0.96) 8%,
+                    rgba(0,0,0,0.85) 20%,
+                    rgba(0,0,0,0.60) 40%,
+                    rgba(0,0,0,0.30) 65%,
+                    rgba(0,0,0,0.08) 85%,
+                    rgba(0,0,0,0) 100%
+                  ),
+                  radial-gradient(ellipse 140% 100% at 100% 50%,
+                    rgba(0,0,0,1) 0%,
+                    rgba(0,0,0,0.94) 12%,
+                    rgba(0,0,0,0.78) 28%,
+                    rgba(0,0,0,0.50) 50%,
+                    rgba(0,0,0,0.22) 72%,
+                    rgba(0,0,0,0.05) 90%,
+                    rgba(0,0,0,0) 100%
+                  )
+                `,
+                WebkitMaskImage: `
+                  linear-gradient(to left, 
+                    rgba(0,0,0,1) 0%, 
+                    rgba(0,0,0,0.98) 5%,
+                    rgba(0,0,0,0.92) 12%,
+                    rgba(0,0,0,0.78) 22%,
+                    rgba(0,0,0,0.55) 38%,
+                    rgba(0,0,0,0.30) 55%,
+                    rgba(0,0,0,0.12) 72%,
+                    rgba(0,0,0,0.03) 88%,
+                    rgba(0,0,0,0) 100%
+                  ),
+                  linear-gradient(to top,
+                    rgba(0,0,0,1) 0%,
+                    rgba(0,0,0,0.96) 8%,
+                    rgba(0,0,0,0.85) 20%,
+                    rgba(0,0,0,0.60) 40%,
+                    rgba(0,0,0,0.30) 65%,
+                    rgba(0,0,0,0.08) 85%,
+                    rgba(0,0,0,0) 100%
+                  ),
+                  linear-gradient(to bottom,
+                    rgba(0,0,0,1) 0%,
+                    rgba(0,0,0,0.96) 8%,
+                    rgba(0,0,0,0.85) 20%,
+                    rgba(0,0,0,0.60) 40%,
+                    rgba(0,0,0,0.30) 65%,
+                    rgba(0,0,0,0.08) 85%,
+                    rgba(0,0,0,0) 100%
+                  ),
+                  radial-gradient(ellipse 140% 100% at 100% 50%,
+                    rgba(0,0,0,1) 0%,
+                    rgba(0,0,0,0.94) 12%,
+                    rgba(0,0,0,0.78) 28%,
+                    rgba(0,0,0,0.50) 50%,
+                    rgba(0,0,0,0.22) 72%,
+                    rgba(0,0,0,0.05) 90%,
+                    rgba(0,0,0,0) 100%
+                  )
+                `,
+                filter: 'drop-shadow(-8px 0 20px rgba(0,0,0,0.12))',
+              }}
+            />
+          </div>
+        )}
+
+        {categorySlug === "life-insurance" && (
+          <div className="absolute top-0 right-0 bottom-0 w-full sm:w-4/5 lg:w-3/5 pointer-events-none overflow-hidden">
+            <img 
+              src={LifeInsuranceImage}
+              alt="Life Insurance"
+              className="h-full w-full object-contain object-center"
+              style={{
+                maskImage: `
+                  linear-gradient(to left, 
+                    rgba(0,0,0,1) 0%, 
+                    rgba(0,0,0,0.98) 5%,
+                    rgba(0,0,0,0.92) 12%,
+                    rgba(0,0,0,0.78) 22%,
+                    rgba(0,0,0,0.55) 38%,
+                    rgba(0,0,0,0.30) 55%,
+                    rgba(0,0,0,0.12) 72%,
+                    rgba(0,0,0,0.03) 88%,
+                    rgba(0,0,0,0) 100%
+                  ),
+                  linear-gradient(to top,
+                    rgba(0,0,0,1) 0%,
+                    rgba(0,0,0,0.96) 8%,
+                    rgba(0,0,0,0.85) 20%,
+                    rgba(0,0,0,0.60) 40%,
+                    rgba(0,0,0,0.30) 65%,
+                    rgba(0,0,0,0.08) 85%,
+                    rgba(0,0,0,0) 100%
+                  ),
+                  linear-gradient(to bottom,
+                    rgba(0,0,0,1) 0%,
+                    rgba(0,0,0,0.96) 8%,
+                    rgba(0,0,0,0.85) 20%,
+                    rgba(0,0,0,0.60) 40%,
+                    rgba(0,0,0,0.30) 65%,
+                    rgba(0,0,0,0.08) 85%,
+                    rgba(0,0,0,0) 100%
+                  ),
+                  radial-gradient(ellipse 140% 100% at 100% 50%,
+                    rgba(0,0,0,1) 0%,
+                    rgba(0,0,0,0.94) 12%,
+                    rgba(0,0,0,0.78) 28%,
+                    rgba(0,0,0,0.50) 50%,
+                    rgba(0,0,0,0.22) 72%,
+                    rgba(0,0,0,0.05) 90%,
+                    rgba(0,0,0,0) 100%
+                  )
+                `,
+                WebkitMaskImage: `
+                  linear-gradient(to left, 
+                    rgba(0,0,0,1) 0%, 
+                    rgba(0,0,0,0.98) 5%,
+                    rgba(0,0,0,0.92) 12%,
+                    rgba(0,0,0,0.78) 22%,
+                    rgba(0,0,0,0.55) 38%,
+                    rgba(0,0,0,0.30) 55%,
+                    rgba(0,0,0,0.12) 72%,
+                    rgba(0,0,0,0.03) 88%,
+                    rgba(0,0,0,0) 100%
+                  ),
+                  linear-gradient(to top,
+                    rgba(0,0,0,1) 0%,
+                    rgba(0,0,0,0.96) 8%,
+                    rgba(0,0,0,0.85) 20%,
+                    rgba(0,0,0,0.60) 40%,
+                    rgba(0,0,0,0.30) 65%,
+                    rgba(0,0,0,0.08) 85%,
+                    rgba(0,0,0,0) 100%
+                  ),
+                  linear-gradient(to bottom,
+                    rgba(0,0,0,1) 0%,
+                    rgba(0,0,0,0.96) 8%,
+                    rgba(0,0,0,0.85) 20%,
+                    rgba(0,0,0,0.60) 40%,
+                    rgba(0,0,0,0.30) 65%,
+                    rgba(0,0,0,0.08) 85%,
+                    rgba(0,0,0,0) 100%
+                  ),
+                  radial-gradient(ellipse 140% 100% at 100% 50%,
+                    rgba(0,0,0,1) 0%,
+                    rgba(0,0,0,0.94) 12%,
+                    rgba(0,0,0,0.78) 28%,
+                    rgba(0,0,0,0.50) 50%,
+                    rgba(0,0,0,0.22) 72%,
+                    rgba(0,0,0,0.05) 90%,
+                    rgba(0,0,0,0) 100%
+                  )
+                `,
+                filter: 'drop-shadow(-8px 0 20px rgba(0,0,0,0.12))',
+              }}
+            />
+          </div>
+        )}
+
+        {categorySlug === "car-insurance" && (
+          <div className="absolute top-0 right-0 bottom-0 w-full sm:w-4/5 lg:w-3/5 pointer-events-none overflow-hidden">
+            <img 
+              src={CarInsuranceImage}
+              alt="Car Insurance"
+              className="h-full w-full object-contain object-center"
+              style={{
+                maskImage: `
+                  linear-gradient(to left, 
+                    rgba(0,0,0,1) 0%, 
+                    rgba(0,0,0,0.98) 5%,
+                    rgba(0,0,0,0.92) 12%,
+                    rgba(0,0,0,0.78) 22%,
+                    rgba(0,0,0,0.55) 38%,
+                    rgba(0,0,0,0.30) 55%,
+                    rgba(0,0,0,0.12) 72%,
+                    rgba(0,0,0,0.03) 88%,
+                    rgba(0,0,0,0) 100%
+                  ),
+                  linear-gradient(to top,
+                    rgba(0,0,0,1) 0%,
+                    rgba(0,0,0,0.96) 8%,
+                    rgba(0,0,0,0.85) 20%,
+                    rgba(0,0,0,0.60) 40%,
+                    rgba(0,0,0,0.30) 65%,
+                    rgba(0,0,0,0.08) 85%,
+                    rgba(0,0,0,0) 100%
+                  ),
+                  linear-gradient(to bottom,
+                    rgba(0,0,0,1) 0%,
+                    rgba(0,0,0,0.96) 8%,
+                    rgba(0,0,0,0.85) 20%,
+                    rgba(0,0,0,0.60) 40%,
+                    rgba(0,0,0,0.30) 65%,
+                    rgba(0,0,0,0.08) 85%,
+                    rgba(0,0,0,0) 100%
+                  ),
+                  radial-gradient(ellipse 140% 100% at 100% 50%,
+                    rgba(0,0,0,1) 0%,
+                    rgba(0,0,0,0.94) 12%,
+                    rgba(0,0,0,0.78) 28%,
+                    rgba(0,0,0,0.50) 50%,
+                    rgba(0,0,0,0.22) 72%,
+                    rgba(0,0,0,0.05) 90%,
+                    rgba(0,0,0,0) 100%
+                  )
+                `,
+                WebkitMaskImage: `
+                  linear-gradient(to left, 
+                    rgba(0,0,0,1) 0%, 
+                    rgba(0,0,0,0.98) 5%,
+                    rgba(0,0,0,0.92) 12%,
+                    rgba(0,0,0,0.78) 22%,
+                    rgba(0,0,0,0.55) 38%,
+                    rgba(0,0,0,0.30) 55%,
+                    rgba(0,0,0,0.12) 72%,
+                    rgba(0,0,0,0.03) 88%,
+                    rgba(0,0,0,0) 100%
+                  ),
+                  linear-gradient(to top,
+                    rgba(0,0,0,1) 0%,
+                    rgba(0,0,0,0.96) 8%,
+                    rgba(0,0,0,0.85) 20%,
+                    rgba(0,0,0,0.60) 40%,
+                    rgba(0,0,0,0.30) 65%,
+                    rgba(0,0,0,0.08) 85%,
+                    rgba(0,0,0,0) 100%
+                  ),
+                  linear-gradient(to bottom,
+                    rgba(0,0,0,1) 0%,
+                    rgba(0,0,0,0.96) 8%,
+                    rgba(0,0,0,0.85) 20%,
+                    rgba(0,0,0,0.60) 40%,
+                    rgba(0,0,0,0.30) 65%,
+                    rgba(0,0,0,0.08) 85%,
+                    rgba(0,0,0,0) 100%
+                  ),
+                  radial-gradient(ellipse 140% 100% at 100% 50%,
+                    rgba(0,0,0,1) 0%,
+                    rgba(0,0,0,0.94) 12%,
+                    rgba(0,0,0,0.78) 28%,
+                    rgba(0,0,0,0.50) 50%,
+                    rgba(0,0,0,0.22) 72%,
+                    rgba(0,0,0,0.05) 90%,
+                    rgba(0,0,0,0) 100%
+                  )
+                `,
+                filter: 'drop-shadow(-8px 0 20px rgba(0,0,0,0.12))',
+              }}
+            />
+          </div>
+        )}
+
+        {categorySlug === "travel-insurance" && (
+          <div className="absolute top-0 right-0 bottom-0 w-full sm:w-4/5 lg:w-3/5 pointer-events-none overflow-hidden">
+            <img 
+              src={TravelInsuranceImage}
+              alt="Travel Insurance"
+              className="h-full w-full object-contain object-center"
+              style={{
+                maskImage: `
+                  linear-gradient(to left, 
+                    rgba(0,0,0,1) 0%, 
+                    rgba(0,0,0,0.98) 5%,
+                    rgba(0,0,0,0.92) 12%,
+                    rgba(0,0,0,0.78) 22%,
+                    rgba(0,0,0,0.55) 38%,
+                    rgba(0,0,0,0.30) 55%,
+                    rgba(0,0,0,0.12) 72%,
+                    rgba(0,0,0,0.03) 88%,
+                    rgba(0,0,0,0) 100%
+                  ),
+                  linear-gradient(to top,
+                    rgba(0,0,0,1) 0%,
+                    rgba(0,0,0,0.96) 8%,
+                    rgba(0,0,0,0.85) 20%,
+                    rgba(0,0,0,0.60) 40%,
+                    rgba(0,0,0,0.30) 65%,
+                    rgba(0,0,0,0.08) 85%,
+                    rgba(0,0,0,0) 100%
+                  ),
+                  linear-gradient(to bottom,
+                    rgba(0,0,0,1) 0%,
+                    rgba(0,0,0,0.96) 8%,
+                    rgba(0,0,0,0.85) 20%,
+                    rgba(0,0,0,0.60) 40%,
+                    rgba(0,0,0,0.30) 65%,
+                    rgba(0,0,0,0.08) 85%,
+                    rgba(0,0,0,0) 100%
+                  ),
+                  radial-gradient(ellipse 140% 100% at 100% 50%,
+                    rgba(0,0,0,1) 0%,
+                    rgba(0,0,0,0.94) 12%,
+                    rgba(0,0,0,0.78) 28%,
+                    rgba(0,0,0,0.50) 50%,
+                    rgba(0,0,0,0.22) 72%,
+                    rgba(0,0,0,0.05) 90%,
+                    rgba(0,0,0,0) 100%
+                  )
+                `,
+                WebkitMaskImage: `
+                  linear-gradient(to left, 
+                    rgba(0,0,0,1) 0%, 
+                    rgba(0,0,0,0.98) 5%,
+                    rgba(0,0,0,0.92) 12%,
+                    rgba(0,0,0,0.78) 22%,
+                    rgba(0,0,0,0.55) 38%,
+                    rgba(0,0,0,0.30) 55%,
+                    rgba(0,0,0,0.12) 72%,
+                    rgba(0,0,0,0.03) 88%,
+                    rgba(0,0,0,0) 100%
+                  ),
+                  linear-gradient(to top,
+                    rgba(0,0,0,1) 0%,
+                    rgba(0,0,0,0.96) 8%,
+                    rgba(0,0,0,0.85) 20%,
+                    rgba(0,0,0,0.60) 40%,
+                    rgba(0,0,0,0.30) 65%,
+                    rgba(0,0,0,0.08) 85%,
+                    rgba(0,0,0,0) 100%
+                  ),
+                  linear-gradient(to bottom,
+                    rgba(0,0,0,1) 0%,
+                    rgba(0,0,0,0.96) 8%,
+                    rgba(0,0,0,0.85) 20%,
+                    rgba(0,0,0,0.60) 40%,
+                    rgba(0,0,0,0.30) 65%,
+                    rgba(0,0,0,0.08) 85%,
+                    rgba(0,0,0,0) 100%
+                  ),
+                  radial-gradient(ellipse 140% 100% at 100% 50%,
+                    rgba(0,0,0,1) 0%,
+                    rgba(0,0,0,0.94) 12%,
+                    rgba(0,0,0,0.78) 28%,
+                    rgba(0,0,0,0.50) 50%,
+                    rgba(0,0,0,0.22) 72%,
+                    rgba(0,0,0,0.05) 90%,
+                    rgba(0,0,0,0) 100%
+                  )
+                `,
+                filter: 'drop-shadow(-8px 0 20px rgba(0,0,0,0.12))',
+              }}
+            />
+          </div>
+        )}
+
+        {categorySlug === "business-insurance" && (
+          <div className="absolute top-0 right-0 bottom-0 w-full sm:w-4/5 lg:w-3/5 pointer-events-none overflow-hidden">
+            <img 
+              src={BusinessInsuranceImage}
+              alt="Business Insurance"
+              className="h-full w-full object-contain object-center"
+              style={{
+                maskImage: `
+                  linear-gradient(to left, 
+                    rgba(0,0,0,1) 0%, 
+                    rgba(0,0,0,0.98) 5%,
+                    rgba(0,0,0,0.92) 12%,
+                    rgba(0,0,0,0.78) 22%,
+                    rgba(0,0,0,0.55) 38%,
+                    rgba(0,0,0,0.30) 55%,
+                    rgba(0,0,0,0.12) 72%,
+                    rgba(0,0,0,0.03) 88%,
+                    rgba(0,0,0,0) 100%
+                  ),
+                  linear-gradient(to top,
+                    rgba(0,0,0,1) 0%,
+                    rgba(0,0,0,0.96) 8%,
+                    rgba(0,0,0,0.85) 20%,
+                    rgba(0,0,0,0.60) 40%,
+                    rgba(0,0,0,0.30) 65%,
+                    rgba(0,0,0,0.08) 85%,
+                    rgba(0,0,0,0) 100%
+                  ),
+                  linear-gradient(to bottom,
+                    rgba(0,0,0,1) 0%,
+                    rgba(0,0,0,0.96) 8%,
+                    rgba(0,0,0,0.85) 20%,
+                    rgba(0,0,0,0.60) 40%,
+                    rgba(0,0,0,0.30) 65%,
+                    rgba(0,0,0,0.08) 85%,
+                    rgba(0,0,0,0) 100%
+                  ),
+                  radial-gradient(ellipse 140% 100% at 100% 50%,
+                    rgba(0,0,0,1) 0%,
+                    rgba(0,0,0,0.94) 12%,
+                    rgba(0,0,0,0.78) 28%,
+                    rgba(0,0,0,0.50) 50%,
+                    rgba(0,0,0,0.22) 72%,
+                    rgba(0,0,0,0.05) 90%,
+                    rgba(0,0,0,0) 100%
+                  )
+                `,
+                WebkitMaskImage: `
+                  linear-gradient(to left, 
+                    rgba(0,0,black,1) 0%, 
+                    rgba(0,0,0,0.98) 5%,
+                    rgba(0,0,0,0.92) 12%,
+                    rgba(0,0,0,0.78) 22%,
+                    rgba(0,0,0,0.55) 38%,
+                    rgba(0,0,0,0.30) 55%,
+                    rgba(0,0,0,0.12) 72%,
+                    rgba(0,0,0,0.03) 88%,
+                    rgba(0,0,0,0) 100%
+                  ),
+                  linear-gradient(to top,
+                    rgba(0,0,0,1) 0%,
+                    rgba(0,0,0,0.96) 8%,
+                    rgba(0,0,0,0.85) 20%,
+                    rgba(0,0,0,0.60) 40%,
+                    rgba(0,0,0,0.30) 65%,
+                    rgba(0,0,0,0.08) 85%,
+                    rgba(0,0,0,0) 100%
+                  ),
+                  linear-gradient(to bottom,
+                    rgba(0,0,0,1) 0%,
+                    rgba(0,0,0,0.96) 8%,
+                    rgba(0,0,0,0.85) 20%,
+                    rgba(0,0,0,0.60) 40%,
+                    rgba(0,0,0,0.30) 65%,
+                    rgba(0,0,0,0.08) 85%,
+                    rgba(0,0,0,0) 100%
+                  ),
+                  radial-gradient(ellipse 140% 100% at 100% 50%,
+                    rgba(0,0,0,1) 0%,
+                    rgba(0,0,0,0.94) 12%,
+                    rgba(0,0,0,0.78) 28%,
+                    rgba(0,0,0,0.50) 50%,
+                    rgba(0,0,0,0.22) 72%,
+                    rgba(0,0,0,0.05) 90%,
+                    rgba(0,0,0,0) 100%
+                  )
+                `,
+                filter: 'drop-shadow(-8px 0 20px rgba(0,0,0,0.12))',
+              }}
+            />
+          </div>
+        )}
+
+
+        {/* Content Container - Left Side */}
+        <div className="relative z-10 h-full mx-auto max-w-7xl px-4 sm:px-6">
+          <div className="flex h-full flex-col justify-center">
+            {/* Left Content - Text */}
+            <motion.div 
+              className="w-full max-w-[31rem] sm:max-w-[34rem] lg:max-w-[36rem]"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+            >
+              {/* Premium Badge - Compact */}
+              <motion.div 
+                className="w-fit inline-flex items-center gap-2 rounded-full border border-blue-500/60 dark:border-blue-400/50 bg-blue-500/20 dark:bg-blue-500/15 backdrop-blur-md px-3 py-1.5 text-xs font-semibold text-blue-900 dark:text-blue-100 shadow-lg hover:bg-blue-500/30 dark:hover:bg-blue-500/20 transition"
+                whileHover={{ scale: 1.05 }}
               >
-                <Filter size={18} />
-                Filters
-              </button>
-              <div className="hidden items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-semibold text-slate-700 shadow-sm lg:flex">
-                <LineChart size={18} className="text-blue-600" />
-                {filtered.length} plans matched
+                <ShieldCheck size={13} className="text-blue-700 dark:text-blue-300" />
+                Featured plans • Compare & buy with confidence
+              </motion.div>
+
+              {/* Main Title - Strong Contrast with Icon */}
+              <div className="mt-4">
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-900 dark:text-white leading-[1.2] drop-shadow-sm">
+                  {category.title}
+                </h1>
               </div>
-              <button
-                onClick={() => navigate("/dashboard")}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 text-sm font-bold text-white shadow-sm hover:opacity-95"
+
+              {/* Subtitle - Readable */}
+              <p className="mt-2 max-w-full break-words text-sm sm:text-base lg:text-lg text-slate-800 dark:text-slate-100 leading-relaxed font-semibold">
+                {category.subtitle}
+              </p>
+
+              {/* CTA Buttons - Compact Content-Width */}
+              <motion.div 
+                className="flex flex-col sm:flex-row gap-2.5 mt-6 w-fit"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
               >
-                <Bot size={18} />
-                Open Dashboard
-              </button>
-            </div>
+                {/* Primary Button - Compact */}
+                <motion.button
+                  onClick={() => navigate("/dashboard")}
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-fit inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-br from-blue-600 via-blue-600 to-indigo-600 hover:from-blue-700 hover:via-blue-700 hover:to-indigo-700 px-4 py-2 text-xs font-bold text-white shadow-lg hover:shadow-xl transition backdrop-blur-sm border border-white/20 dark:border-blue-400/20"
+                >
+                  <Bot size={15} />
+                  <span className="hidden sm:inline">Open Dashboard</span>
+                  <span className="sm:hidden">Dashboard</span>
+                </motion.button>
+
+                {/* Secondary Button - Filters (Mobile) */}
+                <motion.button
+                  onClick={() => setMobileFiltersOpen(true)}
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-fit inline-flex lg:hidden items-center justify-center gap-1.5 rounded-xl border border-slate-400/40 dark:border-slate-600/40 backdrop-blur-md bg-white/15 dark:bg-slate-800/25 hover:bg-white/25 dark:hover:bg-slate-800/35 px-4 py-2 text-xs font-bold text-slate-800 dark:text-slate-100 shadow-lg transition"
+                >
+                  <Filter size={15} />
+                  Filters
+                </motion.button>
+
+                {/* Plans Counter Card - Compact */}
+                <motion.div 
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  className="hidden lg:inline-flex w-fit items-center justify-center rounded-xl border border-slate-400/40 dark:border-slate-600/40 backdrop-blur-md bg-white/15 dark:bg-slate-800/25 hover:bg-white/25 dark:hover:bg-slate-800/35 px-4 py-2 text-xs font-bold text-slate-800 dark:text-slate-100 shadow-lg transition"
+                >
+                  <LineChart size={15} className="text-blue-600 dark:text-blue-400 mr-1" />
+                  <span className="font-black text-slate-900 dark:text-white">{filtered.length}</span>
+                  <span className="ml-1">plans matched</span>
+                </motion.div>
+              </motion.div>
+            </motion.div>
           </div>
         </div>
       </div>

@@ -1,15 +1,15 @@
 const express = require("express");
+const path = require("path");
 const app = express();
 const dotenv = require("dotenv");
 const cors = require("cors");
 const rateLimit = require('express-rate-limit');
 
-dotenv.config({ path: ".env" });
+dotenv.config({ path: path.resolve(__dirname, ".env") });
 
 const appConfig = require("./Config/app.config");
 const connectDB = require("./db/connect");
 // const errorHandler = require("./Middlewares/error.middleware");
-const AppError = require("./Utils/appError");
 
 // Routes
 const authRoutes = require("./Routes/auth.route");
@@ -25,23 +25,36 @@ const PORT = appConfig.port;
 const documentRoutes = require("./Routes/document.route");
 const claimRoutes = require("./Routes/claim.route");
 const uploadRoutes = require("./Routes/upload.route");
-
+const purchaseRoutes = require("./Routes/purchase.route");
+const notificationRoutes = require("./Routes/notification.route");
 // Middleware
 app.use(
   cors({
-    origin: appConfig.clientUrl,
+    origin: (origin, callback) => {
+      const allowedOrigins = Array.isArray(appConfig.clientUrl) ? appConfig.clientUrl : [appConfig.clientUrl];
+      
+      
+      const isAllowed =
+  !origin ||
+  allowedOrigins.includes(origin) ||
+  /https?:\/\/localhost(:\d+)?/.test(origin) ||
+  /https:\/\/.*\.onrender\.com/.test(origin) ||
+  /https:\/\/.*\.vercel\.app/.test(origin);
+
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        callback(new Error(`Origin not allowed by CORS: ${origin}`));
+      }
+    },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-
-
-
-// Body parsing
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
 
 // Rate limiting (100 req / 15 min per IP)
 const limiter = rateLimit({
@@ -50,18 +63,6 @@ const limiter = rateLimit({
   message: { success: false, message: 'Too many requests, please slow down.' },
 });
 app.use('/api/', limiter);
-// Request Logger Middleware
-// app.use((req, res, next) => {
-//   console.log("\n========== REQUEST ==========");
-//   console.log("Method:", req.method);
-//   console.log("URL:", req.originalUrl);
-//   console.log("Body:", req.body);
-//   console.log("Params:", req.params);
-//   console.log("Query:", req.query);
-//   console.log("=============================\n");
-
-//   next();
-// });
 
 // Health Check Route
 app.get("/health", (req, res) => {
@@ -84,7 +85,8 @@ app.use("/api/documents", documentRoutes);
 
 app.use("/api/claims", claimRoutes);
 app.use("/api/upload", uploadRoutes);
-const path = require("path");
+app.use("/api/purchases", purchaseRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 app.use(
     "/uploads",
@@ -101,10 +103,15 @@ app.use((req, res) => {
 
 // Global error handler
 app.use((err, req, res, next) => {
-  console.error("Server error:", err);
+  if (err?.name === "MongooseError" || /buffering timed out|querySrv|ECONNREFUSED|ENOTFOUND/i.test(err?.message || "")) {
+    return res.status(503).json({
+      success: false,
+      message: "Database is unavailable.",
+      details: err?.message || "Unable to reach MongoDB.",
+    });
+  }
 
-  console.log("err.statusCode =", err.statusCode, typeof err.statusCode);
-  console.log("err.status =", err.status, typeof err.status);
+  console.error("Server error:", err);
 
   res.status(err.statusCode || 500).json({
     status: err.status || "error",
@@ -115,15 +122,17 @@ app.use((err, req, res, next) => {
 // Start Server
 const startServer = async () => {
   try {
-    await connectDB();
+    const dbReady = await connectDB();
 
-    console.log("MongoDB Connected");
+    if (dbReady) {
+      console.log("MongoDB Connected");
+    }
 
     app.listen(PORT, () => {
       console.log(`Server is running on ${PORT}`);
     });
   } catch (err) {
-    console.error("Database connection failed:", err);
+    console.error("Server startup failed:", err);
     process.exit(1);
   }
 };

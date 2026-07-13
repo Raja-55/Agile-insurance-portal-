@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const authenticateAdmin = require("../Middlewares/admin.middleware");
+const authorizeAdmin = require("../Middlewares/authorizeAdmin");
 
 const {
   getDashboard,
@@ -33,13 +34,30 @@ const {
   getDocumentFile,
   
 } = require("../Controllers/admin.controller");
+const { getAllPurchases } = require("../Controllers/purchase.controller");
 
+const { 
+  createAdmin, 
+  getAllAdmins, 
+  updateAdminStatus, 
+  loginAdmin, 
+  getPublicRoster,
+  verify2FAAdmin,
+  forgotPasswordAdmin,
+  resetPasswordAdmin,
+  googleOAuthLoginAdmin,
+  facebookOAuthLoginAdmin,
+} = require("../Controllers/authAdmin.controller");
 
-const {registerAdmin, loginAdmin} = require("../Controllers/authAdmin.controller")
-
-
-router.post("/auth/register", registerAdmin);
+// Public: login only. Admin self-registration has been removed — new admin
+// accounts can only be created by a Super Admin from System Settings.
+router.get("/auth/public-roster", getPublicRoster);
 router.post("/auth/login", loginAdmin);
+router.post("/auth/google", googleOAuthLoginAdmin);
+router.post("/auth/facebook", facebookOAuthLoginAdmin);
+router.post("/auth/verify-2fa", verify2FAAdmin);
+router.post("/auth/forgot-password", forgotPasswordAdmin);
+router.post("/auth/reset-password", resetPasswordAdmin);
 router.get("/settings", getSystemSettings);
 router.use(authenticateAdmin);
 
@@ -50,6 +68,11 @@ router.patch("/profile/password", changeAdminPassword);
 
 
 router.patch("/settings", updateSystemSettings);
+
+// Admin Registration (System Settings > Admin Registration) — Super Admin only.
+router.get("/admins", authorizeAdmin("Super Admin"), getAllAdmins);
+router.post("/admins", authorizeAdmin("Super Admin"), createAdmin);
+router.patch("/admins/:id", authorizeAdmin("Super Admin"), updateAdminStatus);
 
 router.get("/dashboard", getDashboard);
 router.get("/users", getUsers);
@@ -64,6 +87,7 @@ router.patch("/claims/:id", updateClaim);
 router.delete("/claims/:id", deleteClaim);
 // router.get("/agents", getAgents);
 router.get("/payments", getPayments);
+router.get("/purchases", getAllPurchases);
 router.get("/kyc-requests", getKycRequests);
 router.patch("/kyc-requests/:id", reviewKyc);
 router.get("/audit-logs", getAuditLogs);

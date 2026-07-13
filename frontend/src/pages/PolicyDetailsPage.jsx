@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -6,17 +6,128 @@ import {
   Download,
   FileText,
   Info,
+  Loader2,
   ShieldCheck,
   Sparkles,
   Star,
   Timer,
 } from "lucide-react";
-import { getPolicyById, policies } from "../data/catalog";
 import { useAuth } from "../contexts/useAuth";
+import { apiRequest } from "../utils/api";
 
 const formatInr = (n) => `₹${Number(n).toLocaleString("en-IN")}`;
 
-// Most plan-specific copy comes from src/data/catalog.js; this file controls detail page section headings and CTAs.
+
+const GENERIC_EXCLUSIONS = [
+  "Fraudulent or pre-disclosed false claims",
+  "Intentional self-inflicted injuries/damages",
+  "War, nuclear events, and illegal activities",
+];
+
+const GENERIC_CLAIM_PROCESS = [
+  "Initiate claim via Agile Assistant",
+  "Upload documents + smart verification",
+  "Survey & review by claim team",
+  "Approval with instant payout tracking",
+];
+
+const GENERIC_REVIEWS = [
+  { name: "Riya Mehta", rating: 5, text: "Smooth checkout and super premium UI. Love the recommendations." },
+  { name: "Aman Verma", rating: 4, text: "Claim timeline is clear. Filter + compare is very helpful." },
+  { name: "Neha Kapoor", rating: 5, text: "Looks like a real enterprise portal. Feels trustworthy." },
+];
+
+const buildFaqs = (policy) => [
+  { q: "How fast can claims be processed?", a: "Most claims are verified within 24–72 hours in this demo flow." },
+  { q: "Is EMI available on this plan?", a: policy?.emiAvailable ? "Yes — monthly EMI is supported." : "This plan is pay-in-full only." },
+  { q: "What affects the policy health score?", a: "Premium consistency, claim history, risk score, and coverage utilization." },
+];
+
+const normalizePolicy = (p) => {
+  if (!p) return null;
+  const premiumYearly = p.premiumAmount || p.premiumYearly || p.premium || 0;
+  const premiumMonthly = p.premiumMonthly || Math.round(premiumYearly / 12);
+  const coverageAmount = p.coverageAmount || p.coverage || 0;
+  return {
+    id: p._id || p.id,
+    company: p.companyName || p.company,
+    companyBrand: { color: "bg-blue-600" },
+    policyName: p.policyName || p.name,
+    premiumMonthly,
+    premiumYearly,
+    coverageAmount,
+    coverageLabel: formatInr(coverageAmount),
+    claimSettlementRatio: p.claimRatio || p.claimSettlementRatio || 95,
+    validityYears: p.validityYears || 1,
+    emiAvailable: !!p.emiAvailable,
+    rating: p.rating || 4.2,
+    policyType: p.policyType,
+    categorySlug: p.categorySlug || `${(p.category || "health").toLowerCase()}-insurance`,
+    keyBenefits: p.features && p.features.length ? p.features : ["Comprehensive coverage", "Fast digital claims", "24/7 support"],
+    exclusions: GENERIC_EXCLUSIONS,
+    claimProcess: GENERIC_CLAIM_PROCESS,
+    reviews: GENERIC_REVIEWS,
+  };
+};
+
+const resolvePolicyInput = async (id) => {
+  if (!id) return null;
+
+  if (/^[a-f\d]{24}$/i.test(id)) {
+    try {
+      const res = await apiRequest(`/api/policies/${id}`);
+      return normalizePolicy(res?.data || res?.policy || null);
+    } catch {
+      return null;
+    }
+  }
+
+  const syntheticId = String(id);
+  const [categorySlug, companySlug, indexPart] = syntheticId.split("_");
+  const category = categorySlug?.replace(/-insurance$/i, "") || "health";
+  const companyName = companySlug
+    ? companySlug.replace(/-/g, " ").replace(/\b\w/g, (m) => m.toUpperCase())
+    : "Demo Provider";
+  const premiumAmount = category === "car"
+    ? 499 + Number(indexPart || 1) * 140
+    : category === "travel"
+      ? 349 + Number(indexPart || 1) * 110
+      : category === "business"
+        ? 1299 + Number(indexPart || 1) * 220
+        : category === "home"
+          ? 599 + Number(indexPart || 1) * 130
+          : category === "term"
+            ? 799 + Number(indexPart || 1) * 120
+            : 899 + Number(indexPart || 1) * 160;
+
+  return {
+    id: syntheticId,
+    _id: syntheticId,
+    companyName,
+    policyName: `${companyName} ${categorySlug.replace(/-/g, " ").replace(/\b\w/g, (m) => m.toUpperCase())} Plan ${indexPart || 1}`,
+    premiumAmount,
+    premiumMonthly: Math.round(premiumAmount / 12),
+    premiumYearly: Math.round(premiumAmount * 12 * 0.92),
+    coverageAmount: category === "term"
+      ? 5000000 + Number(indexPart || 1) * 2500000
+      : category === "car"
+        ? 300000 + Number(indexPart || 1) * 200000
+        : category === "travel"
+          ? 500000 + Number(indexPart || 1) * 300000
+          : category === "business"
+            ? 2500000 + Number(indexPart || 1) * 2000000
+            : 700000 + Number(indexPart || 1) * 600000,
+    claimRatio: 92 + (Number(indexPart || 1) * 3) % 7,
+    validityYears: 1 + (Number(indexPart || 1) % 3),
+    features: ["Comprehensive coverage", "Fast digital claims", "24/7 support"],
+    emiAvailable: Number(indexPart || 1) % 2 === 0,
+    rating: 4.2 + ((Number(indexPart || 1) % 3) * 0.2),
+    category: category,
+    categorySlug: `${categorySlug}`,
+  };
+};
+
+// Most plan-specific copy comes from the backend Policy document; this file controls detail page section headings and CTAs.
 const RatingStars = ({ rating }) => {
   const full = Math.round(rating);
   return (
@@ -39,7 +150,10 @@ const PolicyDetailsPage = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
 
-  const policy = getPolicyById(policyId);
+  const [policy, setPolicy] = useState(null);
+  const [comparePolicies, setComparePolicies] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   const compareIds = useMemo(() => {
     const params = new URLSearchParams(location.search);
     const raw = params.get("compare") || "";
@@ -47,10 +161,43 @@ const PolicyDetailsPage = () => {
     return Array.from(new Set([policyId, ...ids])).slice(0, 3);
   }, [location.search, policyId]);
 
-  const comparePolicies = useMemo(() => compareIds.map((id) => getPolicyById(id)).filter(Boolean), [compareIds]);
+  useEffect(() => {
+    let mounted = true;
+    const fetchPolicies = async () => {
+      setLoading(true);
+      try {
+        const results = await Promise.all(
+          compareIds.map(async (id) => {
+            try {
+              return await resolvePolicyInput(id);
+            } catch {
+              return null;
+            }
+          }),
+        );
+        if (!mounted) return;
+        const valid = results.filter(Boolean);
+        setPolicy(valid.find((p) => p.id === policyId) || valid[0] || null);
+        setComparePolicies(valid);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    fetchPolicies();
+    return () => (mounted = false);
+  }, [compareIds, policyId]);
 
   const [billing, setBilling] = useState("monthly");
   const [faqOpen, setFaqOpen] = useState(0);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <Loader2 className="animate-spin text-blue-600" size={40} />
+      </div>
+    );
+  }
 
   if (!policy) {
     return (
@@ -68,6 +215,7 @@ const PolicyDetailsPage = () => {
     );
   }
 
+  const faqs = buildFaqs(policy);
   const price = billing === "monthly" ? policy.premiumMonthly : policy.premiumYearly;
 
   const onBuy = () => {
@@ -99,7 +247,7 @@ const PolicyDetailsPage = () => {
                 </span>
                 <span className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 shadow-sm">
                   <Sparkles size={14} className="text-blue-600" />
-                  AI Health Score: {Math.round(78 + policy.rating * 4)}/100
+                  Plan score: {Math.round(78 + policy.rating * 4)}/100
                 </span>
                 <span className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 shadow-sm">
                   <Timer size={14} className="text-blue-600" />
@@ -251,7 +399,7 @@ const PolicyDetailsPage = () => {
               <div className="text-xs font-semibold text-slate-500">AI curated answers</div>
             </div>
             <div className="mt-6 space-y-3">
-              {policy.faqs.map((f, idx) => {
+              {faqs.map((f, idx) => {
                 const open = faqOpen === idx;
                 return (
                   <div key={f.q} className="rounded-3xl border border-slate-200 bg-slate-50">
@@ -336,13 +484,13 @@ const PolicyDetailsPage = () => {
                   onClick={() =>
                     window.dispatchEvent(
                       new CustomEvent("agile-ai-prompt", {
-                        detail: { text: `Help me understand ${policy.name} and whether it fits my needs.` },
+                        detail: { text: `Help me understand ${policy.policyName} and whether it fits my needs.` },
                       }),
                     )
                   }
                   className="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-black text-slate-800 shadow-sm hover:bg-slate-50"
                 >
-                  Ask AI
+                  Ask support
                 </button>
               </div>
             </div>
@@ -350,8 +498,8 @@ const PolicyDetailsPage = () => {
             <div className="rounded-[2.5rem] border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950 p-6 text-white shadow-[0_40px_120px_rgba(2,6,23,0.35)]">
               <div className="text-sm font-black">AI Smart Recommendation</div>
               <div className="mt-2 text-sm text-white/75">
-                This plan scores high on claim confidence and benefits-fit. For low premium, check similar plans from{" "}
-                {policies.find((x) => x.categorySlug === policy.categorySlug && x.company !== policy.company)?.company ?? "top insurers"}.
+                This plan scores high on claim confidence and benefits-fit. Compare other {policy.policyType || "similar"} plans
+                from top insurers to find the best fit for your needs.
               </div>
               <div className="mt-5 flex items-center gap-2 text-xs font-bold text-white/85">
                 <Sparkles size={16} />

@@ -9,9 +9,25 @@ import {
     User,
     Menu,
     X,
+    HeartPulse,
+    Car,
+    UsersRound,
+    Plane,
+    BriefcaseBusiness,
 } from "lucide-react";
 import { useAuth } from "../contexts/useAuth";
 import { apiRequest } from "../utils/api";
+
+// Icon mapping for insurance categories
+const getCategoryIcon = (categoryName) => {
+  const name = categoryName?.toLowerCase() || "";
+  if (name.includes("health")) return HeartPulse;
+  if (name.includes("car") || name.includes("vehicle")) return Car;
+  if (name.includes("life")) return UsersRound;
+  if (name.includes("travel")) return Plane;
+  if (name.includes("business")) return BriefcaseBusiness;
+  return null;
+};
 
 const AGILE_LOGO_SRC = "/agile-insurance-logo.svg";
 // const STORAGE_SETTINGS = "agile_insurance_system_settings_v1";
@@ -25,6 +41,13 @@ const Navbar = () => {
     const { isAuthenticated, user } = useAuth();
     const [portalName, setPortalName] = useState("Agile Insurance");
     const [supportPhone, setSupportPhone] = useState("+91 98765 43210");
+    const [policyForms, setPolicyForms] = useState({
+        healthForm: true,
+        motorForm: true,
+        lifeForm: true,
+        travelForm: true,
+        businessForm: true,
+    });
 
     useEffect(() =>{
         const fetchSettings = async () =>{
@@ -38,7 +61,15 @@ const Navbar = () => {
             setSupportPhone(
                 settings?.general?.supportPhone || "+91 98765 43210"
             );
-
+            setPolicyForms(
+                settings?.policyForms || {
+                    healthForm: true,
+                    motorForm: true,
+                    lifeForm: true,
+                    travelForm: true,
+                    businessForm: true,
+                }
+            );
         }
         catch(error){
             console.error(
@@ -82,20 +113,22 @@ const Navbar = () => {
 
         return null;
     };
+  
+
+    const insuranceDropdown = [
+  policyForms.healthForm && "Health Insurance",
+  policyForms.motorForm && "Car Insurance",
+  policyForms.lifeForm && "Life Insurance",
+  policyForms.travelForm && "Travel Insurance",
+  policyForms.businessForm && "Business Insurance",
+].filter(Boolean);
 
     // Desktop and mobile navigation labels/dropdown items are controlled from this array.
     const navItems = [
         {
-        name: "Insurance Products",
-        dropdown: [
-            "Health Insurance",
-            "Car Insurance",
-            "Bike Insurance",
-            "Life Insurance",
-            "Travel Insurance",
-            "Business Insurance",
-        ],
-        },
+    name: "Insurance Products",
+    dropdown: insuranceDropdown,
+  },
         {
         name: "Renew Your Policy",
         dropdown: [
@@ -178,15 +211,23 @@ const Navbar = () => {
                     {activeDropdown === index && (
                     <div className="absolute left-0 w-[260px] rounded-2xl border border-gray-100 bg-white p-4 shadow-2xl dark:border-white/10 dark:bg-[#0B1020]">
                         <div className="flex flex-col gap-2">
-                        {item.dropdown.map((option, i) => (
+                        {item.dropdown.map((option, i) => {
+                            const Icon = item.name === "Insurance Products" ? getCategoryIcon(option) : null;
+                            return (
                             <button
                             key={i}
                             onClick={() => handleNav(resolveRoute(option))}
-                            className="text-left px-4 py-3 rounded-xl text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition dark:text-slate-200 dark:hover:bg-white/10 dark:hover:text-blue-300"
+                            className="flex items-center gap-3 text-left px-4 py-3 rounded-xl text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition dark:text-slate-200 dark:hover:bg-white/10 dark:hover:text-blue-300 group"
                             >
-                            {option}
+                            {Icon && (
+                                <span className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-lg bg-blue-50 text-blue-600 ring-1 ring-blue-100 transition group-hover:bg-blue-100 group-hover:text-blue-700 dark:bg-blue-500/10 dark:text-blue-300 dark:ring-blue-400/20 dark:group-hover:bg-blue-500/15">
+                                <Icon className="h-6 w-6" />
+                                </span>
+                            )}
+                            <span>{option}</span>
                             </button>
-                        ))}
+                            );
+                        })}
                         </div>
                     </div>
                     )}
@@ -255,15 +296,23 @@ const Navbar = () => {
                     {item.name}
                     </p>
                     <div className="flex flex-col gap-2">
-                    {item.dropdown.map((option, i) => (
+                    {item.dropdown.map((option, i) => {
+                        const Icon = item.name === "Insurance Products" ? getCategoryIcon(option) : null;
+                        return (
                         <button
                         key={i}
                         onClick={() => handleNav(resolveRoute(option))}
-                        className="text-left rounded-xl px-3 py-2 text-sm text-gray-700 hover:bg-white hover:text-blue-600 dark:text-slate-200 dark:hover:bg-white/10 dark:hover:text-blue-300"
+                        className="flex items-center gap-3 text-left rounded-xl px-3 py-2 text-sm text-gray-700 hover:bg-white hover:text-blue-600 dark:text-slate-200 dark:hover:bg-white/10 dark:hover:text-blue-300 group"
                         >
-                        {option}
+                        {Icon && (
+                            <span className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-lg bg-blue-50 text-blue-600 ring-1 ring-blue-100 transition group-hover:bg-blue-100 group-hover:text-blue-700 dark:bg-blue-500/10 dark:text-blue-300 dark:ring-blue-400/20 dark:group-hover:bg-blue-500/15">
+                            <Icon className="h-6 w-6" />
+                            </span>
+                        )}
+                        <span>{option}</span>
                         </button>
-                    ))}
+                        );
+                    })}
                     </div>
                 </div>
                 ))}

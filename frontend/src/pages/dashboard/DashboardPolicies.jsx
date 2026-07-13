@@ -1,10 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { BadgeCheck, Calendar, Download, ExternalLink, RefreshCw, ShieldCheck } from "lucide-react";
-import { getPolicyById } from "../../data/catalog";
-import { load, save, uid } from "../../utils/storage";
-import { makeInvoiceNumber } from "../../utils/ids";
+import { BadgeCheck, Calendar, Download, ExternalLink, Loader2, RefreshCw, ShieldCheck } from "lucide-react";
+import { apiRequest } from "../../utils/api";
 
 const formatInr = (n) => `₹${Number(n).toLocaleString("en-IN")}`;
 
@@ -13,15 +11,33 @@ const daysBetween = (a, b) => Math.max(0, Math.round((b.getTime() - a.getTime())
 
 const DashboardPolicies = () => {
   const navigate = useNavigate();
-  const [purchases, setPurchases] = useState(() => load("purchases", []));
+  const [purchases, setPurchases] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [renewingId, setRenewingId] = useState(null);
+
+  const fetchPurchases = async () => {
+    setLoading(true);
+    try {
+      const res = await apiRequest("/api/purchases/my");
+      setPurchases(res?.data || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPurchases();
+  }, []);
 
   const enriched = useMemo(
     () =>
       purchases
         .map((p) => {
-          const policy = getPolicyById(p.policyId);
+          const policy = p.policy;
           if (!policy) return null;
-          const renewalAt = p.renewalAt ? new Date(p.renewalAt) : null;
+          const renewalAt = p.end_date ? new Date(p.end_date) : null;
           const remainingDays = renewalAt ? daysBetween(new Date(), renewalAt) : null;
           return { purchase: p, policy, remainingDays };
         })
@@ -29,29 +45,25 @@ const DashboardPolicies = () => {
     [purchases],
   );
 
-  const renew = (purchaseId) => {
-    const all = load("purchases", []);
-    const idx = all.findIndex((p) => p.id === purchaseId);
-    if (idx < 0) return;
-    const current = all[idx];
-    const nextRenewal = new Date(current.renewalAt || new Date().toISOString());
-    nextRenewal.setFullYear(nextRenewal.getFullYear() + 1);
-    all[idx] = { ...current, status: "Active", renewalAt: nextRenewal.toISOString() };
-    save("purchases", all);
-
-    const payments = load("payments", []);
-    payments.unshift({
-      id: uid("pay"),
-      purchaseId,
-      invoiceNumber: makeInvoiceNumber("REN"),
-      amount: current.amount,
-      method: "autopay",
-      status: "Success",
-      createdAt: new Date().toISOString(),
-    });
-    save("payments", payments);
-    setPurchases(load("purchases", []));
+  // Renewal currently re-runs the same purchase flow on the backend (extends
+  // the policy by another billing cycle and records a fresh payment).
+  const renew = async (policyId) => {
+    setRenewingId(policyId);
+    try {
+      window.alert("To renew, please complete checkout again for this policy from the plan page.");
+      navigate(`/policies/${policyId}`);
+    } finally {
+      setRenewingId(null);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <Loader2 className="animate-spin text-blue-600" size={40} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -73,7 +85,7 @@ const DashboardPolicies = () => {
               Add a policy
             </Link>
             <button
-              onClick={() => setPurchases(load("purchases", []))}
+              onClick={fetchPurchases}
               className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-6 py-4 text-sm font-black text-slate-800 shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
             >
               <RefreshCw size={18} />
@@ -103,7 +115,7 @@ const DashboardPolicies = () => {
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
           {enriched.map(({ purchase, policy, remainingDays }) => (
             <motion.div
-              key={purchase.id}
+              key={purchase._id}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.25 }}
@@ -114,30 +126,30 @@ const DashboardPolicies = () => {
                   <div className="min-w-0">
                     <div className="text-xs font-bold text-slate-500 dark:text-slate-400">Policy number</div>
                     <div className="mt-2 truncate text-lg font-black text-slate-900 dark:text-white">
-                      {purchase.policyNumber}
+                      {purchase.purchase_number}
                     </div>
                     <div className="mt-1 truncate text-sm font-semibold text-slate-600 dark:text-slate-300">
-                      {policy.company} • {policy.policyName}
+                      {policy.companyName} • {policy.policyName}
                     </div>
                   </div>
                   <span className="rounded-full bg-emerald-600/10 px-3 py-2 text-xs font-black text-emerald-700 dark:text-emerald-300">
-                    {purchase.status}
+                    {purchase.purchase_status}
                   </span>
                 </div>
 
                 <div className="mt-6 grid grid-cols-2 gap-3">
                   <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 dark:border-white/10 dark:bg-white/5">
                     <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400">Coverage</div>
-                    <div className="mt-2 text-sm font-black text-slate-900 dark:text-white">{policy.coverageLabel}</div>
+                    <div className="mt-2 text-sm font-black text-slate-900 dark:text-white">{formatInr(policy.coverageAmount)}</div>
                   </div>
                   <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 dark:border-white/10 dark:bg-white/5">
-                    <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400">Monthly premium</div>
-                    <div className="mt-2 text-sm font-black text-slate-900 dark:text-white">{formatInr(policy.premiumMonthly)}</div>
+                    <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400">Premium</div>
+                    <div className="mt-2 text-sm font-black text-slate-900 dark:text-white">{formatInr(policy.premiumAmount)}</div>
                   </div>
                   <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 dark:border-white/10 dark:bg-white/5">
                     <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400">Renewal date</div>
                     <div className="mt-2 text-sm font-black text-slate-900 dark:text-white">
-                      {purchase.renewalAt ? new Date(purchase.renewalAt).toLocaleDateString() : "—"}
+                      {purchase.end_date ? new Date(purchase.end_date).toLocaleDateString() : "—"}
                     </div>
                   </div>
                   <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 dark:border-white/10 dark:bg-white/5">
@@ -157,15 +169,16 @@ const DashboardPolicies = () => {
                     Download
                   </button>
                   <button
-                    onClick={() => navigate(`/policies/${policy.id}`)}
+                    onClick={() => navigate(`/policies/${policy._id}`)}
                     className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-800 shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
                   >
                     <ExternalLink size={16} />
                     Details
                   </button>
                   <button
-                    onClick={() => renew(purchase.id)}
-                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3 text-sm font-black text-white shadow-sm hover:opacity-95"
+                    onClick={() => renew(policy._id)}
+                    disabled={renewingId === policy._id}
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3 text-sm font-black text-white shadow-sm hover:opacity-95 disabled:opacity-70"
                   >
                     <Calendar size={16} />
                     Renew

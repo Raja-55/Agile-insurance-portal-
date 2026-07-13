@@ -29,7 +29,6 @@ const InsuranceSlider = () => {
           slidesPerView={"auto"}
           centeredSlides={true}
           loop={true} // Enables infinite loop
-          loopedSlides={6} // Tells Swiper how many slides to keep ready for the loop
           spaceBetween={30}
           speed={1200} // Speed of the sliding transition (Premium feel)
           autoplay={{

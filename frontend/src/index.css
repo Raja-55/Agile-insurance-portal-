@@ -92,3 +92,22 @@ canvas {
 .dark .insurance-category-page .hover\:bg-slate-50:hover {
   background-color: rgba(255, 255, 255, 0.1);
 }
+
+.dark select,
+.dark input,
+.dark textarea {
+  color-scheme: dark;
+  background-color: rgba(15, 23, 42, 0.92);
+  color: #f8fafc;
+}
+
+.dark select option,
+.dark select optgroup {
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+.dark select option:checked {
+  background-color: #2563eb;
+  color: #ffffff;
+}

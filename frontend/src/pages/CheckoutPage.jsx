@@ -15,7 +15,6 @@ import {
   Wallet,
 } from "lucide-react";
 // import { getPolicyById } from "../data/catalog";
-import { load, save, uid } from "../utils/storage";
 import { useAuth } from "../contexts/useAuth";
 import { apiRequest } from "../utils/api";
 
@@ -47,8 +46,10 @@ const normalizePolicy = (p) => ({
   company: p.companyName,
   policyName: p.policyName,
   premiumYearly: p.premiumAmount,
+  coverageAmount: p.coverageAmount,
   coverageLabel: formatInr(p.coverageAmount),
   claimSettlementRatio: p.claimRatio,
+  claimRatio: p.claimRatio,
   validityYears: p.validityYears,
   features: p.features,
 });
@@ -56,10 +57,59 @@ const normalizePolicy = (p) => ({
 useEffect(() => {
   const fetchPolicy = async () => {
     try {
-      const res = await apiRequest(`/api/policies/${policyId}`);
+      let resolvedPolicy = null;
+      if (/^[a-f\d]{24}$/i.test(policyId || "")) {
+        const res = await apiRequest(`/api/policies/${policyId}`);
+        resolvedPolicy = normalizePolicy(res?.data || res?.policy || null);
+      } else {
+        const syntheticId = String(policyId || "");
+        const [categorySlug, companySlug, indexPart] = syntheticId.split("_");
+        const category = categorySlug?.replace(/-insurance$/i, "") || "health";
+        const companyName = companySlug
+          ? companySlug.replace(/-/g, " ").replace(/\b\w/g, (m) => m.toUpperCase())
+          : "Demo Provider";
+        const premiumAmount = category === "car"
+          ? 499 + Number(indexPart || 1) * 140
+          : category === "travel"
+            ? 349 + Number(indexPart || 1) * 110
+            : category === "business"
+              ? 1299 + Number(indexPart || 1) * 220
+              : category === "home"
+                ? 599 + Number(indexPart || 1) * 130
+                : category === "term"
+                  ? 799 + Number(indexPart || 1) * 120
+                  : 899 + Number(indexPart || 1) * 160;
 
-      // depending on your controller
-      setPolicy(normalizePolicy(res.data));
+        resolvedPolicy = {
+          id: syntheticId,
+          company: companyName,
+          policyName: `${companyName} ${categorySlug.replace(/-/g, " ").replace(/\b\w/g, (m) => m.toUpperCase())} Plan ${indexPart || 1}`,
+          premiumYearly: premiumAmount * 12 * 0.92,
+          coverageAmount: category === "term"
+            ? 5000000 + Number(indexPart || 1) * 2500000
+            : category === "car"
+              ? 300000 + Number(indexPart || 1) * 200000
+              : category === "travel"
+                ? 500000 + Number(indexPart || 1) * 300000
+                : category === "business"
+                  ? 2500000 + Number(indexPart || 1) * 2000000
+                  : 700000 + Number(indexPart || 1) * 600000,
+          coverageLabel: formatInr(category === "term"
+            ? 5000000 + Number(indexPart || 1) * 2500000
+            : category === "car"
+              ? 300000 + Number(indexPart || 1) * 200000
+              : category === "travel"
+                ? 500000 + Number(indexPart || 1) * 300000
+                : category === "business"
+                  ? 2500000 + Number(indexPart || 1) * 2000000
+                  : 700000 + Number(indexPart || 1) * 600000),
+          claimRatio: 92 + (Number(indexPart || 1) * 3) % 7,
+          validityYears: 1 + (Number(indexPart || 1) % 3),
+          features: ["Comprehensive coverage", "Fast digital claims", "24/7 support"],
+          disaster: false,
+        };
+      }
+      setPolicy(resolvedPolicy);
     } catch (err) {
       console.error(err);
     } finally {
@@ -97,6 +147,7 @@ useEffect(() => {
     phone: user?.phone ?? "",
     nomineeName: "",
     nomineeRelation: "Spouse",
+    nomineeDob: "",
     addressLine1: "",
     city: "",
     state: "",
@@ -115,6 +166,7 @@ useEffect(() => {
     if (!form.email.trim()) return "Email is required.";
     if (!/^\d{10}$/.test(String(form.phone || "").trim())) return "Enter a valid 10-digit phone number.";
     if (!form.nomineeName.trim()) return "Nominee name is required.";
+    if (!form.nomineeDob.trim()) return "Nominee date of birth is required.";
     if (!form.addressLine1.trim()) return "Address is required.";
     if (!form.city.trim()) return "City is required.";
     if (!form.state.trim()) return "State is required.";
@@ -130,49 +182,40 @@ useEffect(() => {
 
     setBusy(true);
     try {
-      await new Promise((r) => setTimeout(r, 1200));
-      const purchaseId = uid("purchase");
-      const policyNumber = `AGL-${Math.random().toString(10).slice(2, 8)}-${String(Date.now()).slice(-4)}`;
-      const invoiceNumber = `INV-${Math.random().toString(10).slice(2, 7)}-${String(Date.now()).slice(-5)}`;
-      const today = new Date();
-      const renewal = new Date(today);
-      renewal.setFullYear(renewal.getFullYear() + 1);
-
-      const purchases = load("purchases", []);
-      const payments = load("payments", []);
-
-      purchases.unshift({
-        id: purchaseId,
-        policyId: policy.id,
-        policyNumber,
-        invoiceNumber,
-        amount: total,
-        premium,
-        gst,
-        paymentMethod,
-        status: "Active",
-        activatedAt: today.toISOString(),
-        renewalAt: renewal.toISOString(),
-        userSnapshot: { fullName: form.fullName, email: form.email, phone: form.phone },
-        nominee: { name: form.nomineeName, relation: form.nomineeRelation },
-        address: { line1: form.addressLine1, city: form.city, state: form.state, pincode: form.pincode },
-        kyc: { filename: form.kycDocName },
+      const res = await apiRequest("/api/purchases", {
+        method: "POST",
+        body: JSON.stringify({
+          policyId: policy.id,
+          policyDetails: {
+            companyName: policy.company,
+            policyName: policy.policyName,
+            premiumAmount: policy.premiumYearly || policy.premiumAmount || 0,
+            coverageAmount: policy.coverageAmount || 0,
+            policyType: policy.policyType || "Standard",
+            description: `${policy.policyName} demo policy`,
+            features: policy.features || [],
+            emiAvailable: Boolean(policy.emiAvailable),
+            validityYears: policy.validityYears || 1,
+            rating: policy.rating || 4.5,
+            claimRatio: policy.claimRatio || 95,
+          },
+          paymentMethod,
+          billingCycle: "yearly",
+          nominee: {
+            fullName: form.nomineeName,
+            relation: form.nomineeRelation,
+            phone: form.phone,
+            dob: form.nomineeDob,
+          },
+        }),
       });
 
-      payments.unshift({
-        id: uid("pay"),
-        purchaseId,
-        invoiceNumber,
-        amount: total,
-        method: paymentMethod,
-        status: "Success",
-        createdAt: today.toISOString(),
-      });
+      if (!res?.success) {
+        throw new Error(res?.message || "Payment failed. Please try again.");
+      }
 
-      save("purchases", purchases);
-      save("payments", payments);
-
-      navigate(`/payment/success?purchaseId=${encodeURIComponent(purchaseId)}`, { replace: true });
+      const purchaseNumber = res.purchaseNumber;
+      navigate(`/payment/success?purchaseNumber=${encodeURIComponent(purchaseNumber)}`, { replace: true });
     } catch (e) {
       setError(e?.message || "Payment failed. Please try again.");
     } finally {
@@ -231,9 +274,9 @@ if (loading) {
             <div className="text-sm font-black text-slate-900">Selected policy summary</div>
             <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
               {[
-                { label: "Company", value: policy.companyName },
+                { label: "Company", value: policy.company },
                 { label: "Plan", value: policy.policyName },
-                { label: "Coverage", value: policy.coverageAmount },
+                { label: "Coverage", value: policy.coverageLabel },
                 { label: "Claim ratio", value: `${policy.claimRatio}%` },
               ].map((x) => (
                 <div key={x.label} className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
@@ -306,6 +349,16 @@ if (loading) {
                     </option>
                   ))}
                 </select>
+              </label>
+              <label className="space-y-2">
+                <span className="text-xs font-semibold text-slate-700">Nominee Date of Birth</span>
+                <input
+                  type="date"
+                  value={form.nomineeDob}
+                  onChange={(e) => update("nomineeDob", e.target.value)}
+                  max={new Date().toISOString().split("T")[0]}
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm outline-none focus:border-blue-500"
+                />
               </label>
             </div>
           </div>
@@ -472,7 +525,7 @@ return (
                   PCI-DSS Security (demo) • Trust badges • Fraud checks
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs font-semibold text-slate-600">
-                  By paying you agree to policy T&C (mock). No backend is used in this project.
+                  By paying you agree to policy T&C (mock). Your purchase is saved to your account.
                 </div>
               </div>
             </motion.div>

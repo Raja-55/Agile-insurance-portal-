@@ -30,6 +30,9 @@ import { Routes, useLocation } from "react-router-dom";
 import useSettings from "./hooks/useSettings";
 import MaintenancePage from "./pages/admin/MaintenancePage";
 import ClaimProcessKnow from "./pages/ClaimProcessKnow.jsx";
+import IconPreview from "./components/IconPreview";
+
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 // Routes are organized by layout type: public, auth-only, admin, and protected dashboard
 const App = () => {
@@ -53,8 +56,10 @@ const App = () => {
         <Route path="/calculator" element={<CalculatorPage />} />
         <Route path="/claim-process-know" element={<ClaimProcessKnow />} />
         <Route path="/why-choose/:featureSlug" element={<WhyChoosePage />} />
+        <Route path="/category/:categorySlug" element={<CategoryPage />} />
         <Route path="/:categorySlug" element={<CategoryPage />} />
         <Route path="/policies/:policyId" element={<PolicyDetailsPage />} />
+        <Route path="/icon-preview" element={<IconPreview />} />
         <Route
           path="/checkout/:policyId"
           element={
@@ -92,6 +97,8 @@ const App = () => {
       {/* Auth routes - minimal layout (no navbar/footer) for focused authentication experience */}
       <Route element={<AuthLayout />}>
         <Route path="/auth" element={<AuthPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          
       </Route>
 
       {/* Admin routes - specialized admin interface with role-based access */}

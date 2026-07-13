@@ -33,7 +33,8 @@ const DashboardOverview = () => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        const res = await apiRequest("/api/user/my-policies");
+        // const res = await apiRequest("/api/user/my-policies");
+        const res = await apiRequest("/api/user/purchases");
         setRawPurchases(res.data || []);
       } catch (err) {
         console.error(err);
@@ -163,18 +164,28 @@ const DashboardOverview = () => {
               <Link to="/dashboard/policies" className="text-xs font-black text-blue-600 uppercase tracking-widest">Manage All</Link>
             </div>
             <div className="space-y-3">
-              {["Health", "Auto", "Term", "Travel"].map(cat => (
-                <div key={cat} className="flex items-center justify-between rounded-2xl bg-slate-50 p-4 transition hover:bg-slate-100">
-                  <div className="flex items-center gap-4">
-                    <div className="h-2 w-2 rounded-full bg-blue-600" />
-                    <span className="text-sm font-black text-slate-800">{cat} Insurance</span>
-                  </div>
-                  <div className="flex items-center gap-6">
-                    <span className="text-xs font-bold text-slate-500">{purchases.filter(p => p.categorySlug?.includes(cat.toLowerCase())).length} Active</span>
-                    <ChevronRight size={16} className="text-slate-300" />
-                  </div>
-                </div>
-              ))}
+
+
+
+            {["Health", "Auto", "Term", "Travel"].map(cat => (
+  <div key={cat} className="flex items-center justify-between rounded-2xl bg-slate-50 p-4 transition hover:bg-slate-100">
+    <div className="flex items-center gap-4">
+      <div className="h-2 w-2 rounded-full bg-blue-600" />
+      <span className="text-sm font-black text-slate-800">{cat} Insurance</span>
+    </div>
+    <div className="flex items-center gap-6">
+      <span className="text-xs font-bold text-slate-500">
+        {purchases.filter(p =>
+          (p.policy?.category || "").toLowerCase().includes(cat.toLowerCase())
+        ).length} Active
+      </span>
+      <ChevronRight size={16} className="text-slate-300" />
+    </div>
+  </div>
+))}
+
+
+
             </div>
           </div>
         </div>
