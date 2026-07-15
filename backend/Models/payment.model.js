@@ -81,6 +81,21 @@ const paymentSchema = new mongoose.Schema(
 // Keep legacy alias fields in sync so older reads (.method / .status) still work.
 paymentSchema.pre("validate", function () {
   if (this.payment_method !== undefined) {
+    const normalized = String(this.payment_method).toLowerCase();
+    const paymentMethodMap = {
+      card: "card",
+      cards: "card",
+      creditcard: "card",
+      debitcard: "card",
+      netbanking: "netbanking",
+      "netbanking": "netbanking",
+      "net-banking": "netbanking",
+      upi: "upi",
+      wallet: "wallet",
+      wallets: "wallet",
+      autopay: "autopay",
+    };
+    this.payment_method = paymentMethodMap[normalized] || normalized;
     this.method = this.payment_method;
   }
   if (this.payment_status !== undefined) {

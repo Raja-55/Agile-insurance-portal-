@@ -155,6 +155,15 @@ useEffect(() => {
     kycDocName: "",
   });
 
+  useEffect(() => {
+    setForm((prev) => ({
+      ...prev,
+      fullName: prev.fullName || user?.fullName || "",
+      email: prev.email || user?.email || "",
+      phone: prev.phone || user?.phone || "",
+    }));
+  }, [user?.fullName, user?.email, user?.phone]);
+
   const premium = useMemo(() => policy?.premiumYearly ?? 0, [policy]);
   const gst = useMemo(() => calcGst(premium), [premium]);
   const total = premium + gst;
@@ -179,6 +188,11 @@ useEffect(() => {
     setError("");
     const v = validate();
     if (v) return setError(v);
+
+    if (!policy?.id) {
+      setError("The selected policy could not be loaded. Please try again.");
+      return;
+    }
 
     setBusy(true);
     try {

@@ -67,13 +67,13 @@ const createPurchase = catchAsync(async (req, res, next) => {
 
             const rand1 = Math.floor(100000 + Math.random() * 900000);
             const rand2 = Math.floor(1000 + Math.random() * 9000);
-            const policy_number = `AGL-${rand1}-${rand2}`;
+            const policyNumber = `AGL-${rand1}-${rand2}`;
 
             policy = await Policy.create({
                 admin: defaultAdmin._id,
                 companyName: policyDetails.companyName,
                 policyName: policyDetails.policyName,
-                policy_number,
+                policyNumber,
                 premium_amount: Number(policyDetails.premiumAmount),
                 premiumAmount: Number(policyDetails.premiumAmount),
                 coverage_amount: Number(policyDetails.coverageAmount),
@@ -128,7 +128,9 @@ const createPurchase = catchAsync(async (req, res, next) => {
     const invoice_number = `INV-${randInv}-${today.getTime().toString().slice(-4)}`;
 
     // 2. Instantiate Purchase Model
+    const purchaseNumber = `AGL-PUR-${Math.floor(100000 + Math.random() * 900000)}-${Math.floor(1000 + Math.random() * 9000)}`;
     const purchase = new Purchase({
+        purchase_number: purchaseNumber,
         user: req.user._id,
         policy: policy._id,
         nominee: {
@@ -146,6 +148,14 @@ const createPurchase = catchAsync(async (req, res, next) => {
     });
 
     // 3. Instantiate Payment Model
+    const normalizedPaymentMethod = String(paymentMethod || "upi")
+        .toLowerCase()
+        .replace(/\s+/g, "")
+        .replace(/-+/g, "")
+        .replace(/\bcards\b/g, "card")
+        .replace(/\bwallets\b/g, "wallet")
+        .replace(/\bnetbanking\b/g, "netbanking");
+
     const payment = new Payment({
         purchase: purchase._id,
         user: req.user._id,
@@ -155,7 +165,7 @@ const createPurchase = catchAsync(async (req, res, next) => {
         amount,
         tax_amount,
         final_amount,
-        payment_method: paymentMethod || "upi",
+        payment_method: normalizedPaymentMethod,
         payment_provider: "agile-pay",
         payment_status: "success",
         paid_at: today,
