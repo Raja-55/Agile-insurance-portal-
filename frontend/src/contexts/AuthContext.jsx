@@ -169,12 +169,79 @@ export const AuthProvider = ({ children }) => {
     return nextUser;
   };
 
+  const sendEmailOtp = async ({ email }) => {
+    const endpoints = ["/api/auth/send-email-otp", "/api/auth/send-otp", "/api/auth/send-verify-otp"];
+
+    let lastError;
+    for (const endpoint of endpoints) {
+      try {
+        const response = await apiRequest(endpoint, {
+          method: "POST",
+          body: JSON.stringify({ email }),
+        });
+        if (response?.success) {
+          return response;
+        }
+        lastError = new Error(response?.message || "Failed to send OTP.");
+      } catch (error) {
+        lastError = error;
+        if (error?.status !== 404) {
+          throw error;
+        }
+      }
+    }
+
+    if (lastError) {
+      throw lastError;
+    }
+
+    throw new Error("Failed to send OTP.");
+  };
+
+  const verifyEmailOtp = async ({ email, otp }) => {
+    const endpoints = ["/api/auth/verify-email-otp", "/api/auth/verify-otp"];
+
+    let lastError;
+    for (const endpoint of endpoints) {
+      try {
+        const response = await apiRequest(endpoint, {
+          method: "POST",
+          body: JSON.stringify({ email, otp }),
+        });
+
+        const token = response?.data?.token;
+        const rawUser = response?.data?.user;
+
+        if (!token || !rawUser) {
+          throw new Error(response?.message || "Email verification failed.");
+        }
+
+        const nextUser = normalizeUser(rawUser);
+        saveSession(token, nextUser);
+        setUser(nextUser);
+
+        return nextUser;
+      } catch (error) {
+        lastError = error;
+        if (error?.status !== 404) {
+          throw error;
+        }
+      }
+    }
+
+    if (lastError) {
+      throw lastError;
+    }
+
+    throw new Error("Email verification failed.");
+  };
+
   const login = async ({ email, password }) => {
     const response = await apiRequest("/api/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     });
-     if (response?.require2FA) {
+     if (response?.require2FA || response?.requireVerification) {
       return response;
     }
     const token = response?.data?.token;
@@ -251,6 +318,8 @@ setUser(null);
       register,
       verifyOtp,
       verify2FA,
+      sendEmailOtp,
+      verifyEmailOtp,
       login,
       loginWithGoogle,
       loginWithFacebook,

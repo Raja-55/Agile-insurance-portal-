@@ -477,12 +477,31 @@ const login = catchAsync(
       // Require email verification
 
       if (!user.is_verified) {
-        return next(
-          new AppError(
-            "Please verify your email before logging in",
-            403
-          )
-        );
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+        user.verification_otp = otp;
+        user.verification_otp_expiry = expiresAt;
+        await user.save({ validateBeforeSave: false });
+
+        try {
+          await transporter.sendMail({
+            from: process.env.SENDER_EMAIL || '"Agile Insurance" <no-reply@agileinsure.in>',
+            to: user.email,
+            subject: "Email Verification OTP - Agile Insurance Portal",
+            text: `Your OTP for verification is ${otp}. It will expire in 10 minutes.`,
+            html: `<p>Your OTP for email verification is <b>${otp}</b>.</p><p>It will expire in 10 minutes.</p>`,
+          });
+        } catch (mailError) {
+          console.error("Login OTP email error:", mailError);
+        }
+
+        return res.status(200).json({
+          success: true,
+          requireVerification: true,
+          email: normalizedEmail,
+          message: "Please verify your email before logging in. A new verification code has been sent to your inbox.",
+        });
       }
 
 

@@ -17,9 +17,6 @@ const getSafeReturnTo = (value) => {
   return value;
 };
 
-// const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-// const GOOGLE_SCRIPT_ID = "google-identity-services";
-
 const GoogleLogo = () => (
   <svg viewBox="0 0 48 48" className="h-5 w-5" aria-hidden="true">
     <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c10 0 19-7.3 19-20 0-1.2-.1-2.3-.4-3.5z" />
@@ -28,22 +25,17 @@ const GoogleLogo = () => (
     <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.4-2.3 4.3-4.1 5.6l6.2 5.2C36.9 39.3 44 34 44 24c0-1.2-.1-2.3-.4-3.5z" />
   </svg>
 );
+
 const FacebookLogo = () => (
-  <svg
-    viewBox="0 0 24 24"
-    className="h-5 w-5"
-    aria-hidden="true"
-    fill="#1877F2"
-  >
+  <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true" fill="#1877F2">
     <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073c0 6.019 4.388 11.01 10.125 11.927v-8.437H7.078v-3.49h3.047V9.413c0-3.007 1.792-4.669 4.533-4.669 1.313 0 2.686.235 2.686.235v2.953h-1.514c-1.492 0-1.956.926-1.956 1.875v2.25h3.328l-.532 3.49h-2.796V24C19.612 23.083 24 18.092 24 12.073z" />
   </svg>
 );
 
-
 const AuthPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { register, verifyOtp, verify2FA, login, loginWithGoogle, loginWithFacebook, isAuthenticated } = useAuth();
+  const { register, verifyOtp, verify2FA, sendEmailOtp, verifyEmailOtp, login, loginWithGoogle, loginWithFacebook, isAuthenticated } = useAuth();
 
   const returnTo = useMemo(() => {
     const params = new URLSearchParams(location.search);
@@ -52,19 +44,21 @@ const AuthPage = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate(returnTo, { replace: true });
+      navigate(returnTo, { replace: true });      
     }
   }, [isAuthenticated, navigate, returnTo]);
 
   const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID;
   const googleInitRef = useRef(false);
+  const googleScriptRef = useRef(null);
 
   const [mode, setMode] = useState("register");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [otpStep, setOtpStep] = useState(false);
+  const [emailOtpStep, setEmailOtpStep] = useState(false);
 
   // Developer note: registration fields live here; keep these in sync with AuthContext.register().
   const [fullName, setFullName] = useState("");
@@ -143,6 +137,7 @@ const AuthPage = () => {
   const switchMode = (m) => {
     setMode(m);
     setOtpStep(false);
+    setEmailOtpStep(false);
     setForgotView(false);
     setRequire2FAEmail("");
     resetMessaging();
@@ -154,6 +149,7 @@ const AuthPage = () => {
 
     const initializeGoogleBtn = () => {
       if (!window.google?.accounts?.id) return;
+      if (googleInitRef.current) return;
       googleInitRef.current = true;
       window.google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
@@ -165,23 +161,13 @@ const AuthPage = () => {
               await loginWithGoogle({ idToken: response.credential });
               navigate(returnTo, { replace: true });
             } catch (err) {
-              setError(err.message || "Google Authentication failed");
+              setError(err?.message || "Google authentication failed.");
             } finally {
               setBusy(false);
             }
           }
         },
       });
-      const container = document.getElementById("google-signin-btn");
-      if (container) {
-        window.google.accounts.id.renderButton(container, {
-          theme: "outline",
-          size: "large",
-          width: "250",
-          text: "signin_with",
-          shape: "pill",
-        });
-      }
     };
 
     if (window.google) {
@@ -189,28 +175,34 @@ const AuthPage = () => {
       return () => clearTimeout(timer);
     }
 
-    const script = document.createElement("script");
-    script.src = "https://accounts.google.com/gsi/client";
-    script.async = true;
-    script.defer = true;
-    script.onload = () => {
-      setTimeout(initializeGoogleBtn, 100);
-    };
-    document.body.appendChild(script);
+    if (!googleScriptRef.current) {
+      const script = document.createElement("script");
+      script.src = "https://accounts.google.com/gsi/client";
+      script.async = true;
+      script.defer = true;
+      script.onload = () => setTimeout(initializeGoogleBtn, 100);
+      googleScriptRef.current = script;
+      document.body.appendChild(script);
+    }
 
     return () => {
-      document.body.removeChild(script);
+      if (googleScriptRef.current && !googleInitRef.current) {
+        try {
+          document.body.removeChild(googleScriptRef.current);
+        } catch {
+          // ignore
+        }
+        googleScriptRef.current = null;
+      }
     };
   }, [GOOGLE_CLIENT_ID, navigate, returnTo]);
 
   useEffect(() => {
     if (!FACEBOOK_APP_ID) return;
-
-    // If FB SDK already loaded, ensure it's initialized with the current app id
     if (window.FB && window.FB.init) {
       try {
         window.FB.init({ appId: FACEBOOK_APP_ID, cookie: true, xfbml: false, version: "v16.0" });
-      } catch (e) {
+      } catch {
         // ignore
       }
       return;
@@ -225,8 +217,8 @@ const AuthPage = () => {
         if (window.FB && window.FB.init) {
           window.FB.init({ appId: FACEBOOK_APP_ID, cookie: true, xfbml: false, version: "v16.0" });
         }
-      } catch (err) {
-        // initialization failed
+      } catch {
+        // ignore
       }
     };
     document.body.appendChild(fbScript);
@@ -234,7 +226,7 @@ const AuthPage = () => {
     return () => {
       try {
         document.body.removeChild(fbScript);
-      } catch (e) {
+      } catch {
         // ignore
       }
     };
@@ -247,7 +239,6 @@ const AuthPage = () => {
       return setError("Google SDK not loaded. Refresh or check your network.");
     }
     try {
-      // Ask Google Identity Services to show the One Tap / prompt flow.
       window.google.accounts.id.prompt();
     } catch (err) {
       setError("Google sign-in failed: " + (err?.message || "unknown error"));
@@ -256,28 +247,79 @@ const AuthPage = () => {
 
   const handleFacebookClick = () => {
     resetMessaging();
-    if (FACEBOOK_APP_ID) {
-      try {
-        if (!window.FB) {
-          setError("Facebook SDK not loaded. Please use simulation mode.");
-          return;
-        }
-        window.FB.login((response) => {
-          if (response.authResponse) {
-            setBusy(true);
-            loginWithFacebook({ accessToken: response.authResponse.accessToken })
-              .then(() => navigate(returnTo, { replace: true }))
-              .catch((err) => setError(err.message || "Facebook Authentication failed"))
-              .finally(() => setBusy(false));
-          } else {
-            setError("Facebook login was cancelled.");
-          }
-        }, { scope: 'email,public_profile' });
-      } catch (err) {
-        setError("Facebook login error: " + err.message);
+    if (!FACEBOOK_APP_ID) return setError("Facebook authentication is not configured in the application environment.");
+    try {
+      if (!window.FB) {
+        setError("Facebook SDK not loaded. Please use simulation mode.");
+        return;
       }
-    } else {
-      setError("Facebook authentication is not configured in the application environment.");
+      window.FB.login((response) => {
+        if (response.authResponse) {
+          setBusy(true);
+          loginWithFacebook({ accessToken: response.authResponse.accessToken })
+            .then(() => navigate(returnTo, { replace: true }))
+            .catch((err) => setError(err?.message || "Facebook authentication failed."))
+            .finally(() => setBusy(false));
+        } else {
+          setError("Facebook login was cancelled.");
+        }
+      }, { scope: "email,public_profile" });
+    } catch (err) {
+      setError("Facebook login error: " + (err?.message || "unknown error"));
+    }
+  };
+
+  const startEmailOtpFlow = async (nextEmail) => {
+    const trimmedEmail = (nextEmail || email).trim().toLowerCase();
+    if (!validateEmail(trimmedEmail)) {
+      setError("Enter a valid email address.");
+      return false;
+    }
+
+    resetMessaging();
+    setBusy(true);
+    try {
+      const response = await sendEmailOtp({ email: trimmedEmail });
+      if (response?.success) {
+        setEmailOtpStep(true);
+        setOtpStep(false);
+        setNotice("OTP sent to your email. Enter it below to continue.");
+        return true;
+      }
+      setError(response?.message || "Unable to send OTP.");
+      return false;
+    } catch (err) {
+      if (err?.status === 404 || err?.status === 401 || err?.status === 403) {
+        setError("The verification service is temporarily unavailable. Please try again in a moment.");
+      } else {
+        setError(err?.message || "Unable to send OTP.");
+      }
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleEmailOtpLogin = async (e) => {
+    e.preventDefault();
+    await startEmailOtpFlow(email.trim().toLowerCase());
+  };
+
+  const handleEmailOtpVerify = async (e) => {
+    e.preventDefault();
+    resetMessaging();
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!validateEmail(trimmedEmail)) return setError("Enter a valid email address.");
+    if (!otp.trim()) return setError("Please enter the OTP.");
+
+    setBusy(true);
+    try {
+      await verifyEmailOtp({ email: trimmedEmail, otp: otp.trim() });
+      navigate(returnTo, { replace: true });
+    } catch (err) {
+      setError(err?.message || "Email verification failed.");
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -358,9 +400,27 @@ const AuthPage = () => {
         setOtp("");
         return;
       }
+      if (response?.requireVerification) {
+        setEmailOtpStep(true);
+        setOtpStep(false);
+        setNotice(response?.message || "This account needs email verification. We’ll send you an OTP to continue.");
+        return;
+      }
       navigate(returnTo, { replace: true });
     } catch (err) {
-      setError(err?.message || "Login failed.");
+      const message = err?.message || "Login failed.";
+      if (message.toLowerCase().includes("verify") || message.toLowerCase().includes("otp")) {
+        setEmailOtpStep(true);
+        setOtpStep(false);
+        setNotice("This account needs email verification. We’ll send you an OTP to continue.");
+        try {
+          await startEmailOtpFlow(trimmedEmail);
+        } catch {
+          // ignore secondary OTP errors
+        }
+      } else {
+        setError(message);
+      }
     } finally {
       setBusy(false);
     }
@@ -391,18 +451,22 @@ const AuthPage = () => {
                   ? "Reset your password"
                   : require2FAEmail
                     ? "2-Factor Authentication"
-                    : mode === "register"
-                      ? (otpStep ? "Verify your email" : "Create your account")
-                      : "Welcome back"}
+                    : emailOtpStep
+                      ? "Verify your email"
+                      : mode === "register"
+                        ? (otpStep ? "Verify your email" : "Create your account")
+                        : "Welcome back"}
               </h1>
               <p className="mt-2 text-sm text-slate-600 sm:text-base">
                 {forgotView
                   ? "Enter your email address below and we will send you a secure link to reset your password."
                   : require2FAEmail
                     ? `Please enter the 6-digit verification code sent to ${require2FAEmail}.`
-                    : otpStep
-                      ? "Enter the 6-digit OTP sent to your email address to finish account verification."
-                      : "Secure account creation and login connected to the backend API, with dashboard state and session restoration."}
+                    : emailOtpStep
+                      ? "Enter the 6-digit OTP sent to your email address to finish sign-in."
+                      : otpStep
+                        ? "Enter the 6-digit OTP sent to your email address to finish account verification."
+                        : "Secure account creation and login connected to the backend API, with dashboard state and session restoration."}
               </p>
             </div>
 
@@ -498,6 +562,53 @@ const AuthPage = () => {
                 className="w-full py-3.5 text-sm font-bold text-slate-700 rounded-2xl transition border border-slate-200 bg-white hover:bg-slate-50"
               >
                 Back to Login
+              </button>
+            </form>
+          ) : emailOtpStep ? (
+            <form onSubmit={handleEmailOtpVerify} className="mt-8 space-y-4">
+              <label className="block space-y-2">
+                <span className="text-xs font-semibold text-slate-700">Email verification OTP</span>
+                <div className="relative">
+                  <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <input
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-12 py-4 text-sm font-medium text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-blue-500"
+                    placeholder="6-digit code"
+                    inputMode="numeric"
+                  />
+                </div>
+              </label>
+
+              {notice && (
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+                  {notice}
+                </div>
+              )}
+
+              {error && (
+                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+                  {error}
+                </div>
+              )}
+
+              <button
+                disabled={busy}
+                className="relative w-full overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 text-sm font-bold text-white shadow-sm transition hover:opacity-95 disabled:opacity-70"
+              >
+                {busy ? "Verifying..." : "Verify OTP"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setEmailOtpStep(false);
+                  setOtp("");
+                  resetMessaging();
+                }}
+                className="w-full rounded-2xl border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50"
+              >
+                Back to login
               </button>
             </form>
           ) : (
@@ -704,29 +815,40 @@ const AuthPage = () => {
               <div className="pt-2">
                 <div className="mb-4 flex items-center gap-3">
                   <div className="h-px flex-1 bg-slate-100" />
-                  <span className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">or continue with</span>
+                  <span className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">continue with</span>
                   <div className="h-px flex-1 bg-slate-100" />
                 </div>
-                <div className="grid grid-cols-2 gap-3 items-center">
-                  <div id="google-signin-btn" className="w-full flex justify-center">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {mode === "login" && (
                     <button
                       type="button"
-                      onClick={handleGoogleClick}
-                      className="flex items-center cursor-pointer justify-center gap-2.5 rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-semibold text-slate-700 shadow-sm transition-all duration-200 hover:bg-slate-50 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 active:scale-[0.98]"
+                      onClick={async () => {
+                        setMode("login");
+                        await startEmailOtpFlow(email.trim().toLowerCase());
+                      }}
+                      className="flex w-full items-center justify-center gap-2.5 rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-semibold text-slate-700 shadow-sm transition-all duration-200 hover:bg-slate-50 hover:border-slate-300"
                     >
-                      <GoogleLogo />
-                      <span>Google</span>
+                      <Mail size={16} />
+                      <span>Continue with Email OTP</span>
                     </button>
-                  </div>
+                  )}
                   <button
                     type="button"
-                    onClick={handleFacebookClick}
-                    className="flex items-center cursor-pointer justify-center gap-2.5 rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-semibold text-slate-700 shadow-sm transition-all duration-200 hover:bg-slate-50 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 active:scale-[0.98]"
+                    onClick={handleGoogleClick}
+                    className="flex w-full items-center justify-center gap-2.5 rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-semibold text-slate-700 shadow-sm transition-all duration-200 hover:bg-slate-50 hover:border-slate-300"
                   >
-                    <FacebookLogo />
-                    <span>Facebook</span>
+                    <GoogleLogo />
+                    <span>Google</span>
                   </button>
                 </div>
+                <button
+                  type="button"
+                  onClick={handleFacebookClick}
+                  className="mt-3 flex w-full items-center justify-center gap-2.5 rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-semibold text-slate-700 shadow-sm transition-all duration-200 hover:bg-slate-50 hover:border-slate-300"
+                >
+                  <FacebookLogo />
+                  <span>Facebook</span>
+                </button>
               </div>
 
 

@@ -103,7 +103,9 @@ export const apiRequest = async (path, options = {}) => {
     if (response.status === 401 && useAdminToken) {
       clearAdminSession();
     }
-    throw new Error(payload?.message || payload?.error || rawText || "Request failed.");
+    const error = new Error(payload?.message || payload?.error || rawText || "Request failed.");
+    error.status = response.status;
+    throw error;
   }
 
   return payload;

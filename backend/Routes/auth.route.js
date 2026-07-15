@@ -32,7 +32,10 @@ router.put("/change-password", authenticateUser, validateChangePassword, changeP
 
 // OTP, 2FA & Password Reset routes
 router.post("/send-otp", sendVerifyotp);
+router.post("/send-verify-otp", sendVerifyotp);
+router.post("/send-email-otp", sendVerifyotp);
 router.post("/verify-otp", verifyUser);
+router.post("/verify-email-otp", verifyUser);
 router.post("/verify-register-otp", verifyRegisterOtp);
 router.post("/verify-2fa", verify2FAUser);
 router.post("/forgot-password", forgotPassword);
