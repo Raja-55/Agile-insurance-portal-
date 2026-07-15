@@ -44,7 +44,7 @@ const AuthPage = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate(returnTo, { replace: true });      
+      navigate(returnTo, { replace: true });
     }
   }, [isAuthenticated, navigate, returnTo]);
 
@@ -802,36 +802,14 @@ const AuthPage = () => {
                 </button>
               )}
 
-
-
-
-
-
-
-
-
-
-
               <div className="pt-2">
                 <div className="mb-4 flex items-center gap-3">
                   <div className="h-px flex-1 bg-slate-100" />
                   <span className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">continue with</span>
                   <div className="h-px flex-1 bg-slate-100" />
                 </div>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  {mode === "login" && (
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        setMode("login");
-                        await startEmailOtpFlow(email.trim().toLowerCase());
-                      }}
-                      className="flex w-full items-center justify-center gap-2.5 rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-semibold text-slate-700 shadow-sm transition-all duration-200 hover:bg-slate-50 hover:border-slate-300"
-                    >
-                      <Mail size={16} />
-                      <span>Continue with Email OTP</span>
-                    </button>
-                  )}
+
+                <div className="grid grid-cols-1 gap-3">
                   <button
                     type="button"
                     onClick={handleGoogleClick}
@@ -840,32 +818,17 @@ const AuthPage = () => {
                     <GoogleLogo />
                     <span>Google</span>
                   </button>
+
+                  <button
+                    type="button"
+                    onClick={handleFacebookClick}
+                    className="flex w-full items-center justify-center gap-2.5 rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-semibold text-slate-700 shadow-sm transition-all duration-200 hover:bg-slate-50 hover:border-slate-300"
+                  >
+                    <FacebookLogo />
+                    <span>Facebook</span>
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleFacebookClick}
-                  className="mt-3 flex w-full items-center justify-center gap-2.5 rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-semibold text-slate-700 shadow-sm transition-all duration-200 hover:bg-slate-50 hover:border-slate-300"
-                >
-                  <FacebookLogo />
-                  <span>Facebook</span>
-                </button>
               </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
               <div className="text-center text-sm font-medium text-slate-600">
                 {mode === "register" ? (
