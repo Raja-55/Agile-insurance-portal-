@@ -160,28 +160,6 @@ const getPolicies = catchAsync(async (req, res) => {
   res.status(200).json({ success: true, data: policies });
 });
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const getClaims = catchAsync(async (req, res, next) => {
   const claims = await Claim.find()
     .populate("user", "fullName email phone")
@@ -226,25 +204,6 @@ const deleteClaim = catchAsync(async (req, res, next) => {
   if (!claim) return next(new AppError("Claim not found", 404));
   res.status(200).json({ success: true, message: "Claim deleted successfully" });
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 const getPayments = catchAsync(async (req, res) => {
   const payments = await Payment.find().populate("user", "fullName email phone role").populate("policy").sort({ createdAt: -1 });
