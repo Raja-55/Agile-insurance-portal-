@@ -27,9 +27,26 @@ const uploadRoutes = require("./Routes/upload.route");
 const purchaseRoutes = require("./Routes/purchase.route");
 
 // Middleware
+const allowedOrigins = Array.isArray(appConfig.clientUrl)
+  ? appConfig.clientUrl
+  : [appConfig.clientUrl];
+
 app.use(
   cors({
-    origin: appConfig.clientUrl,
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+
+      const isAllowed = allowedOrigins.some((allowed) => allowed === origin);
+
+      if (
+        isAllowed ||
+        (origin.startsWith("https://agile-insurance-portal") && origin.endsWith(".vercel.app"))
+      ) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   })
 );
