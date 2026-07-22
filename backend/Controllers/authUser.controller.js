@@ -19,6 +19,15 @@ const buildAuthResponse = (user) => {
   };
 };
 
+const safeSendMail = async (mailOptions) => {
+  try {
+    await transporter.sendMail(mailOptions);
+  } catch (err) {
+    console.error("SMTP email send failed (unconfigured/blocked):", err.message);
+    console.log(`[DEMO FALLBACK EMAIL LOG] To: ${mailOptions.to} | Subject: ${mailOptions.subject}`);
+  }
+};
+
 const register = catchAsync(async (req, res, next) => {
   try {
     const {
@@ -59,7 +68,7 @@ const register = catchAsync(async (req, res, next) => {
       html: `<p>Thank you for registering. Your OTP for account verification is <b>${otp}</b>. It will expire in 10 minutes.</p>`,
     };
 
-    await transporter.sendMail(mailOptions);
+    await safeSendMail(mailOptions);
 
     return res.status(201).json({
       success: true,
@@ -165,7 +174,7 @@ const sendVerifyotp = catchAsync(async (req, res, next) => {
       html: `<p>Your OTP for email verification is <b>${otp}</b>. It will expire in 10 minutes.</p>`,
     };
 
-    await transporter.sendMail(mailOptions);
+    await safeSendMail(mailOptions);
 
     return res.status(200).json({
       success: true,
@@ -287,7 +296,7 @@ const forgotPassword = catchAsync(async (req, res, next) => {
     html: `<p>You requested to reset your password.</p><p>Click <a href="${resetLink}">here</a> to reset your password. This link will expire in 30 minutes.</p>`,
   };
 
-  await transporter.sendMail(mailOptions);
+  await safeSendMail(mailOptions);
 
   return res.status(200).json({
     success: true,
@@ -349,7 +358,7 @@ const login = catchAsync(async (req, res, next) => {
         text: `Your 2FA authentication code is ${otp}. It will expire in 5 minutes.`,
         html: `<p>Your 2FA authentication code is <b>${otp}</b>. It will expire in 5 minutes.</p>`,
       };
-      await transporter.sendMail(mailOptions);
+      await safeSendMail(mailOptions);
 
       return res.status(200).json({
         success: true,
