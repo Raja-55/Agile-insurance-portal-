@@ -1,7 +1,7 @@
 const TOKEN_KEY = "agile_insurance_api_token_v1";
 const ADMIN_TOKEN_KEY = "agile_insurance_admin_token_v1";
 const ADMIN_PROFILE_KEY = "agile_insurance_admin_profile_v1";
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:5000").replace(/\/$/, "");
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "http://localhost:5000").replace(/\/$/, "");
 
 const initialsFromName = (name = "") => {
   const parts = name.trim().split(/\s+/).filter(Boolean);
