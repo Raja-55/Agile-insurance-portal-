@@ -56,7 +56,9 @@ const AuthPage = () => {
     }
   }, [isAuthenticated, navigate, returnTo]);
 
-  const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const GOOGLE_CLIENT_ID =
+    import.meta.env.VITE_GOOGLE_CLIENT_ID ||
+    "2434607736-3scirmlvs6655gk3535gt2r67b87i9dp.apps.googleusercontent.com";
   const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID;
 
   const [mode, setMode] = useState("register");
@@ -151,7 +153,7 @@ const AuthPage = () => {
     if (!GOOGLE_CLIENT_ID) return;
 
     const initializeGoogleBtn = () => {
-      if (window.google) {
+      if (window.google?.accounts?.id) {
         window.google.accounts.id.initialize({
           client_id: GOOGLE_CLIENT_ID,
           callback: async (response) => {
@@ -171,6 +173,7 @@ const AuthPage = () => {
         });
         const container = document.getElementById("google-signin-btn");
         if (container) {
+          container.innerHTML = "";
           window.google.accounts.id.renderButton(container, {
             theme: "outline",
             size: "large",
@@ -182,24 +185,26 @@ const AuthPage = () => {
       }
     };
 
-    if (window.google) {
+    if (window.google?.accounts?.id) {
       const timer = setTimeout(initializeGoogleBtn, 100);
       return () => clearTimeout(timer);
     }
 
-    const script = document.createElement("script");
-    script.src = "https://accounts.google.com/gsi/client";
-    script.async = true;
-    script.defer = true;
-    script.onload = () => {
+    let script = document.getElementById("google-jssdk");
+    if (!script) {
+      script = document.createElement("script");
+      script.id = "google-jssdk";
+      script.src = "https://accounts.google.com/gsi/client";
+      script.async = true;
+      script.defer = true;
+      script.onload = () => {
+        setTimeout(initializeGoogleBtn, 100);
+      };
+      document.body.appendChild(script);
+    } else {
       setTimeout(initializeGoogleBtn, 100);
-    };
-    document.body.appendChild(script);
-
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, [GOOGLE_CLIENT_ID, mode, navigate, returnTo]);
+    }
+  }, [GOOGLE_CLIENT_ID, mode, forgotView, otpStep, require2FAEmail, navigate, returnTo]);
 
   const handleFacebookClick = () => {
     resetMessaging();
