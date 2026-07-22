@@ -86,8 +86,4 @@ purchaseSchema.pre("validate", async function () {
   }
 });
 
-<<<<<<< HEAD
 module.exports = mongoose.model("Purchase", purchaseSchema);
-=======
-module.exports = mongoose.model("Purchase", purchaseSchema);
->>>>>>> raj

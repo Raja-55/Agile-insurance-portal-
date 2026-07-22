@@ -31,34 +31,26 @@ const getDashboard = catchAsync(async (req, res) => {
 
   const [totalUsers, activePolicies, pendingClaims, revenueAgg, pendingKyc] = await Promise.all([
     User.countDocuments({ role: "user" }),
-    Policy.countDocuments({ isActive: true }),
+    // User.countDocuments({ role: "agent" }),
+    Policy.countDocuments({ status: "active" }),
     Claim.countDocuments({ status: "pending" }),
-    Payment.aggregate([{ $match: { payment_status: "success" } }, { $group: { _id: null, total: { $sum: "$final_amount" } } }]),
+    Payment.aggregate([{ $match: { status: "success" } }, { $group: { _id: null, total: { $sum: "$amount" } } }]),
     KycRequest.countDocuments({ status: "pending" }),
   ]);
   const recentUsers = await User.find().select("fullName email role created_at kyc_status").sort({ created_at: -1 }).limit(8);
-<<<<<<< HEAD
-=======
 
->>>>>>> raj
   const recentClaims = await Claim.find()
     .populate("user", "fullName email")
     .populate("policy", "policyName category")
     .sort({ createdAt: -1 })
     .limit(8);
-<<<<<<< HEAD
-=======
 
->>>>>>> raj
   res.status(200).json({
     success: true,
     data: {
       widgets: {
         totalUsers,
-<<<<<<< HEAD
-=======
         // totalAgents,
->>>>>>> raj
         activePolicies,
         pendingClaims,
         totalRevenue: revenueAgg?.[0]?.total || 0,
@@ -168,15 +160,6 @@ const getPolicies = catchAsync(async (req, res) => {
   res.status(200).json({ success: true, data: policies });
 });
 
-<<<<<<< HEAD
-const getClaims = catchAsync(async (req, res) => {
-  const claims = await Claim.find()
-    .populate("user",    "fullName email phone role")
-    .populate("policy",  "policyName category companyName")
-    .populate("purchase")
-    .sort({ createdAt: -1 });
-  res.status(200).json({ success: true, data: claims });
-=======
 const getClaims = catchAsync(async (req, res, next) => {
   const claims = await Claim.find()
     .populate("user", "fullName email phone")
@@ -220,7 +203,6 @@ const deleteClaim = catchAsync(async (req, res, next) => {
   const claim = await Claim.findByIdAndDelete(req.params.id);
   if (!claim) return next(new AppError("Claim not found", 404));
   res.status(200).json({ success: true, message: "Claim deleted successfully" });
->>>>>>> raj
 });
 
 const getPayments = catchAsync(async (req, res) => {
@@ -321,50 +303,6 @@ const reviewKyc = catchAsync(async (req, res, next) => {
   });
 });
 
-<<<<<<< HEAD
-const updateClaim = catchAsync(async (req, res, next) => {
-  const { status, notes } = req.body;
-
-  const validStatuses = ["pending", "reviewing", "approved", "rejected"];
-  if (status && !validStatuses.includes(status)) {
-    return next(new AppError("Invalid claim status. Must be one of: pending, reviewing, approved, rejected", 400));
-  }
-
-  const updateData = {};
-  if (status !== undefined) updateData.status = status;
-  if (notes  !== undefined) updateData.notes  = notes;
-
-  const claim = await Claim.findByIdAndUpdate(
-    req.params.id,
-    updateData,
-    { new: true, runValidators: true }
-  ).populate("user", "fullName email").populate("policy", "policyName");
-
-  if (!claim) {
-    return next(new AppError("Claim not found", 404));
-  }
-
-  res.status(200).json({
-    success: true,
-    message: "Claim updated successfully",
-    data: claim,
-  });
-});
-
-const deleteClaim = catchAsync(async (req, res, next) => {
-  const claim = await Claim.findByIdAndDelete(req.params.id);
-
-  if (!claim) {
-    return next(new AppError("Claim not found", 404));
-  }
-
-  res.status(200).json({
-    success: true,
-    message: "Claim deleted successfully",
-  });
-});
-=======
->>>>>>> raj
 
 const getSupportTicketsAdmin = catchAsync(async (req, res) => {
   const SupportTicket = require("../Models/contact.model");
@@ -381,11 +319,7 @@ const getSupportTicketsAdmin = catchAsync(async (req, res) => {
     return {
       id: ticket._id,
       userId: user._id || null,
-<<<<<<< HEAD
-      userName: user.fullName || user.full_name || "Unknown user",
-=======
       userName: user.fullName || "Unknown user",
->>>>>>> raj
       userEmail: user.email || "",
       userPhone: user.phone || "",
       subject: ticket.subject || "Support ticket",
@@ -414,7 +348,7 @@ const updateSupportTicket = catchAsync(async (req, res, next) => {
   const SupportTicket = require("../Models/contact.model");
   const { status, priority, assignedAdmin } = req.body;
 
-  const validStatuses = ["Open", "In Progress", "Resolved", "open", "in_progress", "resolved", "closed"];
+  const validStatuses = ["Open", "In Progress", "Resolved"];
   if (status && !validStatuses.includes(status)) {
     return next(new AppError("Invalid status", 400));
   }
@@ -423,47 +357,16 @@ const updateSupportTicket = catchAsync(async (req, res, next) => {
     req.params.id,
     { status, priority, assignedAdmin },
     { new: true }
-<<<<<<< HEAD
-  ).populate("user", "fullName email phone").populate("assignedAdmin", "fullName email");
-=======
   ).populate("user", "fullName email").populate("assignedAdmin", "fullName email");
->>>>>>> raj
 
   if (!ticket) {
     return next(new AppError("Support ticket not found", 404));
   }
 
-  const formattedTicket = {
-    id: ticket._id,
-    userId: ticket.user?._id || ticket.user || null,
-    userName: ticket.user?.fullName || "Unknown user",
-    userEmail: ticket.user?.email || "",
-    userPhone: ticket.user?.phone || "",
-    subject: ticket.subject || "Support ticket",
-    status: ticket.status || "Open",
-    priority: ticket.priority || "Medium",
-    assignedAdmin: ticket.assignedAdmin
-      ? {
-          _id: ticket.assignedAdmin._id || null,
-          full_name: ticket.assignedAdmin.fullName || "Unassigned",
-          email: ticket.assignedAdmin.email || "",
-        }
-      : null,
-    messages: (ticket.messages || []).map(m => ({
-      id: m._id || m.id,
-      sender: m.senderRole === "admin" ? "Admin" : (ticket.user?.fullName || "User"),
-      from: m.senderRole,
-      text: m.text,
-      createdAt: m.createdAt
-    })),
-    createdAt: ticket.createdAt,
-    updatedAt: ticket.updatedAt,
-  };
-
   res.status(200).json({
     success: true,
     message: "Support ticket updated",
-    data: formattedTicket,
+    data: ticket,
   });
 });
 
@@ -493,41 +396,11 @@ const replyToSupportTicket = catchAsync(async (req, res, next) => {
     .populate("user", "fullName email phone")
     .populate("assignedAdmin", "fullName email")
     .populate("messages.sender", "fullName email");
-<<<<<<< HEAD
-
-  const formattedTicket = {
-    id: updatedTicket._id,
-    userId: updatedTicket.user?._id || updatedTicket.user || null,
-    userName: updatedTicket.user?.fullName || "Unknown user",
-    userEmail: updatedTicket.user?.email || "",
-    userPhone: updatedTicket.user?.phone || "",
-    subject: updatedTicket.subject || "Support ticket",
-    status: updatedTicket.status || "Open",
-    priority: updatedTicket.priority || "Medium",
-    assignedAdmin: updatedTicket.assignedAdmin
-      ? {
-          _id: updatedTicket.assignedAdmin._id || null,
-          full_name: updatedTicket.assignedAdmin.fullName || "Unassigned",
-          email: updatedTicket.assignedAdmin.email || "",
-        }
-      : null,
-    messages: (updatedTicket.messages || []).map(m => ({
-      id: m._id || m.id,
-      sender: m.senderRole === "admin" ? "Admin" : (updatedTicket.user?.fullName || "User"),
-      from: m.senderRole,
-      text: m.text,
-      createdAt: m.createdAt
-    })),
-    createdAt: updatedTicket.createdAt,
-    updatedAt: updatedTicket.updatedAt,
-  };
-=======
->>>>>>> raj
 
   res.status(200).json({
     success: true,
     message: "Reply added successfully",
-    data: formattedTicket,
+    data: updatedTicket,
   });
 });
 

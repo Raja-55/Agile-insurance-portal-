@@ -36,15 +36,6 @@ const {
 } = require("../Controllers/admin.controller");
 const { getAllPurchases } = require("../Controllers/purchase.controller");
 
-<<<<<<< HEAD
-const {registerAdmin, loginAdmin} = require("../Controllers/authAdmin.controller")
-const { getAllPurchases } = require("../Controllers/purchase.controller");
-const router = express.Router();
-
-
-
-router.post("/auth/register", registerAdmin);
-=======
 const {
   createAdmin,
   getAllAdmins,
@@ -59,7 +50,6 @@ const {
 // Public: login only. Admin self-registration has been removed — new admin
 // accounts can only be created by a Super Admin from System Settings.
 router.get("/auth/public-roster", getPublicRoster);
->>>>>>> raj
 router.post("/auth/login", loginAdmin);
 router.post("/auth/verify-2fa", verify2FAAdmin);
 router.post("/auth/forgot-password", forgotPasswordAdmin);
@@ -94,10 +84,6 @@ router.delete("/claims/:id", deleteClaim);
 // router.get("/agents", getAgents);
 router.get("/payments", getPayments);
 router.get("/purchases", getAllPurchases);
-<<<<<<< HEAD
-
-=======
->>>>>>> raj
 router.get("/kyc-requests", getKycRequests);
 router.patch("/kyc-requests/:id", reviewKyc);
 router.get("/audit-logs", getAuditLogs);

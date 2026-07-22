@@ -31,28 +31,15 @@ const DashboardProfile = () => {
     window.dispatchEvent(new CustomEvent("agile-profile-updated", { detail: nextSessionUser }));
   };
 
-  const uploadPhoto = async (file) => {
+  const uploadPhoto = (file) => {
     if (!file) return;
-    try {
-      setStatusMessage("Uploading photo to Cloudinary...");
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await apiRequest("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (res?.url) {
-        setProfilePhoto(res.url);
-        updateStoredUser({ profilePhoto: res.url });
-        setStatusMessage("Profile photo uploaded to Cloudinary!");
-      } else {
-        setStatusMessage("Failed to upload profile photo.");
-      }
-    } catch (err) {
-      console.error(err);
-      setStatusMessage("Error uploading photo to Cloudinary.");
-    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const nextPhoto = String(reader.result || "");
+      setProfilePhoto(nextPhoto);
+      updateStoredUser({ profilePhoto: nextPhoto });
+    };
+    reader.readAsDataURL(file);
   };
 
   useEffect(() => {
@@ -159,7 +146,7 @@ const DashboardProfile = () => {
               <div className="text-sm font-black text-slate-900 dark:text-white">{profile?.fullName || user?.fullName || "Member"}</div>
               <div className="mt-1 truncate text-xs font-semibold text-slate-500 dark:text-slate-400">{profile?.email || user?.email}</div>
             </div>
-            <label className="inline-flex cursor-pointer items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-800 shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10">
+            <label className="inline-flex cursor-pointer items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-800 shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100">
               Upload Photo
               <input type="file" accept="image/*" className="hidden" onChange={(event) => uploadPhoto(event.target.files?.[0])} />
             </label>
@@ -199,7 +186,7 @@ const DashboardProfile = () => {
             <select
               value={relation}
               onChange={(e) => setRelation(e.target.value)}
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none focus:border-blue-500 dark:border-white/10 dark:bg-slate-800 dark:text-slate-100"
+              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none focus:border-blue-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
             >
               {["Spouse", "Parent", "Child", "Sibling", "Other"].map((r) => (
                 <option key={r} value={r}>
@@ -240,7 +227,7 @@ const DashboardProfile = () => {
                   </div>
                   <button
                     onClick={() => remove(m._id || m.id)}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-800 shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10 sm:w-auto"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-800 shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 sm:w-auto"
                   >
                     <Trash2 size={16} />
                     Remove

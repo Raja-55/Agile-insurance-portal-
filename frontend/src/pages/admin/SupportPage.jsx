@@ -111,38 +111,6 @@ const SupportPage = () => {
           ) : (
             <div className="flex h-[600px] flex-col">
 
-<<<<<<< HEAD
-                <div className="flex-1 space-y-3 overflow-y-auto p-4">
-                  {(selectedChat.messages || []).map((msg, idx) => (
-                    <div key={msg.id || msg._id || idx}>
-                      <div className="text-xs font-bold uppercase text-slate-500">
-                        {typeof msg.sender === "object" ? (msg.sender?.fullName || msg.sender?.email || "User") : msg.sender}
-                      </div>
-                      <div className={`mt-1 rounded-lg px-4 py-3 text-sm font-semibold ${msg.from === "admin" ? "bg-blue-50 text-blue-900" : "bg-slate-100 text-slate-700"}`}>
-                        {msg.text}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {selectedChat.status !== "Resolved" && (
-                  <div className="border-t border-slate-200 p-4 space-y-3">
-                    <input
-                      value={adminReply}
-                      onChange={(e) => setAdminReply(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleReply()}
-                      placeholder="Type your reply..."
-                      className="h-12 w-full rounded-lg border border-slate-200 bg-slate-50 px-4 text-sm font-semibold outline-none focus:border-blue-500"
-                    />
-                    <div className="flex gap-2">
-                      <button onClick={handleReply} className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-sm font-black text-white hover:bg-blue-700">
-                        <Send size={16} />Send Reply
-                      </button>
-                      <button onClick={resolveChat} className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-3 text-sm font-black text-white hover:bg-emerald-700">
-                        <CheckCircle2 size={16} />Resolve
-                      </button>
-                    </div>
-=======
               {/* Chat header */}
               <div className="border-b border-slate-200 p-4">
                 <div className="flex items-center justify-between">
@@ -151,7 +119,6 @@ const SupportPage = () => {
                     <div className="text-sm font-bold text-slate-900">{selectedChat.userName}</div>
                     <div className="text-xs text-slate-500">{selectedChat.userEmail}</div>
                     <div className="mt-1 text-xs font-semibold text-slate-600">{selectedChat.subject}</div>
->>>>>>> raj
                   </div>
                   <span className={`rounded-lg px-3 py-1 text-xs font-bold ${statusClass(selectedChat.status)}`}>
                     {selectedChat.status}

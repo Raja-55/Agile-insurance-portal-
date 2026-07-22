@@ -1,34 +1,26 @@
 const express = require("express");
 const authenticateUser = require("../Middlewares/auth.middleware");
+const authorizeRoles = require("../Middlewares/role.middleware");
 const { getDashboard } = require("../Controllers/user.controller");
 const { createKycRequest, getMyKycRequests } = require("../Controllers/kyc.controller");
-const { getMyPolicies } = require("../Controllers/purchase.controller");
-const { getMyClaims, getClaimById } = require("../Controllers/claim.controller");
 const { validateKycRequest } = require("../Middlewares/validation.middleware");
 const { getMyClaims, getClaimById } = require("../Controllers/claim.controller");
 const { getMyPolicies } = require("../Controllers/purchase.controller");
 
 const router = express.Router();
 
-// Allow any authenticated user (role "user" or undefined for legacy accounts)
-// Admin accounts are blocked via their own separate /api/admin routes
-router.use(authenticateUser, (req, res, next) => {
-  if (req.user && req.user.role !== "admin") return next();
-  return res.status(403).json({ success: false, message: "Forbidden" });
-});
+router.use(authenticateUser, authorizeRoles("user"));
 
 router.get("/dashboard", getDashboard);
 router.get("/kyc-requests", getMyKycRequests);
 router.post("/kyc-requests", validateKycRequest, createKycRequest);
-router.get("/my-policies", getMyPolicies);
-
-// Aliased endpoints to match the exact requirement parameters
-router.get("/purchases", getMyPolicies);
-router.get("/claims", getMyClaims);
-router.get("/claims/:id", getClaimById);
+router.post("/user/dashboard", getDashboard); // Added POST route for dashboard data refresh
 
 router.get("/purchases", getMyPolicies);
 router.get("/claims", getMyClaims);
 router.get("/claims/:id", getClaimById);
 
 module.exports = router;
+
+
+

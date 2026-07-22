@@ -17,8 +17,4 @@ const upload = multer({
 // Protect route to verify token, upload single file with field name 'file'
 router.post("/", authenticateUser, upload.single("file"), uploadFile);
 
-<<<<<<< HEAD
 module.exports = router;
-=======
-module.exports = router;
->>>>>>> raj

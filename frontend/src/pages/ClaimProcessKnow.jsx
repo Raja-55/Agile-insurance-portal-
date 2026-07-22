@@ -463,8 +463,4 @@ const ClaimProcessKnow = () => {
   );
 };
 
-<<<<<<< HEAD
 export default ClaimProcessKnow;
-=======
-export default ClaimProcessKnow;
->>>>>>> raj

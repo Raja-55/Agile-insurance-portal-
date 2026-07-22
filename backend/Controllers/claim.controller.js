@@ -4,13 +4,7 @@ const Policy = require("../Models/policy.model");
 const AppError = require("../Utils/appError");
 const catchAsync = require("../Utils/catchAsync");
 
-<<<<<<< HEAD
-/**
- * Helper to get fields list based on policy category
- */
-=======
 
->>>>>>> raj
 const getClaimFormFields = (category) => {
   const normalized = String(category).toLowerCase();
   
@@ -217,8 +211,4 @@ module.exports = {
   createClaim,
   getMyClaims,
   getClaimById,
-<<<<<<< HEAD
 };
-=======
-};
->>>>>>> raj

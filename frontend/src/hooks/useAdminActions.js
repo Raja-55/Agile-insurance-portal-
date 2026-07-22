@@ -95,11 +95,7 @@ export const useAdminActions = () => {
   // Backend data hydration
   const hydrateAllData = async () => {
     const token = getAdminToken();
-<<<<<<< HEAD
-
-=======
     
->>>>>>> raj
     if (!token) return;
 
     try {
@@ -136,30 +132,6 @@ export const useAdminActions = () => {
       const backendClaims = Array.isArray(claimsRes?.data) ? claimsRes.data : [];
       dispatch(setClaims(backendClaims.map((c) => ({
         id: c.claim_number || c._id,
-<<<<<<< HEAD
-        user: c.user?.fullName || c.user?.full_name || c.user?.name || "Unknown",
-        policy: c.policy?.policyName || c.claim_type || "Insurance",
-        amount: c.amount ? `INR ${Number(c.amount).toLocaleString("en-IN")}` : "INR 0",
-        status: c.status ? (c.status.charAt(0).toUpperCase() + c.status.slice(1)) : "Pending",
-        officer: c.assignedAdmin?.fullName || selectedProfile.name,
-      }))));
-
-      const backendTickets = Array.isArray(supportRes?.data) ? supportRes.data : [];
-      dispatch(setChats(backendTickets.map((t) => ({
-        ...t,
-        id:        t._id || t.id,
-        userName:  t.userName  || t.user?.fullName  || t.user?.name || "Unknown",
-        userEmail: t.userEmail || t.user?.email || "",
-        userPhone: t.userPhone || t.user?.phone || "",
-        messages: (t.messages || []).map((m) => ({
-          ...m,
-          id:     m._id   || m.id,
-          sender: m.senderRole === "admin" ? "Admin" : (t.user?.fullName || "User"),
-          from:   m.senderRole || "user",
-          text:   m.text || "",
-        })),
-      }))));
-=======
         user: c.user?.fullName || "Unknown",
         policy: c.policy?.policyName || c.claim_type || "Insurance",
         amount: c.claim_amount ? `INR ${Number(c.amount).toLocaleString("en-IN")}` : "INR 0",
@@ -205,7 +177,6 @@ dispatch(
 );
       
       dispatch(setChats(backendTickets));
->>>>>>> raj
     } catch (err) {
       console.warn("Backend sync unavailable, using local data.", err);
       if (String(err?.message || "").toLowerCase().includes("unauthorized")) {

@@ -11,7 +11,6 @@ import AdminPage from "./pages/admin/AdminPage";
 import CalculatorPage from "./pages/CalculatorPage";
 import InfoPage from "./pages/InfoPage";
 import WhyChoosePage from "./pages/WhyChoosePage";
-import ClaimProcessKnow from "./pages/ClaimProcessKnow";
 import ProtectedRoute from "./components/ProtectedRoute";
 import DashboardLayout from "./layouts/DashboardLayout";
 import DashboardOverview from "./pages/dashboard/DashboardOverview";
@@ -73,18 +72,12 @@ const App = () => {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/purchase-success"
-          element={
-            <ProtectedRoute>
-              <PaymentSuccessPage />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Footer navigation information pages - only non-insurance-product pages go here */}
+        {/* Footer navigation information pages */}
         <Route path="/general-insurance" element={<InfoPage />} />
+        <Route path="/life-insurance" element={<InfoPage />} />
+        <Route path="/term-insurance" element={<InfoPage />} />
         <Route path="/investment" element={<InfoPage />} />
+        <Route path="/health-insurance" element={<InfoPage />} />
         <Route path="/other-insurance" element={<InfoPage />} />
         <Route path="/articles" element={<InfoPage />} />
         <Route path="/reviews" element={<InfoPage />} />

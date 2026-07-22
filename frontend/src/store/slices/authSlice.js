@@ -93,17 +93,9 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.token = null;
       state.selectedProfile = state.adminProfiles[0];
-<<<<<<< HEAD
-      // Clear both the v1 keys used by api.js and any legacy keys
-      localStorage.removeItem("agile_insurance_admin_token_v1");
-      localStorage.removeItem("agile_insurance_admin_profile_v1");
-      localStorage.removeItem("agile_insurance_admin_token");
-      localStorage.removeItem("agile_insurance_admin_profile");
-=======
 
       localStorage.removeItem(STORAGE_TOKEN);
       localStorage.removeItem(STORAGE_PROFILE);
->>>>>>> raj
     },
 
     setSelectedProfile(state, action) {

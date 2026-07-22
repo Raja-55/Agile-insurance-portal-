@@ -155,8 +155,4 @@ claimSchema.pre("validate", async function () {
   }
 });
 
-<<<<<<< HEAD
 module.exports = mongoose.model("Claim", claimSchema);
-=======
-module.exports = mongoose.model("Claim", claimSchema);
->>>>>>> raj

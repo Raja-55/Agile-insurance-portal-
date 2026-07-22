@@ -136,15 +136,9 @@ const sendMessage = async () => {
             <a
               key={item.label}
               href={item.href}
-              onClick={(e) => {
-                if (item.href.startsWith("mailto:")) {
-                  e.preventDefault();
-                  window.location.href = item.href;
-                }
-              }}
               target={item.href.startsWith("https://wa.me") ? "_blank" : undefined}
               rel={item.href.startsWith("https://wa.me") ? "noreferrer" : undefined}
-              className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-white/10 dark:bg-white/5 sm:p-8 cursor-pointer"
+              className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-white/10 dark:bg-white/5 sm:p-8"
             >
               <div className="flex items-start gap-4">
                 <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-300">
@@ -204,10 +198,10 @@ const sendMessage = async () => {
             <select
               value={subject}
               onChange={(event) => setSubject(event.target.value)}
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:border-white/10 dark:bg-slate-800 dark:text-white dark:focus:border-blue-400 transition"
+              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:border-white/10 dark:bg-white/5 dark:text-white transition"
             >
               {["Policy support", "Claim issue", "Payment issue", "Document verification", "Complaint"].map((item) => (
-                <option key={item} value={item}>{item}</option>
+                <option key={item}>{item}</option>
               ))}
             </select>
             {/* Message input field - type your query here */}

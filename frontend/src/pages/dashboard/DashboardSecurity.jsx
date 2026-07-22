@@ -160,7 +160,7 @@ const DashboardSecurity = () => {
               onClick={() => setBankLinked(!bankLinked)}
               className={[
                 "w-full rounded-2xl px-6 py-3 text-sm font-black shadow-sm transition sm:w-auto",
-                bankLinked ? "bg-blue-600 text-white hover:bg-blue-700" : "border border-slate-200 bg-white text-slate-800 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10",
+                bankLinked ? "bg-blue-600 text-white" : "border border-slate-200 bg-white text-slate-800 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100",
               ].join(" ")}
             >
               {bankLinked ? "Unlink" : "Link"}

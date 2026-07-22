@@ -313,85 +313,6 @@ const AuthPage = () => {
     }
   };
 
-<<<<<<< HEAD
-  const onGoogleAccessToken = async (response) => {
-    resetMessaging();
-    const accessToken = response?.access_token;
-    if (!accessToken) {
-      setError("Select a Google account to continue.");
-      return;
-    }
-    setBusy(true);
-    try {
-      await googleLogin({ accessToken });
-      navigate(returnTo, { replace: true });
-    } catch (err) {
-      setError(err?.message || "Google sign-in failed.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!GOOGLE_CLIENT_ID) return;
-
-    const initializeGoogleTokenClient = () => {
-      if (!window.google?.accounts?.oauth2) return;
-      googleTokenClientRef.current = window.google.accounts.oauth2.initTokenClient({
-        client_id: GOOGLE_CLIENT_ID,
-        scope: "openid email profile",
-        prompt: "select_account",
-        callback: onGoogleAccessToken,
-      });
-    };
-
-    const existing = document.getElementById(GOOGLE_SCRIPT_ID);
-    if (existing) {
-      initializeGoogleTokenClient();
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.id = GOOGLE_SCRIPT_ID;
-    script.src = "https://accounts.google.com/gsi/client";
-    script.async = true;
-    script.defer = true;
-    script.onload = initializeGoogleTokenClient;
-    script.onerror = () => setError("Could not load Google sign-in. Check your connection and try again.");
-    document.head.appendChild(script);
-  }, []);
-
-  const onGoogleLogin = () => {
-    resetMessaging();
-    if (!googleTokenClientRef.current) {
-      setError("Google sign-in is still loading. Please try again in a moment.");
-      return;
-    }
-    googleTokenClientRef.current.requestAccessToken({ prompt: "select_account" });
-  };
-
-  const switchMode = (nextMode) => {
-    setMode(nextMode);
-    setOtpStep(false);
-    setOtp("");
-    resetMessaging();
-  };
-
-
-  if (bootstrapped && isAuthenticated) {
-    return (
-      <div className="grid min-h-[60vh] place-items-center bg-white px-4">
-        <div className="w-full max-w-sm rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="h-2 w-28 animate-pulse rounded-full bg-slate-200" />
-          <div className="mt-4 h-10 w-full animate-pulse rounded-2xl bg-slate-100" />
-          <div className="mt-3 h-10 w-full animate-pulse rounded-2xl bg-slate-100" />
-        </div>
-      </div>
-    );
-  }
-
-=======
->>>>>>> raj
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-white to-slate-50 px-4 py-8 sm:px-6 sm:py-12">
       {/* Background decorative blur elements */}
@@ -450,80 +371,10 @@ const AuthPage = () => {
                   />
                 </div>
               </label>
-<<<<<<< HEAD
-            )}
-            {!otpStep && (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <label className="space-y-2">
-                  <span className="text-xs font-semibold text-slate-700">Password</span>
-                  <div className="relative">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                    <input
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      type={showPassword ? "text" : "password"}
-                      className="w-full rounded-2xl border border-slate-200 bg-white py-4 pl-12 pr-20 text-sm font-medium text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-blue-500"
-                      placeholder="Password"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((value) => !value)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-xs font-bold text-blue-600 hover:bg-blue-50"
-                    >
-                      {showPassword ? "Hide" : "Show"}
-                    </button>
-                  </div>
-                </label>
-
-                {mode === "register" ? (
-                  <label className="space-y-2">
-                    <span className="text-xs font-semibold text-slate-700">Confirm Password</span>
-                    <div className="relative">
-                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                      <input
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        type={showConfirmPassword ? "text" : "password"}
-                        className="w-full rounded-2xl border border-slate-200 bg-white py-4 pl-12 pr-20 text-sm font-medium text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-blue-500"
-                        placeholder="Confirm password"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword((value) => !value)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-xs font-bold text-blue-600 hover:bg-blue-50"
-                      >
-                        {showConfirmPassword ? "Hide" : "Show"}
-                      </button>
-                    </div>
-                  </label>
-                ) : (
-                  <div className="flex items-end justify-end">
-                    <Link to="/" className="text-sm font-semibold text-blue-600 hover:text-blue-700">
-                      Forgot password?
-                    </Link>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {mode === "register" && otpStep && (
-              <label className="block space-y-2">
-                <span className="text-xs font-semibold text-slate-700">Email verification OTP</span>
-                <div className="relative">
-                  <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <input
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value.replace(/[^\d]/g, "").slice(0, 6))}
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-12 py-4 text-sm font-medium text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-blue-500"
-                    placeholder="6-digit code"
-                    inputMode="numeric"
-                  />
-=======
 
               {forgotNotice && (
                 <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
                   {forgotNotice}
->>>>>>> raj
                 </div>
               )}
 
@@ -570,23 +421,6 @@ const AuthPage = () => {
                 </div>
               </label>
 
-<<<<<<< HEAD
-            <div className="text-center text-sm font-medium text-slate-600">
-              {mode === "register" ? (
-                <>
-                  Already have an account?{" "}
-                  <button type="button" onClick={() => switchMode("login")} className="font-bold text-blue-600">
-                    Login
-                  </button>
-                </>
-              ) : (
-                <>
-                  New to Agile Insurance?{" "}
-                  <button type="button" onClick={() => switchMode("register")} className="font-bold text-blue-600">
-                    Create Account
-                  </button>
-                </>
-=======
               {error && (
                 <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
                   {error}
@@ -645,7 +479,6 @@ const AuthPage = () => {
                     </div>
                   </label>
                 </div>
->>>>>>> raj
               )}
 
               {mode === "register" && !otpStep && (

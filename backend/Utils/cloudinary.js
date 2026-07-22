@@ -40,8 +40,4 @@ const uploadToCloudinary = async (fileSource, options = {}) => {
 module.exports = {
   cloudinary,
   uploadToCloudinary,
-<<<<<<< HEAD
 };
-=======
-};
->>>>>>> raj

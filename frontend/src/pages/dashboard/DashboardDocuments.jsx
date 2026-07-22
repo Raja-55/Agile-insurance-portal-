@@ -1,9 +1,3 @@
-<<<<<<< HEAD
-import { useMemo, useState, useEffect } from "react";
-import { FileText, FileUp, ShieldCheck, Sparkles, Download, Trash2 } from "lucide-react";
-import { load, save } from "../../utils/storage";
-import { fileToDataUrl, apiRequest } from "../../utils/api";
-=======
 import { useMemo, useState, useEffect, useRef } from "react";
 import {
   FileText, FileUp, ShieldCheck, Sparkles, Eye,
@@ -23,70 +17,8 @@ const STATUS_META = {
   Rejected:  { icon: XCircle,      color: "text-rose-600",    bg: "bg-rose-50 ring-rose-200",        label: "Rejected"       },
   "Re-upload Requested": { icon: AlertCircle, color: "text-violet-600", bg: "bg-violet-50 ring-violet-200", label: "Re-upload needed" },
 };
->>>>>>> raj
 
 const DashboardDocuments = () => {
-<<<<<<< HEAD
-  const [purchases, setPurchases] = useState([]);
-  const [vault, setVault] = useState(() => load("documents", []));
-  const [busy, setBusy] = useState(false);
-
-
-  useEffect(() => {
-    const fetchPurchases = async () => {
-      try {
-        const res = await apiRequest("/api/user/my-policies");
-        setPurchases(res.data || []);
-      } catch (err) {
-        console.error("Documents fetch error:", err);
-      }
-    };
-    fetchPurchases();
-  }, []);
-
-  const kycStatus = useMemo(() => {
-    const has = purchases.some((p) => p.kyc?.filename);
-    return has ? "Verified" : "Pending upload";
-  }, [purchases]);
-
-  const upload = async (file) => {
-    if (!file) return;
-    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-    if (!isPdf) {
-      window.alert("Please upload a PDF file only.");
-      return;
-    }
-    setBusy(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await apiRequest("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (res?.url) {
-        const documents = [
-          {
-            id: `doc_${Date.now()}`,
-            name: file.name,
-            mimeType: file.type,
-            size: file.size,
-            dataUrl: res.url,
-            createdAt: new Date().toISOString(),
-          },
-          ...vault,
-        ];
-        setVault(documents);
-        save("documents", documents);
-        window.alert("Document uploaded successfully to Cloudinary!");
-      } else {
-        window.alert("Failed to upload document. Please try again.");
-      }
-    } catch (err) {
-      console.error(err);
-      window.alert("Error uploading document to Cloudinary.");
-=======
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -104,37 +36,11 @@ const DashboardDocuments = () => {
       setDocs(res.data || []);
     } catch (err) {
       setError(err.message || "Failed to load documents");
->>>>>>> raj
     } finally {
       setLoading(false);
     }
   };
 
-<<<<<<< HEAD
-  const removeDocument = (docId) => {
-    const isFromPurchase = purchases.some((p) => p.id === docId);
-    if (isFromPurchase) {
-      window.alert("Policy documents generated from purchases cannot be deleted.");
-      return;
-    }
-    const updated = vault.filter((d) => d.id !== docId);
-    setVault(updated);
-    save("documents", updated);
-  };
-
-  const docsFromPurchases = useMemo(() => {
-    return purchases
-      .map((p) => ({
-        id: p._id || p.id,
-        name: `${p.purchase_number || p.policyNumber || "Policy"} - Policy Document.pdf`,
-        createdAt: p.start_date || p.activatedAt,
-      }))
-      .slice(0, 10);
-  }, [purchases]);
-
-
-  const allDocs = [...docsFromPurchases, ...vault];
-=======
   useEffect(() => { fetchDocuments(); }, []);
 
   const kycStatus = useMemo(() => {
@@ -197,7 +103,6 @@ const DashboardDocuments = () => {
       .then((blob) => { window.open(URL.createObjectURL(blob), "_blank"); })
       .catch(() => alert("Could not open file."));
   };
->>>>>>> raj
 
   return (
     <div className="space-y-8">
@@ -317,33 +222,8 @@ const DashboardDocuments = () => {
                       </button>
                     </div>
                   </div>
-<<<<<<< HEAD
-                  <div className="flex w-full gap-3 sm:w-auto">
-                    <button
-                      onClick={() =>
-                        d.dataUrl
-                          ? window.open(d.dataUrl, "_blank")
-                          : window.alert("Policy document will be available after activation.")
-                      }
-                      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-800 shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10"
-                    >
-                      <Download size={16} />
-                      Download
-                    </button>
-                    <button
-                      onClick={() => removeDocument(d.id)}
-                      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-800 shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100 dark:hover:bg-white/10"
-                    >
-                      <Trash2 size={16} />
-                      Remove
-                    </button>
-                  </div>
-                </div>
-              ))
-=======
                 );
               })
->>>>>>> raj
             )}
           </div>
         </div>

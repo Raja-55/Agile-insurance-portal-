@@ -87,7 +87,7 @@ const policySchema = new mongoose.Schema(
   category: {
       type: String,
       required: [true, 'Category is required'],
-      enum: ['health', 'auto', 'term', 'life', 'travel', 'business', 'home'],
+      enum: ['health', 'auto', 'term', 'life', 'travel', 'business'],
       lowercase: true,
     },
   isActive: {
@@ -100,29 +100,15 @@ const policySchema = new mongoose.Schema(
       unique: true,
       trim: true,
     },
-    // Primary field (snake_case — enforced going forward)
-    premium_amount: {
-      type: Number,
-      min: 0,
-      default: 0,
-    },
-    // Alias (camelCase — kept for backward compatibility with existing DB documents)
     premiumAmount: {
       type: Number,
+      required: true,
       min: 0,
-      default: 0,
     },
-    // Primary field (snake_case)
-    coverage_amount: {
-      type: Number,
-      min: 0,
-      default: 0,
-    },
-    // Alias (camelCase — backward compat)
     coverageAmount: {
       type: Number,
+      required: true,
       min: 0,
-      default: 0,
     },
     status: {
       type: String,

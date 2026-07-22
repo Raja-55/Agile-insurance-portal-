@@ -188,12 +188,8 @@ const DashboardClaims = () => {
   const fetchTickets = async () => {
     setLoadingTickets(true);
     try {
-<<<<<<< HEAD
-      const res = await apiRequest("/api/user/support");
-=======
       // const res = await apiRequest("/api/user/support");
       const res = await apiRequest("/api/support/support-tickets");
->>>>>>> raj
       if (res?.data) {
         setTickets(res.data);
       }
@@ -312,12 +308,8 @@ const DashboardClaims = () => {
     setTicketStatus("");
 
     try {
-<<<<<<< HEAD
-      const res = await apiRequest("/api/claim-support", {
-=======
       // const res = await apiRequest("/api/claim-support", {
       const res = await apiRequest("/api/support/support-tickets", {
->>>>>>> raj
         method: "POST",
         body: JSON.stringify({
           subject: ticketForm.subject,
@@ -379,17 +371,10 @@ const DashboardClaims = () => {
     if (!activeChatTicket || !userReplyText.trim()) return;
     setSendingReply(true);
     try {
-<<<<<<< HEAD
-      const res = await apiRequest(`/api/support-tickets/${activeChatTicket._id || activeChatTicket.id}/messages`, {
-        method: "POST",
-        body: JSON.stringify({ text: userReplyText.trim() }),
-      });
-=======
      const res = await apiRequest(`/api/support/support-tickets/${activeChatTicket._id || activeChatTicket.id}/messages`, {
   method: "POST",
   body: JSON.stringify({ text: userReplyText.trim() }),
 });
->>>>>>> raj
       if (res?.data) {
         setActiveChatTicket(res.data);
         setUserReplyText("");

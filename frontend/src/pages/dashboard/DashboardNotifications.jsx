@@ -1,19 +1,10 @@
-<<<<<<< HEAD
-import { useMemo, useState, useEffect } from "react";
-import { Bell, ShieldCheck, Sparkles } from "lucide-react";
-import { load } from "../../utils/storage";
-=======
 import { useEffect, useMemo, useState } from "react";
 import { Bell, Loader2, ShieldCheck, Sparkles } from "lucide-react";
->>>>>>> raj
 import { apiRequest } from "../../utils/api";
 
 // Notification titles, alert body text, and empty/default notification copy are generated here.
 const DashboardNotifications = () => {
   const [purchases, setPurchases] = useState([]);
-<<<<<<< HEAD
-  const claims = useMemo(() => load("claims", []), []);
-=======
   const [claims, setClaims] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -34,13 +25,6 @@ const DashboardNotifications = () => {
     };
     fetchData();
   }, []);
->>>>>>> raj
-
-  useEffect(() => {
-    apiRequest("/api/user/my-policies")
-      .then((res) => setPurchases(res.data || []))
-      .catch((err) => console.error("Notifications error:", err));
-  }, []);
 
   const items = useMemo(() => {
     const list = [];
@@ -48,18 +32,12 @@ const DashboardNotifications = () => {
       list.push({ type: "offer", title: "Welcome offer", body: "Explore Health Insurance plans with AI recommendations." });
     }
     purchases.slice(0, 3).forEach((p) => {
-      const pNum = p.purchase_number || p.policyNumber || "Policy";
       list.push({
         type: "renewal",
         title: "Policy active",
-<<<<<<< HEAD
-        body: `Your policy ${pNum} is active. Documents are available in Documents Center.`,
-=======
         body: `Your policy ${p.purchase_number} is active. Documents are available in Documents Center.`,
->>>>>>> raj
       });
     });
-
     claims.slice(0, 3).forEach((c) => {
       list.push({
         type: "claim",

@@ -19,14 +19,9 @@ const paymentSchema = new mongoose.Schema(
     },
     transaction_id: {
       type: String,
-<<<<<<< HEAD
-      unique: true,
-      sparse: true,
-=======
       required: true,
       unique: true,
       trim: true,
->>>>>>> raj
     },
     invoice_number: {
       type: String,
@@ -45,39 +40,16 @@ const paymentSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
-<<<<<<< HEAD
-=======
     // amount + tax_amount — the actual amount charged
->>>>>>> raj
     final_amount: {
       type: Number,
       required: true,
       min: 0,
     },
     payment_method: {
-<<<<<<< HEAD
-      type: String,
-      required: true,
-    },
-    payment_provider: {
-      type: String,
-      default: "agile-pay",
-    },
-    payment_status: {
-      type: String,
-      enum: ["success", "pending", "failed"],
-      default: "success",
-    },
-    paid_at: {
-      type: Date,
-      default: Date.now,
-    },
-    // Compatibility fields
-    method: {
-=======
->>>>>>> raj
       type: String,
       enum: ["upi", "card", "netbanking", "wallet", "autopay"],
+      required: true,
     },
     payment_provider: {
       type: String,
@@ -106,21 +78,6 @@ const paymentSchema = new mongoose.Schema(
   },
 );
 
-<<<<<<< HEAD
-// Pre-save hook to keep compatibility fields in sync
-paymentSchema.pre("save", function () {
-  if (this.payment_method && !this.method) {
-    const normMethod = this.payment_method.toLowerCase();
-    if (normMethod.includes("upi")) this.method = "upi";
-    else if (normMethod.includes("card")) this.method = "card";
-    else if (normMethod.includes("net")) this.method = "netbanking";
-    else if (normMethod.includes("wallet")) this.method = "wallet";
-    else this.method = "autopay";
-  }
-  if (this.payment_status && !this.status) {
-    this.status = this.payment_status;
-  }
-=======
 // Keep legacy alias fields in sync so older reads (.method / .status) still work.
 paymentSchema.pre("validate", function () {
   if (this.payment_method !== undefined) {
@@ -132,8 +89,6 @@ paymentSchema.pre("validate", function () {
   if (this.final_amount === undefined && this.amount !== undefined) {
     this.final_amount = this.amount + (this.tax_amount || 0);
   }
->>>>>>> raj
 });
 
 module.exports = mongoose.model("Payment", paymentSchema);
-

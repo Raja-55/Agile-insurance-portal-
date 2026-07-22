@@ -218,8 +218,4 @@ module.exports = {
     createPurchase,
     getMyPolicies,
     getAllPurchases,
-<<<<<<< HEAD
 };
-=======
-};
->>>>>>> raj

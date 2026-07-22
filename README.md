@@ -83,5 +83,4 @@ Replace those SVG files when changing the app logo. The public header and dashbo
 - `src/components/FloatingAiAssistant.jsx` - AI support popup UI
 - `src/pages/dashboard/DashboardDocuments.jsx` - local document vault
 - `src/pages/dashboard/DashboardContact.jsx` - contact, WhatsApp, mobile, and email UI
-- add new feature ADMIN and USER 2FA verification and password reset  
 

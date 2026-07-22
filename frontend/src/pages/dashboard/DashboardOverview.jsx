@@ -1,10 +1,5 @@
-<<<<<<< HEAD
-import { useMemo, useState, useEffect } from "react";
-=======
 import { useEffect, useMemo, useState } from "react";
->>>>>>> raj
 import { Link, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
 import {
   BadgeCheck,
   Bell,
@@ -15,12 +10,9 @@ import {
   ShieldCheck,
   Sparkles,
   Target,
-  Loader2,
 } from "lucide-react";
 import { apiRequest } from "../../utils/api";
 import { useAuth } from "../../contexts/useAuth";
-import { apiRequest } from "../../utils/api";
-
 
 const formatInr = (n) => `₹${Number(n).toLocaleString("en-IN")}`;
 
@@ -64,58 +56,13 @@ const StatCard = ({ icon: Icon, title, value, hint, onClick, accent = "from-blue
   </button>
 );
 
-const mapPurchaseToUI = (p) => ({
-  ...p,
-  id: p._id || p.id,
-  policyId: p.policy?._id || p.policyId,
-  policyNumber: p.purchase_number || p.policyNumber,
-  status: p.purchase_status === "active" ? "Active" : (p.purchase_status === "expired" ? "Expired" : (p.purchase_status || "Active")),
-  amount: p.payment?.final_amount || p.amount || 0,
-  premium: p.payment?.amount || p.premium || 0,
-  activatedAt: p.start_date || p.activatedAt,
-  renewalAt: p.end_date || p.renewalAt,
-  paymentMethod: p.payment?.payment_method || p.paymentMethod,
-  nominee: {
-    name: p.nominee?.fullName || p.nominee?.name || "",
-    relation: p.nominee?.relation || "",
-  }
-});
-
 const DashboardOverview = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-<<<<<<< HEAD
-  const [rawPurchases, setRawPurchases] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
-        const res = await apiRequest("/api/user/my-policies");
-        setRawPurchases(res.data || []);
-      } catch (err) {
-        console.error("DashboardOverview error:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchDashboardData();
-  }, []);
-
-  const purchases = useMemo(() => rawPurchases.map(mapPurchaseToUI), [rawPurchases]);
-  const payments = useMemo(() => purchases.map((p) => p.payment).filter(Boolean).map(pay => ({
-    ...pay,
-    status: pay.payment_status === "success" ? "Success" : (pay.payment_status || "Success")
-  })), [purchases]);
-
-  const claims = useMemo(() => load("claims", []), []);
-=======
   const [purchases, setPurchases] = useState([]);
   const [claims, setClaims] = useState([]);
   const [loading, setLoading] = useState(true);
->>>>>>> raj
 
   useEffect(() => {
     const fetchData = async () => {
@@ -148,28 +95,7 @@ const DashboardOverview = () => {
 
   const policyHealthScore = Math.round(72 + Math.min(22, activePolicies.length * 4) + Math.min(6, approvedClaims.length * 2));
 
-<<<<<<< HEAD
-  const recPolicy = useMemo(() => {
-    const last = purchases[0];
-    if (!last) return null;
-    if (last.policy && typeof last.policy === "object") {
-      const company = last.policy.companyName || last.policy.company_name || "Unknown Provider";
-      const policyName = last.policy.policyName || last.policy.policy_name || "Policy";
-      const companyBrand = {
-        initials: company.trim().split(/\s+/).map((w) => w[0] ?? "").join("").slice(0, 2).toUpperCase() || "IN",
-        color: "bg-blue-600",
-      };
-      return {
-        company,
-        policyName,
-        companyBrand
-      };
-    }
-    return getPolicyById(last.policyId);
-  }, [purchases]);
-=======
   const recPolicy = useMemo(() => purchases[0]?.policy || null, [purchases]);
->>>>>>> raj
 
   const sparkline = useMemo(() => {
     const base = Math.max(2, activePolicies.length + 1);
@@ -178,28 +104,12 @@ const DashboardOverview = () => {
 
   if (loading) {
     return (
-<<<<<<< HEAD
-      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-          className="h-10 w-10 text-blue-600 animate-spin"
-        >
-          <Loader2 size={40} />
-        </motion.div>
-        <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Loading your dashboard data…</p>
-=======
       <div className="flex min-h-[50vh] items-center justify-center">
         <Loader2 className="animate-spin text-blue-600" size={40} />
->>>>>>> raj
       </div>
     );
   }
 
-<<<<<<< HEAD
-
-=======
->>>>>>> raj
   return (
     <div className="space-y-8">
       <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-5 shadow-sm dark:border-white/10 dark:from-white/5 dark:to-white/0 sm:rounded-[2.6rem] sm:p-8">

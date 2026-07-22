@@ -1,20 +1,9 @@
-<<<<<<< HEAD
-import { useMemo, useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
-import { CalendarClock, RefreshCw, ShieldCheck, Loader2 } from "lucide-react";
-import { getPolicyById } from "../../data/catalog";
-import { apiRequest } from "../../utils/api";
-import { normalizeBackendPolicy } from "../CheckoutPage";
-
-=======
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { CalendarClock, Loader2, RefreshCw, ShieldCheck } from "lucide-react";
 import { apiRequest } from "../../utils/api";
 
 const formatInr = (n) => `₹${Number(n).toLocaleString("en-IN")}`;
->>>>>>> raj
 
 // Renewal page headings, reminder text, and renewal action labels are controlled here.
 const daysBetween = (a, b) => Math.max(0, Math.round((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24)));
@@ -24,21 +13,12 @@ const DashboardRenewals = () => {
   const [loading, setLoading] = useState(true);
 
   const fetchPurchases = async () => {
-<<<<<<< HEAD
-    try {
-      setLoading(true);
-      const res = await apiRequest("/api/user/my-policies");
-      setPurchases(res.data || []);
-    } catch (err) {
-      console.error("Failed to load user policies for renewals:", err);
-=======
     setLoading(true);
     try {
       const res = await apiRequest("/api/purchases/my");
       setPurchases(res?.data || []);
     } catch (err) {
       console.error(err);
->>>>>>> raj
     } finally {
       setLoading(false);
     }
@@ -52,71 +32,19 @@ const DashboardRenewals = () => {
     const now = new Date();
     return purchases
       .map((p) => {
-<<<<<<< HEAD
-        let policy = null;
-        if (p.policy && typeof p.policy === "object") {
-          policy = normalizeBackendPolicy(p.policy);
-        } else {
-          policy = getPolicyById(p.policyId);
-        }
-        if (!policy) return null;
-
-        const uiPurchase = {
-          ...p,
-          id: p._id || p.id,
-          policyNumber: p.purchase_number || p.policyNumber,
-          status: p.purchase_status === "active" ? "Active" : (p.purchase_status === "expired" ? "Expired" : (p.purchase_status || "Active")),
-          amount: p.payment?.final_amount || p.amount || 0,
-          premium: p.payment?.amount || p.premium || 0,
-          activatedAt: p.start_date || p.activatedAt,
-          renewalAt: p.end_date || p.renewalAt,
-          paymentMethod: p.payment?.payment_method || p.paymentMethod,
-          nominee: {
-            name: p.nominee?.fullName || p.nominee?.name || "",
-            relation: p.nominee?.relation || "",
-          }
-        };
-
-        if (!uiPurchase.renewalAt) return null;
-        const d = new Date(uiPurchase.renewalAt);
-        return { purchase: uiPurchase, policy, days: daysBetween(now, d) };
-=======
         const policy = p.policy;
         if (!policy || !p.end_date) return null;
         const d = new Date(p.end_date);
         return { purchase: p, policy, days: daysBetween(now, d) };
->>>>>>> raj
       })
       .filter(Boolean)
       .sort((a, b) => a.days - b.days);
   }, [purchases]);
 
-<<<<<<< HEAD
-  const extend = async (purchaseId) => {
-    window.alert("Renewal request processed successfully. Premium paid via auto-pay.");
-  };
-=======
   if (loading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
         <Loader2 className="animate-spin text-blue-600" size={40} />
-      </div>
-    );
-  }
->>>>>>> raj
-
-
-  if (loading) {
-    return (
-      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-          className="h-10 w-10 text-blue-600 animate-spin"
-        >
-          <Loader2 size={40} />
-        </motion.div>
-        <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Loading renewals data…</p>
       </div>
     );
   }
@@ -142,7 +70,6 @@ const DashboardRenewals = () => {
           </button>
         </div>
       </div>
-
 
       {!renewals.length ? (
         <div className="rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-sm dark:border-white/10 dark:bg-white/5 sm:rounded-[2.6rem] sm:p-10">
