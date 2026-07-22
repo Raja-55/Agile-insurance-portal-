@@ -22,7 +22,15 @@ const Navbar = () => {
     const { isAuthenticated, user } = useAuth();
     const [portalName, setPortalName] = useState("Agile Insurance");
     const [supportPhone, setSupportPhone] = useState("+91 98765 43210");
+    const [policyForms, setPolicyForms] = useState({
+        healthForm: true,
+        motorForm: true,
+        lifeForm: true,
+        travelForm: true,
+        businessForm: true,
+    });
 
+<<<<<<< HEAD
     useEffect(() => {
         const fetchSettings = async () => {
             try {
@@ -36,6 +44,40 @@ const Navbar = () => {
         };
         fetchSettings();
     }, []);
+=======
+    useEffect(() =>{
+        const fetchSettings = async () =>{
+        try{
+            const response = await apiRequest("/api/admin/settings");
+            const settings = response?.data;
+
+            setPortalName(
+                settings?.general?.companyName || "Agile Insurance"
+            );
+            setSupportPhone(
+                settings?.general?.supportPhone || "+91 98765 43210"
+            );
+            setPolicyForms(
+                settings?.policyForms || {
+                    healthForm: true,
+                    motorForm: true,
+                    lifeForm: true,
+                    travelForm: true,
+                    businessForm: true,
+                }
+            );
+        }
+        catch(error){
+            console.error(
+                "Failed to load portal settings: ",
+                error
+            );
+        }
+
+    };
+    fetchSettings();
+    },[]);
+>>>>>>> raj
 
     const handleNav = (route) => {
         if (!route) return;
@@ -64,10 +106,20 @@ const Navbar = () => {
         if (v.includes("download policy")) return "/dashboard/documents";
         return null;
     };
+  
+
+    const insuranceDropdown = [
+  policyForms.healthForm && "Health Insurance",
+  policyForms.motorForm && "Car Insurance",
+  policyForms.lifeForm && "Life Insurance",
+  policyForms.travelForm && "Travel Insurance",
+  policyForms.businessForm && "Business Insurance",
+].filter(Boolean);
 
     // Modified navItems: Added 'path' for direct links like Claim
     const navItems = [
         {
+<<<<<<< HEAD
             name: "Insurance Products",
             dropdown: [
                 "Health Insurance",
@@ -78,6 +130,11 @@ const Navbar = () => {
                 "Business Insurance",
             ],
         },
+=======
+    name: "Insurance Products",
+    dropdown: insuranceDropdown,
+  },
+>>>>>>> raj
         {
             name: "Renew Your Policy",
             dropdown: [
@@ -222,4 +279,8 @@ const Navbar = () => {
     );
 };
 
+<<<<<<< HEAD
 export default Navbar;
+=======
+    export default Navbar;
+>>>>>>> raj

@@ -7,6 +7,13 @@ const SystemSetting = require("../Models/systemSetting.model");
 const AuditLog = require("../Models/auditlog.model");
 const catchAsync = require("../Utils/catchAsync");
 const AppError = require("../Utils/appError");
+const Admin = require("../Models/admin.model");
+
+
+const Document = require("../Models/document.model");
+const path = require("path");
+const fs = require("fs");
+
 
 const flattenObject = (obj, prefix = "") => {
   return Object.keys(obj).reduce((acc, key) => {
@@ -30,16 +37,28 @@ const getDashboard = catchAsync(async (req, res) => {
     KycRequest.countDocuments({ status: "pending" }),
   ]);
   const recentUsers = await User.find().select("fullName email role created_at kyc_status").sort({ created_at: -1 }).limit(8);
+<<<<<<< HEAD
+=======
+
+>>>>>>> raj
   const recentClaims = await Claim.find()
     .populate("user", "fullName email")
     .populate("policy", "policyName category")
     .sort({ createdAt: -1 })
     .limit(8);
+<<<<<<< HEAD
+=======
+
+>>>>>>> raj
   res.status(200).json({
     success: true,
     data: {
       widgets: {
         totalUsers,
+<<<<<<< HEAD
+=======
+        // totalAgents,
+>>>>>>> raj
         activePolicies,
         pendingClaims,
         totalRevenue: revenueAgg?.[0]?.total || 0,
@@ -53,19 +72,19 @@ const getDashboard = catchAsync(async (req, res) => {
 
 
 const getUsers = catchAsync(async (req, res) => {
-  try{
+  try {
     const users = await User.find()
-    .select(
-      "_id fullName email phone address is_verified created_at"
-    );
+      .select(
+        "_id fullName email phone address is_verified created_at"
+      );
     const formattedUsers = users.map((user) => ({
       id: user._id,
       name: user.fullName,
-      email:user.email,
+      email: user.email,
       phone: user.phone,
       address: user.address,
-      status: user.is_verified? "Active": "Inactive",
-      joinedAt:user.created_at,
+      status: user.is_verified ? "Active" : "Inactive",
+      joinedAt: user.created_at,
     }));
     res.status(200).json({
       success: true,
@@ -73,7 +92,7 @@ const getUsers = catchAsync(async (req, res) => {
     });
 
   }
-  catch(error){
+  catch (error) {
     res.status(500).json({
       sucess: false,
       message: error.message
@@ -144,18 +163,12 @@ const deleteUser = catchAsync(async (req, res, next) => {
   res.status(200).json({ success: true, message: "User deleted successfully" });
 });
 
-
-
-// const getAgents = catchAsync(async (req, res) => {
-//   const agents = await User.find({ role: "agent" }).select("-password").sort({ created_at: -1 });
-//   res.status(200).json({ success: true, data: agents });
-// });
-
 const getPolicies = catchAsync(async (req, res) => {
   const policies = await Policy.find().populate("admin", "fullName email role").sort({ createdAt: -1 });
   res.status(200).json({ success: true, data: policies });
 });
 
+<<<<<<< HEAD
 const getClaims = catchAsync(async (req, res) => {
   const claims = await Claim.find()
     .populate("user",    "fullName email phone role")
@@ -163,6 +176,51 @@ const getClaims = catchAsync(async (req, res) => {
     .populate("purchase")
     .sort({ createdAt: -1 });
   res.status(200).json({ success: true, data: claims });
+=======
+const getClaims = catchAsync(async (req, res, next) => {
+  const claims = await Claim.find()
+    .populate("user", "fullName email phone")
+    .populate("policy", "policyName category companyName")
+    .populate("purchase", "purchase_number")
+    .sort({ createdAt: -1 });
+  res.status(200).json({
+    success: true,
+    count: claims.length,
+    data: claims,
+  });
+});
+
+const updateClaim = catchAsync(async (req, res, next) => {
+  const { status, notes } = req.body;
+  const updateFields = {};
+  if (status) {
+    updateFields.claim_status = status;
+    updateFields.status = status === "submitted" ? "pending" : status;
+    updateFields.reviewed_at = new Date();
+  }
+  if (notes !== undefined) {
+    updateFields.admin_review = notes;
+    updateFields.notes = notes;
+  }
+
+  const claim = await Claim.findByIdAndUpdate(
+    req.params.id,
+    { $set: updateFields },
+    { new: true }
+  )
+    .populate("user", "fullName email")
+    .populate("policy", "policyName category");
+
+  if (!claim) return next(new AppError("Claim not found", 404));
+
+  res.status(200).json({ success: true, data: claim });
+});
+
+const deleteClaim = catchAsync(async (req, res, next) => {
+  const claim = await Claim.findByIdAndDelete(req.params.id);
+  if (!claim) return next(new AppError("Claim not found", 404));
+  res.status(200).json({ success: true, message: "Claim deleted successfully" });
+>>>>>>> raj
 });
 
 const getPayments = catchAsync(async (req, res) => {
@@ -185,7 +243,12 @@ const getSystemSettings = catchAsync(async (req, res) => {
   res.status(200).json({ success: true, data: settings });
 });
 
-const updateSystemSettings = catchAsync(async (req, res) => {
+const updateSystemSettings = catchAsync(async (req, res, next) => {
+  // Check if trying to update email verification setting and verify role
+  if (req.body.forceEmailVerification !== undefined && req.admin.role !== "Super Admin") {
+    return next(new AppError("Only Super Admin is authorized to toggle email verification settings.", 403));
+  }
+
   const flattened = flattenObject(req.body);
   const settings = await SystemSetting.findOneAndUpdate(
     {},
@@ -258,6 +321,7 @@ const reviewKyc = catchAsync(async (req, res, next) => {
   });
 });
 
+<<<<<<< HEAD
 const updateClaim = catchAsync(async (req, res, next) => {
   const { status, notes } = req.body;
 
@@ -299,6 +363,8 @@ const deleteClaim = catchAsync(async (req, res, next) => {
     message: "Claim deleted successfully",
   });
 });
+=======
+>>>>>>> raj
 
 const getSupportTicketsAdmin = catchAsync(async (req, res) => {
   const SupportTicket = require("../Models/contact.model");
@@ -315,7 +381,11 @@ const getSupportTicketsAdmin = catchAsync(async (req, res) => {
     return {
       id: ticket._id,
       userId: user._id || null,
+<<<<<<< HEAD
       userName: user.fullName || user.full_name || "Unknown user",
+=======
+      userName: user.fullName || "Unknown user",
+>>>>>>> raj
       userEmail: user.email || "",
       userPhone: user.phone || "",
       subject: ticket.subject || "Support ticket",
@@ -323,10 +393,10 @@ const getSupportTicketsAdmin = catchAsync(async (req, res) => {
       priority: ticket.priority || "Medium",
       assignedAdmin: assignedAdmin
         ? {
-            _id: assignedAdmin._id || null,
-            full_name: assignedAdmin.full_name || assignedAdmin.name || "Unassigned",
-            email: assignedAdmin.email || "",
-          }
+          _id: assignedAdmin._id || null,
+          fullName: assignedAdmin.fullName || assignedAdmin.name || "Unassigned",
+          email: assignedAdmin.email || "",
+        }
         : null,
       messages: Array.isArray(ticket.messages) ? ticket.messages : [],
       createdAt: ticket.createdAt,
@@ -353,7 +423,11 @@ const updateSupportTicket = catchAsync(async (req, res, next) => {
     req.params.id,
     { status, priority, assignedAdmin },
     { new: true }
+<<<<<<< HEAD
   ).populate("user", "fullName email phone").populate("assignedAdmin", "fullName email");
+=======
+  ).populate("user", "fullName email").populate("assignedAdmin", "fullName email");
+>>>>>>> raj
 
   if (!ticket) {
     return next(new AppError("Support ticket not found", 404));
@@ -419,6 +493,7 @@ const replyToSupportTicket = catchAsync(async (req, res, next) => {
     .populate("user", "fullName email phone")
     .populate("assignedAdmin", "fullName email")
     .populate("messages.sender", "fullName email");
+<<<<<<< HEAD
 
   const formattedTicket = {
     id: updatedTicket._id,
@@ -446,6 +521,8 @@ const replyToSupportTicket = catchAsync(async (req, res, next) => {
     createdAt: updatedTicket.createdAt,
     updatedAt: updatedTicket.updatedAt,
   };
+=======
+>>>>>>> raj
 
   res.status(200).json({
     success: true,
@@ -453,6 +530,204 @@ const replyToSupportTicket = catchAsync(async (req, res, next) => {
     data: formattedTicket,
   });
 });
+
+const getAdminProfile = catchAsync(async (req, res) => {
+  try {
+    const admin = await Admin.findById(req.admin.id)
+      .select("-password");
+
+    res.json({
+      success: true,
+      data: admin
+    });
+  }
+  catch (err) {
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
+});
+
+const updateAdminProfile = catchAsync(async (req, res, next) => {
+  const { fullName, phone, email, profilePhoto, twoFactorEnabled } = req.body;
+
+  const existing = await Admin.findOne({
+    _id: { $ne: req.admin._id },
+    $or: [
+      ...(email ? [{ email }] : []),
+      ...(phone ? [{ phone }] : [])
+    ]
+  });
+
+  if (existing) {
+    return next(new AppError("Email or phone already exists.", 400));
+  }
+
+  const updateFields = {};
+  if (fullName !== undefined) updateFields.fullName = fullName;
+  if (email !== undefined) updateFields.email = email;
+  if (phone !== undefined) updateFields.phone = phone;
+  if (profilePhoto !== undefined) updateFields.profilePhoto = profilePhoto;
+  if (twoFactorEnabled !== undefined) updateFields.twoFactorEnabled = twoFactorEnabled;
+
+  const admin = await Admin.findByIdAndUpdate(
+    req.admin._id,
+    updateFields,
+    {
+      new: true,
+      runValidators: true,
+    }
+  ).select("-password");
+
+  res.json({
+    success: true,
+    data: admin,
+  });
+});
+
+const changeAdminPassword = catchAsync(async (req, res) => {
+
+  const { oldPassword, newPassword } = req.body;
+
+  const admin = await Admin.findById(req.admin.id);
+
+  const isMatch = await admin.comparePassword(oldPassword);
+
+  if (!isMatch) {
+    return res.status(400).json({
+      message: "Old password incorrect"
+    });
+  }
+
+  admin.password = newPassword;
+
+  await admin.save();
+
+  res.json({
+    success: true,
+    message: "Password updated"
+  });
+
+});
+
+
+
+
+// GET /api/admin/documents
+// Returns all documents with populated user info
+const getDocuments = async (req, res) => {
+  try {
+    const docs = await Document.find()
+      .populate("user", "fullName email phone")
+      .sort({ createdAt: -1 });
+
+    const formatted = docs.map((doc) => ({
+      id: doc._id,
+      type: doc.documentType,
+      fileName: doc.fileName,
+      filePath: doc.filePath,
+      mimeType: doc.mimeType,
+      size: doc.size,
+      status: doc.status,
+      note: doc.note,
+      owner: doc.user?.fullName || doc.user?.email || "Unknown",
+      ownerEmail: doc.user?.email,
+      userId: doc.user?._id,
+      createdAt: doc.createdAt,
+      updatedAt: doc.updatedAt,
+    }));
+
+    res.json({ success: true, data: formatted });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// PATCH /api/admin/documents/:id/approve
+const approveDocument = async (req, res) => {
+  try {
+    const doc = await Document.findByIdAndUpdate(
+      req.params.id,
+      { status: "Approved", note: req.body.note || "" },
+      { new: true }
+    ).populate("user", "fullName email");
+
+    if (!doc) return res.status(404).json({ success: false, message: "Document not found" });
+
+    res.json({ success: true, message: "Document approved", data: doc });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// PATCH /api/admin/documents/:id/reject
+const rejectDocument = async (req, res) => {
+  try {
+    const doc = await Document.findByIdAndUpdate(
+      req.params.id,
+      { status: "Rejected", note: req.body.note || "Document rejected by admin." },
+      { new: true }
+    ).populate("user", "fullName email");
+
+    if (!doc) return res.status(404).json({ success: false, message: "Document not found" });
+
+    res.json({ success: true, message: "Document rejected", data: doc });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// PATCH /api/admin/documents/:id/correction
+// Admin sends correction note (with optional markup JSON)
+const sendDocumentCorrection = async (req, res) => {
+  try {
+    const { note, marks } = req.body;
+
+    const doc = await Document.findByIdAndUpdate(
+      req.params.id,
+      {
+        status: "Re-upload Requested",
+        note: note || "Admin has requested corrections. Please re-upload.",
+        ...(marks && { marks }), // if you later add a marks field to schema
+      },
+      { new: true }
+    ).populate("user", "fullName email");
+
+    if (!doc) return res.status(404).json({ success: false, message: "Document not found" });
+
+    res.json({ success: true, message: "Correction sent", data: doc });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// GET /api/admin/documents/:id/file
+// Streams the actual file back to admin for preview
+const getDocumentFile = async (req, res) => {
+  try {
+    const doc = await Document.findById(req.params.id);
+    if (!doc) return res.status(404).json({ success: false, message: "Document not found" });
+
+    const absolutePath = path.resolve(doc.filePath);
+    if (!fs.existsSync(absolutePath)) {
+      return res.status(404).json({ success: false, message: "File not found on disk" });
+    }
+
+    res.setHeader("Content-Type", doc.mimeType);
+    res.setHeader("Content-Disposition", `inline; filename="${doc.fileName}"`);
+    fs.createReadStream(absolutePath).pipe(res);
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+
+
+
+
+
+
 
 module.exports = {
   getDashboard,
@@ -475,4 +750,13 @@ module.exports = {
   getSupportTicketsAdmin,
   updateSupportTicket,
   replyToSupportTicket,
+  getAdminProfile,
+  updateAdminProfile,
+  changeAdminPassword,
+
+  getDocuments,
+  approveDocument,
+  rejectDocument,
+  sendDocumentCorrection,
+  getDocumentFile,
 };

@@ -16,10 +16,10 @@ const adminSchema = new mongoose.Schema(
       trim: true,
     },
     phone: {
-        type: String,
-        required: true,
-        unique: true,
-        trim: true,
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
     },
     password: {
       type: String,
@@ -28,8 +28,9 @@ const adminSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["Super Admin", "Insurance Manager", "Claims Officer", "Support Executive"],
+      trim: true,
       default: "Support Executive",
+
     },
     permissions: {
       type: [String],
@@ -46,6 +47,27 @@ const adminSchema = new mongoose.Schema(
     lastLoginAt: {
       type: Date,
       default: null,
+    },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Admin",
+      default: null,
+    },
+    reset_password_token: {
+      type: String,
+    },
+    reset_password_expiry: {
+      type: Date,
+    },
+    twoFactorEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    two_factor_code: {
+      type: String,
+    },
+    two_factor_expiry: {
+      type: Date,
     },
   },
   { timestamps: true }

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+<<<<<<< HEAD
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BadgeCheck,
@@ -19,6 +20,11 @@ import { getPolicyById } from "../data/catalog";
 import { apiRequest } from "../utils/api";
 import { normalizeBackendPolicy } from "./CheckoutPage";
 
+=======
+import { motion } from "framer-motion";
+import { BadgeCheck, Download, FileText, Home, Sparkles, Loader2 } from "lucide-react";
+import { apiRequest } from "../utils/api";
+>>>>>>> raj
 
 const formatInr = (n) => `₹${Number(n).toLocaleString("en-IN")}`;
 
@@ -119,6 +125,7 @@ const PulseRings = () => (
 const PaymentSuccessPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
+<<<<<<< HEAD
   const [countdown, setCountdown] = useState(8);
   const [showReceipt, setShowReceipt] = useState(false);
   const [rawPurchase, setRawPurchase] = useState(null);
@@ -197,6 +204,35 @@ const PaymentSuccessPage = () => {
       keyBenefits: purchase.policySnapshot?.keyBenefits || [],
     };
   }, [purchase]);
+=======
+  const [countdown, setCountdown] = useState(5);
+  const [purchase, setPurchase] = useState(null);
+  const [policy, setPolicy] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const purchaseNumber = useMemo(
+    () => new URLSearchParams(location.search).get("purchaseNumber") || "",
+    [location.search],
+  );
+
+  useEffect(() => {
+    const fetchPurchase = async () => {
+      try {
+        const res = await apiRequest("/api/purchases/my");
+        const purchases = res?.data || [];
+        const match = purchases.find((p) => p.purchase_number === purchaseNumber) || purchases[0] || null;
+        setPurchase(match);
+        setPolicy(match?.policy || null);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPurchase();
+  }, [purchaseNumber]);
+>>>>>>> raj
 
   useEffect(() => {
     if (!purchase) return;
@@ -211,6 +247,17 @@ const PaymentSuccessPage = () => {
   }, [purchase, navigate]);
 
   if (loading) {
+<<<<<<< HEAD
+=======
+    return (
+      <div className="flex min-h-[70vh] items-center justify-center">
+        <Loader2 className="animate-spin text-blue-600" size={40} />
+      </div>
+    );
+  }
+
+  if (!purchase || !policy) {
+>>>>>>> raj
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-900 px-4">
         <div className="text-center">
@@ -227,6 +274,7 @@ const PaymentSuccessPage = () => {
     );
   }
 
+<<<<<<< HEAD
   if (error || !purchase || !policy) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-900 px-4">
@@ -254,6 +302,15 @@ const PaymentSuccessPage = () => {
         <div className="absolute left-1/4 top-1/2 h-96 w-96 rounded-full bg-blue-600/10 blur-[100px]" />
         <div className="absolute right-1/4 top-1/3 h-80 w-80 rounded-full bg-indigo-600/10 blur-[100px]" />
       </div>
+=======
+  const totalPaid = purchase.payment?.final_amount || 0;
+  const invoiceNumber = purchase.payment?.invoice_number || "—";
+
+  return (
+    <div className="relative min-h-[85vh] overflow-hidden bg-gradient-to-b from-white to-slate-50 px-4 py-10 sm:px-6 sm:py-16">
+      <div className="pointer-events-none absolute -top-40 left-1/2 h-[560px] w-[560px] -translate-x-1/2 rounded-full bg-blue-600/10 blur-[120px]" />
+      <Confetti seed={purchaseNumber || purchase.purchase_number || "agile"} />
+>>>>>>> raj
 
       {/* Confetti */}
       <Confetti seed={purchaseId || "agile"} />
@@ -304,6 +361,7 @@ const PaymentSuccessPage = () => {
           </motion.div>
         </motion.div>
 
+<<<<<<< HEAD
         {/* Receipt card */}
         <AnimatePresence>
           {showReceipt && (
@@ -329,9 +387,23 @@ const PaymentSuccessPage = () => {
                 <div className="text-right">
                   <p className="text-xs font-bold text-white/50">Total Paid</p>
                   <p className="text-2xl font-black text-emerald-400">{formatInr(purchase.amount)}</p>
+=======
+            <div className="w-full max-w-sm rounded-3xl border border-slate-200 bg-slate-50 p-5 sm:rounded-[2.5rem] sm:p-6">
+              <div className="text-xs font-bold text-slate-500">Total paid</div>
+              <div className="mt-2 text-3xl font-black text-slate-900">{formatInr(totalPaid)}</div>
+              <div className="mt-4 grid grid-cols-2 gap-3 text-xs font-semibold text-slate-600">
+                <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                  <div className="text-[11px] font-bold text-slate-500">Invoice</div>
+                  <div className="mt-1 font-black text-slate-900">{invoiceNumber}</div>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                  <div className="text-[11px] font-bold text-slate-500">Policy No.</div>
+                  <div className="mt-1 font-black text-slate-900">{purchase.purchase_number}</div>
+>>>>>>> raj
                 </div>
               </div>
 
+<<<<<<< HEAD
               {/* Receipt grid */}
               <div className="grid grid-cols-2 gap-4 p-6 sm:grid-cols-4">
                 {[
@@ -353,6 +425,17 @@ const PaymentSuccessPage = () => {
                     </div>
                   );
                 })}
+=======
+          <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {[
+              { label: "Plan", value: policy.policyName },
+              { label: "Company", value: policy.companyName },
+              { label: "Coverage", value: formatInr(policy.coverageAmount) },
+            ].map((x) => (
+              <div key={x.label} className="rounded-3xl border border-slate-200 bg-slate-50 p-5 sm:rounded-[2.2rem] sm:p-6">
+                <div className="text-xs font-bold text-slate-500">{x.label}</div>
+                <div className="mt-2 truncate text-sm font-black text-slate-900">{x.value}</div>
+>>>>>>> raj
               </div>
 
               {/* More details */}

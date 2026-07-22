@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import { useMemo, useState, useEffect } from "react";
+=======
+import { useEffect, useMemo, useState } from "react";
+>>>>>>> raj
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -7,13 +11,13 @@ import {
   CreditCard,
   FileText,
   LineChart,
+  Loader2,
   ShieldCheck,
   Sparkles,
   Target,
   Loader2,
 } from "lucide-react";
-import { load } from "../../utils/storage";
-import { getPolicyById } from "../../data/catalog";
+import { apiRequest } from "../../utils/api";
 import { useAuth } from "../../contexts/useAuth";
 import { apiRequest } from "../../utils/api";
 
@@ -81,6 +85,7 @@ const DashboardOverview = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
+<<<<<<< HEAD
   const [rawPurchases, setRawPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -106,20 +111,44 @@ const DashboardOverview = () => {
   })), [purchases]);
 
   const claims = useMemo(() => load("claims", []), []);
+=======
+  const [purchases, setPurchases] = useState([]);
+  const [claims, setClaims] = useState([]);
+  const [loading, setLoading] = useState(true);
+>>>>>>> raj
 
-  const activePolicies = purchases.filter((p) => p.status === "Active");
-  const totalInvestment = purchases.reduce((sum, p) => sum + (p.amount || 0), 0);
-  const pendingPayments = payments.filter((p) => p.status !== "Success");
-  const approvedClaims = claims.filter((c) => c.status === "Approved");
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [purchasesRes, claimsRes] = await Promise.all([
+          apiRequest("/api/purchases/my"),
+          apiRequest("/api/claims/my"),
+        ]);
+        setPurchases(purchasesRes?.data || []);
+        setClaims(claimsRes?.data || []);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const activePolicies = purchases.filter((p) => p.purchase_status === "active");
+  const totalInvestment = purchases.reduce((sum, p) => sum + (p.payment?.final_amount || 0), 0);
+  const pendingPayments = purchases.filter((p) => p.payment_status !== "paid");
+  const approvedClaims = claims.filter((c) => c.claim_status === "approved");
   const rewardPoints = Math.round(totalInvestment / 800);
 
   const upcomingRenewals = purchases
-    .filter((p) => p.renewalAt)
-    .sort((a, b) => new Date(a.renewalAt).getTime() - new Date(b.renewalAt).getTime())
+    .filter((p) => p.end_date)
+    .sort((a, b) => new Date(a.end_date).getTime() - new Date(b.end_date).getTime())
     .slice(0, 3);
 
   const policyHealthScore = Math.round(72 + Math.min(22, activePolicies.length * 4) + Math.min(6, approvedClaims.length * 2));
 
+<<<<<<< HEAD
   const recPolicy = useMemo(() => {
     const last = purchases[0];
     if (!last) return null;
@@ -138,6 +167,9 @@ const DashboardOverview = () => {
     }
     return getPolicyById(last.policyId);
   }, [purchases]);
+=======
+  const recPolicy = useMemo(() => purchases[0]?.policy || null, [purchases]);
+>>>>>>> raj
 
   const sparkline = useMemo(() => {
     const base = Math.max(2, activePolicies.length + 1);
@@ -146,6 +178,7 @@ const DashboardOverview = () => {
 
   if (loading) {
     return (
+<<<<<<< HEAD
       <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4">
         <motion.div
           animate={{ rotate: 360 }}
@@ -155,11 +188,18 @@ const DashboardOverview = () => {
           <Loader2 size={40} />
         </motion.div>
         <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Loading your dashboard data…</p>
+=======
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <Loader2 className="animate-spin text-blue-600" size={40} />
+>>>>>>> raj
       </div>
     );
   }
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> raj
   return (
     <div className="space-y-8">
       <div className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-5 shadow-sm dark:border-white/10 dark:from-white/5 dark:to-white/0 sm:rounded-[2.6rem] sm:p-8">
@@ -203,7 +243,7 @@ const DashboardOverview = () => {
                 <div className="mt-2 text-2xl font-black tracking-tight">Personalized recommendations</div>
                 <div className="mt-2 text-sm font-semibold text-white/70">
                   {recPolicy
-                    ? `Your latest plan is ${recPolicy.company} • ${recPolicy.policyName}. Explore plans that fit your profile.`
+                    ? `Your latest plan is ${recPolicy.companyName} • ${recPolicy.policyName}. Explore plans that fit your profile.`
                     : "Buy your first policy to unlock personalized recommendations."}
                 </div>
               </div>
@@ -228,10 +268,10 @@ const DashboardOverview = () => {
                 <div className="text-xs font-bold text-white/70">Upcoming renewal reminder</div>
                 <div className="mt-2 space-y-2">
                   {upcomingRenewals.map((u) => (
-                    <div key={u.id} className="flex items-center justify-between gap-4 text-sm font-semibold text-white/85">
-                      <span className="truncate">{u.policyNumber}</span>
+                    <div key={u._id} className="flex items-center justify-between gap-4 text-sm font-semibold text-white/85">
+                      <span className="truncate">{u.purchase_number}</span>
                       <span className="text-xs font-black text-emerald-300">
-                        {new Date(u.renewalAt).toLocaleDateString()}
+                        {new Date(u.end_date).toLocaleDateString()}
                       </span>
                     </div>
                   ))}
@@ -298,11 +338,16 @@ const DashboardOverview = () => {
             </Link>
           </div>
           <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {["health-insurance", "car-insurance", "term-insurance", "travel-insurance"].map((slug) => {
-              const count = purchases.filter((x) => getPolicyById(x.policyId)?.categorySlug === slug).length;
+            {[
+              { slug: "health-insurance", category: "health", label: "health insurance" },
+              { slug: "car-insurance", category: "auto", label: "car insurance" },
+              { slug: "term-insurance", category: "term", label: "term insurance" },
+              { slug: "travel-insurance", category: "travel", label: "travel insurance" },
+            ].map(({ slug, category, label }) => {
+              const count = purchases.filter((x) => x.policy?.category === category).length;
               return (
                 <div key={slug} className="rounded-3xl border border-slate-200 bg-slate-50 p-5 dark:border-white/10 dark:bg-white/5">
-                  <div className="text-xs font-bold text-slate-500 dark:text-slate-400">{slug.replace("-", " ")}</div>
+                  <div className="text-xs font-bold text-slate-500 dark:text-slate-400">{label}</div>
                   <div className="mt-2 text-2xl font-black text-slate-900 dark:text-slate-100">{count}</div>
                   <div className="mt-2 text-sm font-semibold text-slate-600 dark:text-slate-300">
                     {count ? "Active in portfolio" : "No policies yet"}

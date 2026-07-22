@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { useMemo, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -6,6 +7,14 @@ import { getPolicyById } from "../../data/catalog";
 import { apiRequest } from "../../utils/api";
 import { normalizeBackendPolicy } from "../CheckoutPage";
 
+=======
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { CalendarClock, Loader2, RefreshCw, ShieldCheck } from "lucide-react";
+import { apiRequest } from "../../utils/api";
+
+const formatInr = (n) => `₹${Number(n).toLocaleString("en-IN")}`;
+>>>>>>> raj
 
 // Renewal page headings, reminder text, and renewal action labels are controlled here.
 const daysBetween = (a, b) => Math.max(0, Math.round((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24)));
@@ -15,12 +24,21 @@ const DashboardRenewals = () => {
   const [loading, setLoading] = useState(true);
 
   const fetchPurchases = async () => {
+<<<<<<< HEAD
     try {
       setLoading(true);
       const res = await apiRequest("/api/user/my-policies");
       setPurchases(res.data || []);
     } catch (err) {
       console.error("Failed to load user policies for renewals:", err);
+=======
+    setLoading(true);
+    try {
+      const res = await apiRequest("/api/purchases/my");
+      setPurchases(res?.data || []);
+    } catch (err) {
+      console.error(err);
+>>>>>>> raj
     } finally {
       setLoading(false);
     }
@@ -34,6 +52,7 @@ const DashboardRenewals = () => {
     const now = new Date();
     return purchases
       .map((p) => {
+<<<<<<< HEAD
         let policy = null;
         if (p.policy && typeof p.policy === "object") {
           policy = normalizeBackendPolicy(p.policy);
@@ -61,14 +80,30 @@ const DashboardRenewals = () => {
         if (!uiPurchase.renewalAt) return null;
         const d = new Date(uiPurchase.renewalAt);
         return { purchase: uiPurchase, policy, days: daysBetween(now, d) };
+=======
+        const policy = p.policy;
+        if (!policy || !p.end_date) return null;
+        const d = new Date(p.end_date);
+        return { purchase: p, policy, days: daysBetween(now, d) };
+>>>>>>> raj
       })
       .filter(Boolean)
       .sort((a, b) => a.days - b.days);
   }, [purchases]);
 
+<<<<<<< HEAD
   const extend = async (purchaseId) => {
     window.alert("Renewal request processed successfully. Premium paid via auto-pay.");
   };
+=======
+  if (loading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <Loader2 className="animate-spin text-blue-600" size={40} />
+      </div>
+    );
+  }
+>>>>>>> raj
 
 
   if (loading) {
@@ -129,15 +164,15 @@ const DashboardRenewals = () => {
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           {renewals.map(({ purchase, policy, days }) => (
             <div
-              key={purchase.id}
+              key={purchase._id}
               className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-white/5 sm:rounded-[2.6rem] sm:p-7"
             >
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
                   <div className="text-xs font-bold text-slate-500 dark:text-slate-400">Policy</div>
-                  <div className="mt-2 truncate text-lg font-black text-slate-900 dark:text-white">{purchase.policyNumber}</div>
+                  <div className="mt-2 truncate text-lg font-black text-slate-900 dark:text-white">{purchase.purchase_number}</div>
                   <div className="mt-1 truncate text-sm font-semibold text-slate-600 dark:text-slate-300">
-                    {policy.company} • {policy.policyName}
+                    {policy.companyName} • {policy.policyName}
                   </div>
                 </div>
                 <span
@@ -154,24 +189,24 @@ const DashboardRenewals = () => {
                 <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 dark:border-white/10 dark:bg-white/5">
                   <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400">Renewal date</div>
                   <div className="mt-2 text-sm font-black text-slate-900 dark:text-white">
-                    {new Date(purchase.renewalAt).toLocaleDateString()}
+                    {new Date(purchase.end_date).toLocaleDateString()}
                   </div>
                 </div>
                 <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 dark:border-white/10 dark:bg-white/5">
                   <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400">Coverage</div>
-                  <div className="mt-2 text-sm font-black text-slate-900 dark:text-white">{policy.coverageLabel}</div>
+                  <div className="mt-2 text-sm font-black text-slate-900 dark:text-white">{formatInr(policy.coverageAmount)}</div>
                 </div>
               </div>
 
               <div className="mt-6 grid grid-cols-1 gap-3 sm:flex sm:flex-wrap">
-                <button
-                  onClick={() => extend(purchase.id)}
+                <Link
+                  to={`/policies/${policy._id}`}
                   className="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-3 text-sm font-black text-white shadow-sm hover:opacity-95"
                 >
                   Renew now
-                </button>
+                </Link>
                 <Link
-                  to={`/policies/${policy.id}`}
+                  to={`/policies/${policy._id}`}
                   className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-6 py-3 text-sm font-black text-slate-800 shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
                 >
                   View details

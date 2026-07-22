@@ -15,10 +15,40 @@ const supportTicketSchema = new mongoose.Schema(
       required: true,
     },
 
+<<<<<<< HEAD
     claim: {
       type:    mongoose.Schema.Types.ObjectId,
       ref:     "Claim",
       default: null,
+=======
+    subject: {
+      type: String,
+      enum: [
+        "Policy support",
+        "Claim issue",
+        "Payment issue",
+        "Document verification",
+        "Complaint",
+      ],
+      required: true,
+    },
+
+    status: {
+      type: String,
+      enum: ["Open", "In Progress", "Resolved"],
+      default: "Open",
+    },
+
+    priority: {
+      type: String,
+      enum: ["Low", "Medium", "High"],
+      default: "Medium",
+    },
+
+    assignedAdmin: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Admin",
+>>>>>>> raj
     },
 
     subject: {
@@ -60,6 +90,7 @@ const supportTicketSchema = new mongoose.Schema(
     messages: [
       {
         sender: {
+<<<<<<< HEAD
           type:     mongoose.Schema.Types.ObjectId,
           ref:      "User",
           required: true,
@@ -70,6 +101,17 @@ const supportTicketSchema = new mongoose.Schema(
           enum:     ["user", "admin"],
           required: true,
         },
+=======
+    type: mongoose.Schema.Types.ObjectId,
+    required: true,
+},
+
+senderRole: {
+    type: String,
+    enum: ["user", "admin"],
+    required: true,
+},
+>>>>>>> raj
 
         text: {
           type:     String,

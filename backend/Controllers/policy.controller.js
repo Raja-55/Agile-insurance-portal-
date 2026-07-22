@@ -219,7 +219,10 @@ const getPoliciesByCategory = async (req, res) => {
     const limit = Number(req.query.limit || 12);
 
     // Build filter — always only active policies
-    const filter = { isActive: true };
+    const filter = { 
+      isActive: true,
+      // status: "active"
+    };
     if (categoryParam && categoryParam !== "all") {
       filter.category = categoryParam.toLowerCase();
     }

@@ -165,3 +165,61 @@ export const openAiChat = async ({ message, history = [], contextLabel = "Agile 
 
   return readOpenAiText(payload) || "I could not produce an answer. Please try again.";
 };
+
+
+
+
+
+
+// // ==================== USER AUTH APIs ====================
+
+// // Register
+// export const registerUser = (data) =>
+//   apiRequest("/api/auth/register", {
+//     method: "POST",
+//     body: JSON.stringify(data),
+//     skipAuth: true,
+//   });
+
+// // Login
+// export const loginUser = async (data) => {
+//   const response = await apiRequest("/api/auth/login", {
+//     method: "POST",
+//     body: JSON.stringify(data),
+//     skipAuth: true,
+//   });
+
+//   // Save JWT
+//   if (response?.data?.token) {
+//     setToken(response.data.token);
+//   }
+
+//   return response;
+// };
+
+// // Logout
+// export const logoutUser = async () => {
+//   await apiRequest("/api/auth/logout", {
+//     method: "POST",
+//   });
+
+//   setToken(null);
+// };
+
+// // Logged-in user
+// export const getCurrentUser = () =>
+//   apiRequest("/api/auth/me");
+
+// // Update profile
+// export const updateProfile = (data) =>
+//   apiRequest("/api/auth/update-profile", {
+//     method: "PUT",
+//     body: JSON.stringify(data),
+//   });
+
+// // Change password
+// export const changePassword = (data) =>
+//   apiRequest("/api/auth/change-password", {
+//     method: "PUT",
+//     body: JSON.stringify(data),
+//   });

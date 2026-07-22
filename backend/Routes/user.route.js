@@ -5,6 +5,8 @@ const { createKycRequest, getMyKycRequests } = require("../Controllers/kyc.contr
 const { getMyPolicies } = require("../Controllers/purchase.controller");
 const { getMyClaims, getClaimById } = require("../Controllers/claim.controller");
 const { validateKycRequest } = require("../Middlewares/validation.middleware");
+const { getMyClaims, getClaimById } = require("../Controllers/claim.controller");
+const { getMyPolicies } = require("../Controllers/purchase.controller");
 
 const router = express.Router();
 
@@ -21,6 +23,10 @@ router.post("/kyc-requests", validateKycRequest, createKycRequest);
 router.get("/my-policies", getMyPolicies);
 
 // Aliased endpoints to match the exact requirement parameters
+router.get("/purchases", getMyPolicies);
+router.get("/claims", getMyClaims);
+router.get("/claims/:id", getClaimById);
+
 router.get("/purchases", getMyPolicies);
 router.get("/claims", getMyClaims);
 router.get("/claims/:id", getClaimById);

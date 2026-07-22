@@ -12,6 +12,10 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
+<<<<<<< HEAD
+=======
+import { getCategoryBySlug } from "../data/catalog";
+>>>>>>> raj
 import { useAuth } from "../contexts/useAuth";
 import { apiRequest } from "../utils/api";
 
@@ -21,11 +25,25 @@ const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 
 const formatInr = (n) => `₹${Number(n).toLocaleString("en-IN")}`;
 
-const PolicyLogo = ({ brand }) => (
-  <div className={`h-12 w-12 rounded-2xl ${brand?.color || "bg-blue-600"} grid place-items-center text-white font-black`}>
-    {brand?.initials || "AI"}
-  </div>
-);
+const PolicyLogo = ({ brand }) => {
+  if (brand?.logo) {
+    return (
+      <img
+        src={brand.logo}
+        alt={brand.initials}
+        className="h-12 w-12 rounded-2xl object-cover border"
+      />
+    );
+  }
+
+  return (
+    <div
+      className={`h-12 w-12 rounded-2xl ${brand?.color} grid place-items-center text-white font-black`}
+    >
+      {brand?.initials}
+    </div>
+  );
+};
 
 const PolicyListingFooter = ({
   filteredCount,
@@ -294,6 +312,7 @@ const CategoryPage = () => {
   const { categorySlug } = useParams();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
+<<<<<<< HEAD
 
   // Derive a human-readable title from the URL slug
   const categoryTitle = categorySlug
@@ -303,6 +322,10 @@ const CategoryPage = () => {
         .replace(/\b\w/g, (m) => m.toUpperCase()) + " Insurance"
     : "Insurance Plans";
 
+=======
+  
+  const category = getCategoryBySlug(categorySlug);
+>>>>>>> raj
   const [allPolicies, setAllPolicies] = useState([]);
   const [loadingPolicies, setLoadingPolicies] = useState(false);
   const [policiesError, setPoliciesError] = useState(null);
@@ -320,6 +343,7 @@ const CategoryPage = () => {
     return slug.replace(/-insurance$/i, "");
   };
 
+<<<<<<< HEAD
   // Normalize backend response to UI shape.
   // The MongoDB schema stores: premium_amount, coverage_amount, policyName,
   // policyType, description, claimRatio, features, emiAvailable, validityYears.
@@ -369,7 +393,64 @@ const CategoryPage = () => {
       description: p.description || p.policy_desc || "",
       aiBadge: p.aiBadge || null,
     };
+=======
+  // Normalize backend policy object to frontend shape used by this page
+ const normalizePolicy = (p) => {
+  const company = p.companyName || "Unknown";
+  const policyName = p.policyName || "Policy";
+
+  const premiumMonthly =
+    p.monthlyPremium ??
+    p.premiumAmount ??
+    0;
+
+  const coverageAmount =
+    p.coverageAmount ?? 0;
+
+  return {
+    id: p._id,
+    company,
+
+    companyBrand: {
+      logo: p.companyLogo || "",
+      initials: company.substring(0, 2).toUpperCase(),
+      color: "bg-blue-600",
+    },
+
+    policyName,
+
+    premiumMonthly,
+    premiumLabel: formatInr(premiumMonthly),
+
+    coverageAmount,
+    coverageLabel: formatInr(coverageAmount),
+
+    claimSettlementRatio: p.claimRatio,
+
+    validityYears: p.validityYears,
+
+    emiAvailable: p.emiAvailable,
+
+    policyType: p.policyType,
+
+    rating: p.rating,
+
+    keyBenefits: p.features || [],
+
+    description: p.description,
+
+    category: p.category,
+
+    status: p.status,
+
+    isActive: p.isActive,
+
+    aiBadge: null,
+
+    familyCoverage: false,
+>>>>>>> raj
   };
+};
 
   useEffect(() => {
     let mounted = true;
@@ -380,6 +461,7 @@ const CategoryPage = () => {
         const cat = mapSlugToCategory(categorySlug);
         const res = await apiRequest(`/api/policies/category/${encodeURIComponent(cat)}`);
         // backend returns { success, count, total, data: [policies] }
+<<<<<<< HEAD
         const apiPolicies = Array.isArray(res?.data)
           ? res.data
           : Array.isArray(res?.policies)
@@ -387,7 +469,14 @@ const CategoryPage = () => {
           : [];
         const normalized = apiPolicies.map(normalizePolicy);
         console.log("Policies:", normalized);
+=======
+        const apiPolicies = res.data || [];
+        const normalized = apiPolicies.map(normalizePolicy);
+        // console.log("Normalized:", normalized);
+        
+>>>>>>> raj
         if (mounted) setAllPolicies(normalized);
+        // console.log("State data:", normalized);
       } catch (err) {
         console.error("Failed to fetch policies for category", categorySlug, err);
         if (mounted) setPoliciesError(err.message || String(err));
@@ -423,9 +512,27 @@ const CategoryPage = () => {
 
 
   const [search, setSearch] = useState("");
+<<<<<<< HEAD
   const [premiumRange, setPremiumRange] = useState([0, 100000]);
   const [coverageRange, setCoverageRange] = useState([0, 50000000]);
   const [claimMin, setClaimMin] = useState(0);
+=======
+  const [premiumRange, setPremiumRange] = useState([premiumMin, premiumMax]);
+  useEffect(() => {
+  if (allPolicies.length) {
+    setPremiumRange([premiumMin, premiumMax]);
+    setCoverageRange([coverageMin, coverageMax]);
+  }
+}, [
+  allPolicies,
+  premiumMin,
+  premiumMax,
+  coverageMin,
+  coverageMax,
+]);
+  const [coverageRange, setCoverageRange] = useState([coverageMin, coverageMax]);
+  const [claimMin, setClaimMin] = useState(90);
+>>>>>>> raj
   const [policyType, setPolicyType] = useState("All");
   const [sortBy, setSortBy] = useState("best-rating");
   const [emiOnly, setEmiOnly] = useState(false);
@@ -462,24 +569,25 @@ const CategoryPage = () => {
     return ["All", ...Array.from(unique)];
   }, [allPolicies]);
 
-  const filtered = useMemo(() => {
-    const s = search.trim().toLowerCase();
-    let list = allPolicies.filter((p) => {
-      if (s && !`${p.company} ${p.policyName}`.toLowerCase().includes(s)) return false;
-      if (p.premiumMonthly < premiumRange[0] || p.premiumMonthly > premiumRange[1]) return false;
-      if (p.coverageAmount < coverageRange[0] || p.coverageAmount > coverageRange[1]) return false;
-      if (p.claimSettlementRatio < claimMin) return false;
-      if (policyType !== "All" && p.policyType !== policyType) return false;
-      if (emiOnly && !p.emiAvailable) return false;
-      if (familyOnly && !p.familyCoverage) return false;
-      return true;
-    });
+  // const filtered = useMemo(() => {
+  //   const s = search.trim().toLowerCase();
+  //   let list = allPolicies.filter((p) => {
+  //     if (s && !`${p.company} ${p.policyName}`.toLowerCase().includes(s)) return false;
+  //     if (p.premiumMonthly < premiumRange[0] || p.premiumMonthly > premiumRange[1]) return false;
+  //     if (p.coverageAmount < coverageRange[0] || p.coverageAmount > coverageRange[1]) return false;
+  //     if (p.claimSettlementRatio < claimMin) return false;
+  //     if (policyType !== "All" && p.policyType !== policyType) return false;
+  //     if (emiOnly && !p.emiAvailable) return false;
+  //     if (familyOnly && !p.familyCoverage) return false;
+  //     return true;
+  //   });
 
-    if (sortBy === "low-premium") list = [...list].sort((a, b) => a.premiumMonthly - b.premiumMonthly);
-    if (sortBy === "high-coverage") list = [...list].sort((a, b) => b.coverageAmount - a.coverageAmount);
-    if (sortBy === "best-rating") list = [...list].sort((a, b) => b.rating - a.rating);
-    return list;
-  }, [allPolicies, search, premiumRange, coverageRange, claimMin, policyType, sortBy, emiOnly, familyOnly]);
+  //   if (sortBy === "low-premium") list = [...list].sort((a, b) => a.premiumMonthly - b.premiumMonthly);
+  //   if (sortBy === "high-coverage") list = [...list].sort((a, b) => b.coverageAmount - a.coverageAmount);
+  //   if (sortBy === "best-rating") list = [...list].sort((a, b) => b.rating - a.rating);
+  //   return list;
+  // }, [allPolicies, search, premiumRange, coverageRange, claimMin, policyType, sortBy, emiOnly, familyOnly]);
+const filtered = allPolicies;
 
   const activeTags = useMemo(() => {
     const tags = [];

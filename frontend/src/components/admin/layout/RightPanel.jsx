@@ -61,11 +61,11 @@ const RightPanel = ({ onNavigate, currentPage }) => {
           count: supportChats.filter((s) => s.status !== "Resolved").length,
           page: "support",
         },
-        {
-          label: "Quotes requested",
-          count: requirementRows.length,
-          page: "requirements",
-        },
+        // {
+        //   label: "Quotes requested",
+        //   count: requirementRows.length,
+        //   page: "requirements",
+        // },
       ].map(({ label, count, page }) => (
         <button
           key={label}

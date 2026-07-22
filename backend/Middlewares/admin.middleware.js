@@ -15,11 +15,8 @@ const extractToken = (req) => {
   return authHeader.split(" ")[1];
 };
 
-/**
- * Middleware: authenticateAdmin
- * Verifies the JWT token and attaches the admin document to req.admin.
- * The admin JWT payload is signed as { id, name, email } by authAdmin.controller.js.
- */
+
+
 const authenticateAdmin = catchAsync(async (req, res, next) => {
   const token = extractToken(req);
 
