@@ -21,7 +21,8 @@ const buildAuthResponse = (user) => {
 
 const safeSendMail = async (mailOptions) => {
   try {
-    await transporter.sendMail(mailOptions);
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`[SMTP SUCCESS] Email sent to: ${mailOptions.to} (MessageId: ${info?.messageId || "ok"})`);
   } catch (err) {
     console.error("SMTP email send failed (unconfigured/blocked):", err.message);
     console.log(`[DEMO FALLBACK EMAIL LOG] To: ${mailOptions.to} | Subject: ${mailOptions.subject}`);
@@ -59,6 +60,8 @@ const register = catchAsync(async (req, res, next) => {
       { otp, expiresAt },
       { upsert: true, new: true }
     );
+
+    console.log(`[AUTH REGISTRATION OTP] Email: ${email} | Code: ${otp}`);
 
     const mailOptions = {
       from: process.env.SENDER_EMAIL || '"Agile Insurance" <no-reply@agileinsure.in>',

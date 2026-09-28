@@ -149,20 +149,34 @@ const AuthPage = () => {
     resetMessaging();
   };
 
+  const googleInitializedRef = useRef(false);
+  const loginWithGoogleRef = useRef(loginWithGoogle);
+  const navigateRef = useRef(navigate);
+  const returnToRef = useRef(returnTo);
+
+  useEffect(() => {
+    loginWithGoogleRef.current = loginWithGoogle;
+    navigateRef.current = navigate;
+    returnToRef.current = returnTo;
+  });
+
   useEffect(() => {
     if (!GOOGLE_CLIENT_ID) return;
+    if (otpStep || forgotView || require2FAEmail) return;
 
-    const initializeGoogleBtn = () => {
-      if (window.google?.accounts?.id) {
+    const renderGoogleBtn = () => {
+      if (!window.google?.accounts?.id) return;
+
+      if (!googleInitializedRef.current) {
         window.google.accounts.id.initialize({
           client_id: GOOGLE_CLIENT_ID,
           callback: async (response) => {
-            if (response.credential) {
+            if (response?.credential) {
               setBusy(true);
               setError("");
               try {
-                await loginWithGoogle({ idToken: response.credential });
-                navigate(returnTo, { replace: true });
+                await loginWithGoogleRef.current({ idToken: response.credential });
+                navigateRef.current(returnToRef.current, { replace: true });
               } catch (err) {
                 setError(err.message || "Google Authentication failed");
               } finally {
@@ -171,9 +185,13 @@ const AuthPage = () => {
             }
           },
         });
-        const container = document.getElementById("google-signin-btn");
-        if (container) {
-          container.innerHTML = "";
+        googleInitializedRef.current = true;
+      }
+
+      const container = document.getElementById("google-signin-btn");
+      if (container) {
+        container.innerHTML = "";
+        try {
           window.google.accounts.id.renderButton(container, {
             theme: "outline",
             size: "large",
@@ -181,12 +199,14 @@ const AuthPage = () => {
             text: "signin_with",
             shape: "pill",
           });
+        } catch (e) {
+          console.warn("Could not render Google Sign-In button:", e);
         }
       }
     };
 
     if (window.google?.accounts?.id) {
-      const timer = setTimeout(initializeGoogleBtn, 100);
+      const timer = setTimeout(renderGoogleBtn, 100);
       return () => clearTimeout(timer);
     }
 
@@ -198,13 +218,14 @@ const AuthPage = () => {
       script.async = true;
       script.defer = true;
       script.onload = () => {
-        setTimeout(initializeGoogleBtn, 100);
+        setTimeout(renderGoogleBtn, 100);
       };
       document.body.appendChild(script);
     } else {
-      setTimeout(initializeGoogleBtn, 100);
+      const timer = setTimeout(renderGoogleBtn, 100);
+      return () => clearTimeout(timer);
     }
-  }, [GOOGLE_CLIENT_ID, mode, forgotView, otpStep, require2FAEmail, navigate, returnTo]);
+  }, [GOOGLE_CLIENT_ID, mode, forgotView, otpStep, require2FAEmail]);
 
   const handleFacebookClick = () => {
     resetMessaging();
@@ -643,24 +664,26 @@ const AuthPage = () => {
                 </button>
               )}
 
-              <div className="pt-2">
-                <div className="mb-4 flex items-center gap-3">
-                  <div className="h-px flex-1 bg-slate-100" />
-                  <span className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">or continue with</span>
-                  <div className="h-px flex-1 bg-slate-100" />
+              {!otpStep && (
+                <div className="pt-2">
+                  <div className="mb-4 flex items-center gap-3">
+                    <div className="h-px flex-1 bg-slate-100" />
+                    <span className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">or continue with</span>
+                    <div className="h-px flex-1 bg-slate-100" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 items-center">
+                    <div id="google-signin-btn" className="w-full flex justify-center"></div>
+                    <button
+                      type="button"
+                      onClick={handleFacebookClick}
+                      className="flex items-center cursor-pointer justify-center gap-2.5 rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-semibold text-slate-700 shadow-sm transition-all duration-200 hover:bg-slate-50 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 active:scale-[0.98]"
+                    >
+                      <FacebookLogo />
+                      <span>Facebook</span>
+                    </button>
+                  </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3 items-center">
-                  <div id="google-signin-btn" className="w-full flex justify-center"></div>
-                  <button
-                    type="button"
-                    onClick={handleFacebookClick}
-                    className="flex items-center cursor-pointer justify-center gap-2.5 rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-semibold text-slate-700 shadow-sm transition-all duration-200 hover:bg-slate-50 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 active:scale-[0.98]"
-                  >
-                    <FacebookLogo />
-                    <span>Facebook</span>
-                  </button>
-                </div>
-              </div>
+              )}
 
               <div className="text-center text-sm font-medium text-slate-600">
                 {mode === "register" ? (
